@@ -1,0 +1,290 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 'Example microservice deploy'
+
+Transform:
+  - UpdateDeploymentTransform
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
+      experimental environments without crash official development environment'
+  
+  LambdasBucketName:
+    Type: String
+    Description: 'The S3 bucket from which to fetch the templates used by this stack.'
+
+  # Unused but required by CD pipeline
+  MicroserviceNumber:
+    Type: Number
+    Description: 'Disambiguation useful for load balancer rules'
+
+  # Unused but required by CD pipeline
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: 'The S3 bucket from which to fetch the templates used by this stack.'
+
+  #SNS Topic Alarm Arn and Name
+  AlarmSNSTopicArn:
+    Type: String
+    Description: "An ARN of an SNS topic where to send alarm when log line includes ERROR or FATAL" 
+  
+  Version:
+    Type: String
+    Description: "Keep versioning of commitIds used for cloudformation templates"
+  
+  LogsKinesisSourceStreamArn:
+    Type: String
+    Description: 'Kinesis stream that receive logs'
+
+  # - Log exports parameters
+  CloudwatchFilterPattern:
+    Default: ''
+    Type: String
+    Description: filter expression for exported logs
+
+Conditions:
+  SendLogToKinesis: !Not [ !Equals [ !Ref LogsKinesisSourceStreamArn, '' ] ]
+
+
+Resources:
+  ###             LAMBDA1             ###
+  #########################################################
+
+  # Lambda function
+  Function1Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-Function1Lambda'
+      Runtime: nodejs14.x
+      Handler: 'index.handler'
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: 'pn-progression-sensor/main/functions/function1.zip'
+      Role: !GetAtt Function1LambdaRole.Arn
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"          
+
+  # Lambda function role
+  Function1LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-Function1LambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+
+  # Lambda function IAM policy
+  Function1LambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-Function1LambdaPolicy
+      Roles:
+        - !Ref Function1LambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'apigateway:*'
+              - 'dynamodb:GetItem'
+              - 'dynamodb:Query'
+            Resource: "*"
+
+  # lambda function Log Group
+  Function1LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Function1Lambda}"
+      RetentionInDays: 14
+
+  # Lambda function CloudWatch Logs Metric Filter
+  Function1FatalLogsMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName:
+        !Ref Function1LambdaLogGroup
+      FilterPattern: '?ERROR ?FATAL ?CRITICAL'
+      MetricTransformations:
+        - MetricValue: 1
+          MetricNamespace: "ErrorFatalLogs"
+          MetricName: !Sub ${ProjectName}-progressionSensor-Function1FatalMetric
+
+  # Lambda function CloudWatch alarm
+  Function1ErrorFatalLogsMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: Function1FatalLogsMetricFilter
+    Properties:
+      AlarmName: !Sub ${ProjectName}-progressionSensor-Function1ErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      InsufficientDataActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      DatapointsToAlarm: 1
+      MetricName: !Sub ${ProjectName}-progressionSensor-Function1ErrorFatalMetric
+      Namespace: ErrorFatalLogs
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ###             LAMBDA2             ###
+  #########################################################
+
+  # Lambda function
+  Function2Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-Function2Lambda'
+      Runtime: nodejs14.x
+      Handler: 'index.handler'
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: 'pn-progression-sensor/main/functions/function2.zip'
+      Role: !GetAtt Function2LambdaRole.Arn
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"          
+
+  # Lambda function role
+  Function2LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-Function2LambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+
+  # Lambda function IAM policy
+  Function2LambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-Function2LambdaPolicy
+      Roles:
+        - !Ref Function1LambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'apigateway:*'
+              - 'dynamodb:GetItem'
+              - 'dynamodb:Query'
+            Resource: "*"
+
+  # lambda function Log Group
+  Function2LambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${Function2Lambda}"
+      RetentionInDays: 14
+
+  # Lambda function CloudWatch Logs Metric Filter
+  Function2FatalLogsMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName:
+        !Ref Function2LambdaLogGroup
+      FilterPattern: '?ERROR ?FATAL ?CRITICAL'
+      MetricTransformations:
+        - MetricValue: 1
+          MetricNamespace: "ErrorFatalLogs"
+          MetricName: !Sub ${ProjectName}-progressionSensor-Function2FatalMetric
+
+  # Lambda function CloudWatch alarm
+  Function2ErrorFatalLogsMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: Function2FatalLogsMetricFilter
+    Properties:
+      AlarmName: !Sub ${ProjectName}-progressionSensor-Function2ErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      InsufficientDataActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      DatapointsToAlarm: 1
+      MetricName: !Sub ${ProjectName}-progressionSensor-Function2ErrorFatalMetric
+      Namespace: ErrorFatalLogs
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  ### IAM Role used by Subscription filters to allow read logs from Cloudwatch and send logs to Kinesis Firehose
+  SubscriptionFilterServiceRole:
+    Condition: SendLogToKinesis
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: logs.amazonaws.com
+        Version: "2012-10-17"
+      Path: /
+      Policies:
+        -
+          PolicyName: !Sub '${ProjectName}-progression-sensor-logs-subscription-role'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                  - kinesis:PutRecord
+                Effect: Allow
+                Resource: "*"
+              - Action:
+                  - "kms:Encrypt"
+                  - "kms:GenerateDataKey"
+                  - "kms:Decrypt"
+                Effect: Allow
+                Resource: "*"
+
+ 
+  Function1SubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref Function1LambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  Function2SubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref Function2LambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
