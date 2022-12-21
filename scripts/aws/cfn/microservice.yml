@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Description: 'The S3 bucket from which to fetch the templates used by this stack.'
 
+  BucketBasePath:
+    Type: String
+    Description: 'The S3 bucket base path where lambda functions are stored'
+
   # Unused but required by CD pipeline
   MicroserviceNumber:
     Type: Number
@@ -60,7 +64,7 @@ Resources:
       Handler: 'index.handler'
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: 'pn-progression-sensor/main/function1.zip'
+        S3Key: !Sub "${BucketBasePath}/function1.zip"
       Role: !GetAtt Function1LambdaRole.Arn
       TracingConfig:
         Mode: Active
@@ -156,7 +160,7 @@ Resources:
       Handler: 'index.handler'
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: 'pn-progression-sensor/main/function2.zip'
+        S3Key: !Sub "${BucketBasePath}/function2.zip"
       Role: !GetAtt Function2LambdaRole.Arn
       TracingConfig:
         Mode: Active
