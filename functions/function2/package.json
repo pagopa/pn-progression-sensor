@@ -1,17 +1,16 @@
 {
-    "name": "function2-lambda",
-    "version": "0.0.1",
-    "type": "module",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-      "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "dependencies": {
-    },
-    "devDependencies": {
-      "eslint": "^8.23.1",
-      "eslint-plugin-import": "^2.26.0"
-    }
-  }
-  
+  "name": "function2-lambda",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "eslint": "^8.23.1",
+    "eslint-plugin-import": "^2.26.0"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
