@@ -1,6 +1,6 @@
 let options = {
     "sonar.organization": "pagopa",
-    "sonar.projectKey": "pagopa_pn-progression-sensor_function2"
+    "sonar.projectKey": "pagopa_pn-progression-sensor-function2"
 }
 
 if (typeof process.env.PR_NUM !== 'undefined' ) {

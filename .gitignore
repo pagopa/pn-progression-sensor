@@ -4,3 +4,4 @@ node_modules
 .scannerwork
 .nyc_output
 coverage
+function.zip
