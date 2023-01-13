@@ -1,2 +1,7 @@
 node_modules
 .DS_Store
+.env
+.scannerwork
+.nyc_output
+coverage
+function.zip
