@@ -28,9 +28,6 @@ Parameters:
     Type: String
     Description: "Topic alarm"
 
-Conditions:
-  Never: !Equals ["true", "false"]
-
 Resources:
   ProgressionSensorDataTable:
     Type: AWS::DynamoDB::Table
@@ -101,6 +98,10 @@ Resources:
         Enabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      KinesisStreamSpecification:
+        StreamArn: !Ref CdcKinesisSourceStreamArn
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
 
 Outputs:
   ProgressionSensorDataDynamoTableName:
