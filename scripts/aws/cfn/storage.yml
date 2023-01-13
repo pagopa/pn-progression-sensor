@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: Some storage with input and output
 
 Parameters:
@@ -18,18 +18,94 @@ Parameters:
 
   Version:
     Type: String
-    Description: 'keep track of used projects commitIds'
+    Description: "keep track of used projects commitIds"
+
+  CdcKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
+  AlarmSNSTopicName:
+    Type: String
+    Description: "Topic alarm"
 
 Conditions:
-  Never: !Equals [ 'true', 'false' ]
+  Never: !Equals ["true", "false"]
 
-# dummy (null) resource, never created
 Resources:
-  NullResource:
-    Type: Custom::Null
-    Condition: Never
+  ProgressionSensorDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-ProgressionSensorData"
+      AttributeDefinitions:
+        # primary key
+        - AttributeName: "entityName_type" # entity type (step or sla violation) concatenated to step type
+          AttributeType: "S"
+        - AttributeName: "id" # string concatenation based on step type
+          AttributeType: "S"
+        # secondary keys
+        - AttributeName: "relatedIUN"
+          AttributeType: "S"
+        - AttributeName: "isActive" # bool
+          AttributeType: "N"
+        - AttributeName: "endTimestampYearMonth"
+          AttributeType: "S"
+        - AttributeName: "endTimeStamp" # bool
+          AttributeType: "N"
+        - AttributeName: "alarmTTLYearToMinute"
+          AttributeType: "S"
+        - AttributeName: "alarmTTLSecondsAndMilliseconds"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "entityName_type"
+          KeyType: "HASH"
+        - AttributeName: "id"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        # violations read patterns
+        - IndexName: "iun-index"
+          KeySchema:
+            - AttributeName: "relatedIUN"
+              KeyType: "HASH"
+            - AttributeName: "id"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: "activeViolations-index"
+          KeySchema:
+            - AttributeName: "entityName_type"
+              KeyType: "HASH"
+            - AttributeName: "isActive"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: "partitionedEndTimeStamp-index"
+          KeySchema:
+            - AttributeName: "endTimestampYearMonth" # 2023-01
+              KeyType: "HASH"
+            - AttributeName: "endTimeStamp"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        # activity step read pattern
+        - IndexName: "alarmTTL-index"
+          KeySchema:
+            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp
+              KeyType: "HASH"
+            - AttributeName: "alarmTTLSecondsAndMilliseconds" # from ISO timestamp
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: "PAY_PER_REQUEST"
+      TimeToLiveSpecification:
+        AttributeName: "alarmTTL"
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
 
 Outputs:
-  Dummy:
-    Description: 'The deploy scripts need at least one Output'
-    Value: 'FooBar'
+  ProgressionSensorDataDynamoTableName:
+    Description: Name of dynamodb table containing notifications metadata
+    Value: !Ref ProgressionSensorDataTable
+  ProgressionSensorDataDynamoTableArn:
+    Description: ARN of dynamodb table containing notifications metadata
+    Value: !Sub "${ProgressionSensorDataTable.Arn}"
