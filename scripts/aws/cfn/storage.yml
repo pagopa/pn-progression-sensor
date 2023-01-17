@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: Some storage with input and output
 
 Parameters:
@@ -18,18 +18,116 @@ Parameters:
 
   Version:
     Type: String
-    Description: 'keep track of used projects commitIds'
+    Description: "keep track of used projects commitIds"
 
-Conditions:
-  Never: !Equals [ 'true', 'false' ]
+  CdcProgressionSensorStreamRetentionHours:
+    Type: Number
+    Description: "Change Data Capture Kinesis Data Stream retention period in hours"
+    Default: "72"
 
-# dummy (null) resource, never created
+  AlarmSNSTopicName:
+    Type: String
+    Description: "Topic alarm"
+
 Resources:
-  NullResource:
-    Type: Custom::Null
-    Condition: Never
+  ## KINESIS SOURCE STREAM FOR Change Data Capture
+  CdcProgressionSensorKinesisSourceStream:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/kinesis-stream.yaml"
+      Parameters:
+        StreamName: !Sub "${ProjectName}-cdc-progression-sensor-stream"
+        StreamRetentionPeriodHours: !Ref CdcProgressionSensorStreamRetentionHours
+
+  ProgressionSensorDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-ProgressionSensorData"
+      AttributeDefinitions:
+        # primary key
+        - AttributeName: "entityName_type_relatedEntityId" # entity type (step or sla violation) concatenated to step type and then to IUN
+          AttributeType: "S"
+        - AttributeName: "id" # string concatenation based on step type
+          AttributeType: "S"
+        # secondary keys
+        - AttributeName: "sla_relatedEntityId" # IUN
+          AttributeType: "S"
+        - AttributeName: "endTimestampYearMonth"
+          AttributeType: "S"
+        - AttributeName: "endTimeStamp" # bool
+          AttributeType: "N"
+        - AttributeName: "alarmTTLYearToMinute"
+          AttributeType: "S"
+        - AttributeName: "alarmTTL" # alarmTTL set both for steps and SLA; step_alarmTTL only set for steps (and TTL is set on step_alarmTTL, so it's an 'N' type)
+          AttributeType: "S"
+        - AttributeName: "active_sla_entityName_type"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "entityName_type_relatedEntityId"
+          KeyType: "HASH"
+        - AttributeName: "id"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        # violations read patterns
+        - IndexName: "iun-index"
+          KeySchema:
+            - AttributeName: "sla_relatedEntityId"
+              KeyType: "HASH"
+            - AttributeName: "alarmTTL"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: "activeViolations-index"
+          KeySchema:
+            - AttributeName: "active_sla_entityName_type" # new field for SLA Violations, to be removed when endTimestamp is set (and the SLA Violation is historicized)
+              KeyType: "HASH"
+            - AttributeName: "alarmTTL"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: "partitionedEndTimeStamp-index"
+          KeySchema:
+            - AttributeName: "endTimestampYearMonth" # 2023-01 - present only for storicized SLA Violations (when endTimestamp != null)
+              KeyType: "HASH"
+            - AttributeName: "endTimeStamp"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        # activity step read pattern
+        - IndexName: "alarmTTL-index"
+          KeySchema:
+            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp, with 00# (hex) deterministic prefix, generated started from IUN (00#[ISOTIMESTAMPYearTominute])
+              KeyType: "HASH"
+            - AttributeName: "id" # no longer alarmTTLSecondsAndMilliseconds from ISO timestamp
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: "PAY_PER_REQUEST"
+      TimeToLiveSpecification:
+        AttributeName: "step_alarmTTL"
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      KinesisStreamSpecification:
+        StreamArn: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
 
 Outputs:
-  Dummy:
-    Description: 'The deploy scripts need at least one Output'
-    Value: 'FooBar'
+  ProgressionSensorDataDynamoTableName:
+    Description: Name of dynamodb table containing notifications metadata
+    Value: !Ref ProgressionSensorDataTable
+  ProgressionSensorDataDynamoTableArn:
+    Description: ARN of dynamodb table containing notifications metadata
+    Value: !Sub "${ProgressionSensorDataTable.Arn}"
+
+  # Kinesis Source Stream containing the DynamoDB Change Data Capture events
+  CdcProgressionSensorKinesisSourceStreamName:
+    Description: "Kinesis source CDC stream name"
+    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamName
+  CdcProgressionSensorKinesisSourceStreamArn:
+    Description: "Kinesis source CDC stream ARN"
+    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
+  CdcProgressionSensorKinesisSourceStreamKeyArn:
+    Description: "Kinesis source CDC stream crypto key ARN"
+    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamKeyArn
