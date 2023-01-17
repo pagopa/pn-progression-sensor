@@ -119,3 +119,14 @@ Outputs:
   ProgressionSensorDataDynamoTableArn:
     Description: ARN of dynamodb table containing notifications metadata
     Value: !Sub "${ProgressionSensorDataTable.Arn}"
+
+  # Kinesis Source Stream containing the DynamoDB Change Data Capture events
+  CdcProgressionSensorKinesisSourceStreamName:
+    Description: 'Kinesis source CDC stream name'
+    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamName
+  CdcProgressionSensorKinesisSourceStreamArn:
+    Description: 'Kinesis source CDC stream ARN'
+    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
+  CdcProgressionSensorKinesisSourceStreamKeyArn:
+    Description: 'Kinesis source CDC stream crypto key ARN'
+    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamKeyArn
