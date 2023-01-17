@@ -23,6 +23,7 @@ Parameters:
   CdcProgressionSensorStreamRetentionHours:
     Type: Number
     Description: "Change Data Capture Kinesis Data Stream retention period in hours"
+    Default: "72"
 
   AlarmSNSTopicName:
     Type: String
