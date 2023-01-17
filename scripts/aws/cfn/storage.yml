@@ -109,7 +109,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       KinesisStreamSpecification:
-        StreamArn: !Ref CdcProgressionSensorKinesisSourceStream
+        StreamArn: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
