@@ -57,8 +57,6 @@ Resources:
           AttributeType: "N"
         - AttributeName: "alarmTTLYearToMinute"
           AttributeType: "S"
-        - AttributeName: "alarmTTLSecondsAndMilliseconds"
-          AttributeType: "S"
         - AttributeName: "step_alarmTTL"
           AttributeType: "N"
         - AttributeName: "active_sla_entityName_type"
@@ -97,9 +95,9 @@ Resources:
         # activity step read pattern
         - IndexName: "alarmTTL-index"
           KeySchema:
-            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp
+            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp, with 00# (hex) deterministic prefix, generated started from IUN (00#[ISOTIMESTAMPYearTominute])
               KeyType: "HASH"
-            - AttributeName: "alarmTTLSecondsAndMilliseconds" # from ISO timestamp
+            - AttributeName: "id" # no longer alarmTTLSecondsAndMilliseconds from ISO timestamp
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
