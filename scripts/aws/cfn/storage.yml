@@ -22,7 +22,7 @@ Parameters:
 
   CdcProgressionSensorStreamRetentionHours:
     Type: Number
-    Description: 'Change Data Capture Kinesis Data Stream retention period in hours'
+    Description: "Change Data Capture Kinesis Data Stream retention period in hours"
 
   AlarmSNSTopicName:
     Type: String
@@ -35,7 +35,7 @@ Resources:
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/kinesis-stream.yaml"
       Parameters:
-        StreamName: !Sub '${ProjectName}-cdc-progression-sensor-stream'
+        StreamName: !Sub "${ProjectName}-cdc-progression-sensor-stream"
         StreamRetentionPeriodHours: !Ref CdcProgressionSensorStreamRetentionHours
 
   ProgressionSensorDataTable:
@@ -44,15 +44,13 @@ Resources:
       TableName: !Sub "${ProjectName}-ProgressionSensorData"
       AttributeDefinitions:
         # primary key
-        - AttributeName: "entityName_type" # entity type (step or sla violation) concatenated to step type
+        - AttributeName: "entityName_type_relatedEntityId" # entity type (step or sla violation) concatenated to step type and then to IUN
           AttributeType: "S"
         - AttributeName: "id" # string concatenation based on step type
           AttributeType: "S"
         # secondary keys
-        - AttributeName: "relatedIUN"
+        - AttributeName: "sla_relatedEntityId" # IUN
           AttributeType: "S"
-        - AttributeName: "isActive" # bool
-          AttributeType: "N"
         - AttributeName: "endTimestampYearMonth"
           AttributeType: "S"
         - AttributeName: "endTimeStamp" # bool
@@ -61,8 +59,12 @@ Resources:
           AttributeType: "S"
         - AttributeName: "alarmTTLSecondsAndMilliseconds"
           AttributeType: "S"
+        - AttributeName: "step_alarmTTL"
+          AttributeType: "N"
+        - AttributeName: "active_sla_entityName_type"
+          AttributeType: "S"
       KeySchema:
-        - AttributeName: "entityName_type"
+        - AttributeName: "entityName_type_relatedEntityId"
           KeyType: "HASH"
         - AttributeName: "id"
           KeyType: "RANGE"
@@ -70,23 +72,23 @@ Resources:
         # violations read patterns
         - IndexName: "iun-index"
           KeySchema:
-            - AttributeName: "relatedIUN"
+            - AttributeName: "sla_relatedEntityId"
               KeyType: "HASH"
-            - AttributeName: "id"
+            - AttributeName: "step_alarmTTL"
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
         - IndexName: "activeViolations-index"
           KeySchema:
-            - AttributeName: "entityName_type"
+            - AttributeName: "active_sla_entityName_type" # new field for SLA Violations, to be removed when endTimestamp is set (and the SLA Violation is historicized)
               KeyType: "HASH"
-            - AttributeName: "isActive"
+            - AttributeName: "step_alarmTTL"
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
         - IndexName: "partitionedEndTimeStamp-index"
           KeySchema:
-            - AttributeName: "endTimestampYearMonth" # 2023-01
+            - AttributeName: "endTimestampYearMonth" # 2023-01 - present only for storicized SLA Violations (when endTimestamp != null)
               KeyType: "HASH"
             - AttributeName: "endTimeStamp"
               KeyType: "RANGE"
@@ -103,7 +105,7 @@ Resources:
             ProjectionType: "ALL"
       BillingMode: "PAY_PER_REQUEST"
       TimeToLiveSpecification:
-        AttributeName: "alarmTTL"
+        AttributeName: "step_alarmTTL"
         Enabled: true
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
@@ -122,11 +124,11 @@ Outputs:
 
   # Kinesis Source Stream containing the DynamoDB Change Data Capture events
   CdcProgressionSensorKinesisSourceStreamName:
-    Description: 'Kinesis source CDC stream name'
+    Description: "Kinesis source CDC stream name"
     Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamName
   CdcProgressionSensorKinesisSourceStreamArn:
-    Description: 'Kinesis source CDC stream ARN'
+    Description: "Kinesis source CDC stream ARN"
     Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
   CdcProgressionSensorKinesisSourceStreamKeyArn:
-    Description: 'Kinesis source CDC stream crypto key ARN'
+    Description: "Kinesis source CDC stream crypto key ARN"
     Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamKeyArn
