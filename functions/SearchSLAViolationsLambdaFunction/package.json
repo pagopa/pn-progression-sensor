@@ -1,5 +1,5 @@
 {
-  "name": "function1-lambda",
+  "name": "search-sla-violations-function-lambda",
   "version": "0.0.1",
   "type": "module",
   "main": "index.js",
@@ -13,7 +13,7 @@
   "devDependencies": {
     "eslint": "^8.23.1",
     "eslint-plugin-import": "^2.26.0",
-    "aws-sdk": "^2.1066.0",
+    "aws-sdk": "^2.1295.0",
     "aws-sdk-mock": "^5.6.2",
     "chai": "^4.3.6",
     "lambda-tester": "^4.0.1",

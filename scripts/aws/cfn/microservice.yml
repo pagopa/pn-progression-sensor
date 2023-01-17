@@ -102,11 +102,8 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              # TO BE DONE...!
-              - "apigateway:*"
-              - "dynamodb:GetItem"
               - "dynamodb:Query"
-            Resource: "*"
+            Resource: !ImportValue ProgressionSensorDataTable
 
   # lambda function Log Group
   SearchSLAViolationsLambdaFunctionLogGroup:

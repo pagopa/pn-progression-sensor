@@ -18,7 +18,7 @@
 //   isActive: boolean
 //   endTimestamp: string con formato date-time
 
-const handler = async (event) => {
+const handler = async (event, context, callback) => {
   // temp...
   console.log("event", event);
   const payload = {

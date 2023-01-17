@@ -112,6 +112,9 @@ Resources:
         StreamArn: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
       StreamSpecification:
         StreamViewType: NEW_IMAGE
+      Export:
+      Name:
+        "Fn::Sub": "${AWS::StackName}-SubnetID"
 
 Outputs:
   ProgressionSensorDataDynamoTableName:
