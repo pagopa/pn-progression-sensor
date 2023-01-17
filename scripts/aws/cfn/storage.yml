@@ -20,15 +20,24 @@ Parameters:
     Type: String
     Description: "keep track of used projects commitIds"
 
-  CdcKinesisSourceStreamArn:
-    Type: String
-    Description: "Where to send CDC"
+  CdcProgressionSensorStreamRetentionHours:
+    Type: Number
+    Description: 'Change Data Capture Kinesis Data Stream retention period in hours'
 
   AlarmSNSTopicName:
     Type: String
     Description: "Topic alarm"
 
 Resources:
+  ## KINESIS SOURCE STREAM FOR Change Data Capture
+  CdcProgressionSensorKinesisSourceStream:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/kinesis-stream.yaml"
+      Parameters:
+        StreamName: !Sub '${ProjectName}-cdc-progression-sensor-stream'
+        StreamRetentionPeriodHours: !Ref CdcProgressionSensorStreamRetentionHours
+
   ProgressionSensorDataTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -99,7 +108,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       KinesisStreamSpecification:
-        StreamArn: !Ref CdcKinesisSourceStreamArn
+        StreamArn: !Ref CdcProgressionSensorKinesisSourceStream
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
