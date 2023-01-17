@@ -57,7 +57,7 @@ Resources:
           AttributeType: "N"
         - AttributeName: "alarmTTLYearToMinute"
           AttributeType: "S"
-        - AttributeName: "step_alarmTTL"
+        - AttributeName: "alarmTTL" # alarmTTL set both for steps and SLA; step_alarmTTL only set for steps (and TTL is set on step_alarmTTL)
           AttributeType: "N"
         - AttributeName: "active_sla_entityName_type"
           AttributeType: "S"
@@ -72,7 +72,7 @@ Resources:
           KeySchema:
             - AttributeName: "sla_relatedEntityId"
               KeyType: "HASH"
-            - AttributeName: "step_alarmTTL"
+            - AttributeName: "alarmTTL"
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
@@ -80,7 +80,7 @@ Resources:
           KeySchema:
             - AttributeName: "active_sla_entityName_type" # new field for SLA Violations, to be removed when endTimestamp is set (and the SLA Violation is historicized)
               KeyType: "HASH"
-            - AttributeName: "step_alarmTTL"
+            - AttributeName: "alarmTTL"
               KeyType: "RANGE"
           Projection:
             ProjectionType: "ALL"
