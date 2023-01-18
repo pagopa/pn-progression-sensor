@@ -332,5 +332,5 @@ Resources:
       StartingPosition: LATEST
       FilterCriteria:
         Filters: 
-          - Pattern: "{\"eventName\": [\"INSERT\"], \"tableName\": [\"pn-Timelines\"] }"
-          - Pattern: "{\"eventName\": [\"INSERT\"], \"tableName\": [\"pn-Notifications\"] }"
+          - Pattern: '{"eventName": ["INSERT"], "tableName": ["pn-Timelines"] }'
+          - Pattern: '{"eventName": ["INSERT"], "tableName": ["pn-Notifications"] }'
