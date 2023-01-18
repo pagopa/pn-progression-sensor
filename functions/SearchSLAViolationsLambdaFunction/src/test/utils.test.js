@@ -8,11 +8,19 @@ describe("is valid datetime string", function () {
   });
 
   it("invalid datetime parts", () => {
-    expect(isValidDate("2023-13-18 14:37")).to.be.false;
+    expect(isValidDate("2023-13-18 14:37")).to.be.false; // month 13 is not ok
   });
 
   it("invalid datetime", () => {
     expect(isValidDate("not a datetime")).to.be.false;
+  });
+
+  it("empty datetime", () => {
+    expect(isValidDate("")).to.be.false;
+  });
+
+  it("null datetime", () => {
+    expect(isValidDate()).to.be.false;
   });
 });
 
@@ -39,5 +47,13 @@ describe("is valid type string", function () {
 
   it("wrong type", () => {
     expect(isValidType("WRONG_TYPE")).to.be.false;
+  });
+
+  it("empty type", () => {
+    expect(isValidType("")).to.be.false;
+  });
+
+  it("null type", () => {
+    expect(isValidType("")).to.be.false;
   });
 });

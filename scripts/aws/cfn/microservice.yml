@@ -48,6 +48,10 @@ Parameters:
     Type: String
     Description: filter expression for exported logs
 
+  ProgressionSensorDataDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing notifications metadata
+
   ProgressionSensorDataDynamoTableArn:
     Type: String
     Description: Arn of dynamodb table containing notifications metadata
@@ -75,6 +79,9 @@ Resources:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
 
   # Lambda function role
   SearchSLAViolationsLambdaFunctionRole:
@@ -106,7 +113,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'dynamodb:Query'
+              - "dynamodb:Query"
             Resource:
               - !Sub "${ProgressionSensorDataDynamoTableArn}"
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"

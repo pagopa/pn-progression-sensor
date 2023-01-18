@@ -3,6 +3,8 @@ const { AWS } = pkg;
 
 import { isValidDate, isValidType } from "../utils.js";
 
+const tableName = process.env.DYNAMODB_TABLE;
+
 // Request
 //
 // type: string (required)
@@ -53,8 +55,8 @@ const handler = async (event, context, callback) => {
   if (
     !isValidType(event.type) ||
     typeof event.active !== "boolean" ||
-    (!!event.olderThan && !isValidDate(event.olderThan)) ||
-    (!!event.lastScannedKey && typeof event.lastScannedKey !== "string")
+    (event.olderThan != null && !isValidDate(event.olderThan)) || // we control it only if passed
+    typeof event.lastScannedKey !== "string"
   ) {
     payload.success = false;
     payload.message = "incorrect input parameters";
@@ -64,8 +66,44 @@ const handler = async (event, context, callback) => {
   // -- 2. DynamoDB query
   const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
-  // ...
-  const response = {};
+  let response = null;
+
+  try {
+    if (event.active) {
+      // index: activeViolations-index
+      // ...
+      response = await dynamoDB
+        .query({
+          TableName: tableName,
+          IndexName: "activeViolations-index",
+          KeyConditionExpression: "gsi1pk = :gsi1pk... INSERT",
+          ExpressionAttributeValues: {
+            //':gsi1pk': '123',
+          },
+          ScanIndexForward: false,
+        })
+        .promise();
+    } else {
+      // index: partitionedEndTimestamp-index
+      // ...
+      response = await dynamoDB
+        .query({
+          TableName: tableName,
+          IndexName: "partitionedEndTimestamp-index",
+          KeyConditionExpression: "gsi1pk = :gsi1pk... INSERT",
+          ExpressionAttributeValues: {
+            //':gsi1pk': '123',
+          },
+          ScanIndexForward: false,
+        })
+        .promise();
+    }
+  } catch (error) {
+    payload.success = false;
+    payload.message = JSON.stringify(error);
+    console.err("error on query", payload.message);
+    return JSON.stringify(payload);
+  }
 
   // -- 3. prepare and return response
   if (response?.Items && response.Items.length > 0) {
