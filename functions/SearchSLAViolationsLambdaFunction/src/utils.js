@@ -26,6 +26,26 @@ function dateTimeStringToUNIXTimeStamp(dateString) {
 }
 
 /**
+ * returns a string in the format "2023-01" from a valid datetime string
+ *
+ * @param {string} dateString a string containing a valid datetime
+ * @returns {string} string in the format "2023-01" from a valid datetime string
+ * @throws {string} "Not a valid datetime string"
+ */
+function dateTimeStringToYearAndMonth(dateString) {
+  if (isValidDate(dateString)) {
+    const datetimeObject = new Date(dateString);
+    let month = datetimeObject.getUTCMonth() + 1;
+    if (month < 10) {
+      month = "0" + month;
+    }
+    return datetimeObject.getUTCFullYear() + "-" + month;
+  } else {
+    throw "Not a valid datetime string";
+  }
+}
+
+/**
  * checks if a string contains a valid type
  *
  * @param {string} typeString a string containing step type
@@ -47,4 +67,9 @@ function isValidType(typeString) {
   return false;
 }
 
-export { isValidDate, isValidType, dateTimeStringToUNIXTimeStamp };
+export {
+  isValidDate,
+  isValidType,
+  dateTimeStringToUNIXTimeStamp,
+  dateTimeStringToYearAndMonth,
+};

@@ -110,6 +110,11 @@ const handler = async (event, context, callback) => {
       //   keyConditionExpression += " and alarmTTL < :sortKey";
       // }
 
+      // partition key without olderThan: take current month
+      //
+      // partition key with olderThan: current month from date
+      // ...
+
       response = await dynamoDB // scan instead on query...?
         .query({
           TableName: tableName,
