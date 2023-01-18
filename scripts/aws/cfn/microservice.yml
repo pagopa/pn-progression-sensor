@@ -48,6 +48,10 @@ Parameters:
     Type: String
     Description: filter expression for exported logs
 
+  ProgressionSensorDataDynamoTableArn:
+    Type: String
+    Description: Arn of dynamodb table containing notifications metadata
+
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
 
@@ -102,8 +106,10 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - "dynamodb:Query"
-            Resource: !ImportValue ProgressionSensorDataTable
+              - 'dynamodb:Query'
+            Resource:
+              - !Sub "${ProgressionSensorDataDynamoTableArn}"
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
 
   # lambda function Log Group
   SearchSLAViolationsLambdaFunctionLogGroup:
