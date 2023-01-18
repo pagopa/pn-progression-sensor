@@ -1,7 +1,7 @@
 import { expect } from "chai";
-import { isValidDate, isValidType } from "../app/index.js";
+import { isValidDate, isValidType } from "../utils.js";
 
-describe("is valid date", function () {
+describe("is valid datetime string", function () {
   it("valid ISO datetime (now)", () => {
     const now = new Date().toISOString();
     expect(isValidDate(now)).to.be.true;
@@ -16,7 +16,7 @@ describe("is valid date", function () {
   });
 });
 
-describe("is valid type", function () {
+describe("is valid type string", function () {
   const knownTypes = [
     "VALIDATION",
     "REFINEMENT",
