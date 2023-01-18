@@ -21,8 +21,9 @@ function decodePayload(b64Str) {
   return parsedJson;
 }
 
-function mustLog(rec){
-  return true;
+function mustProcess(rec){
+  const allowedTables = ['pn-Notifications', 'pn-Timelines']
+  return allowedTables.indexOf(rec.tableName) && rec.eventName=='INSERT'
 }
 
 function extractKinesisData(kinesisEvent) {
@@ -33,7 +34,7 @@ function extractKinesisData(kinesisEvent) {
       ... decodedPayload
     }
   }).filter((rec) => {
-    return mustLog(rec);
+    return mustProcess(rec);
   });
 }
 

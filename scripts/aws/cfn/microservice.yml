@@ -146,8 +146,6 @@ Resources:
       AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
       AlarmActions:
         - !Ref AlarmSNSTopicArn
-      InsufficientDataActions:
-        - !Ref AlarmSNSTopicArn
       OKActions:
         - !Ref AlarmSNSTopicArn
       DatapointsToAlarm: 1
@@ -195,7 +193,6 @@ Resources:
               - sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Path: /
 
   # Lambda function IAM policy
   ActivityStepManagerLambdaPolicy:
@@ -254,8 +251,6 @@ Resources:
       AlarmName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerErrorFatalLogsMetricAlarm
       AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
       AlarmActions:
-        - !Ref AlarmSNSTopicArn
-      InsufficientDataActions:
         - !Ref AlarmSNSTopicArn
       OKActions:
         - !Ref AlarmSNSTopicArn
@@ -322,15 +317,11 @@ Resources:
   ActivityStepManagerLambdaKinesisSource:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 100
+      BatchSize: 20
       BisectBatchOnFunctionError: true
       EventSourceArn: !Ref CdcKinesisSourceStreamArn
       FunctionName: !Ref ActivityStepManagerLambda
       FunctionResponseTypes:
         - ReportBatchItemFailures
-      MaximumBatchingWindowInSeconds: 60 # 1 minute
+      MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
-      FilterCriteria:
-        Filters: 
-          - Pattern: '{"eventName": ["INSERT"], "tableName": ["pn-Timelines"] }'
-          - Pattern: '{"eventName": ["INSERT"], "tableName": ["pn-Notifications"] }'
