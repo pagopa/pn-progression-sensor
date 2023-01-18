@@ -47,6 +47,18 @@ Parameters:
     Type: String
     Description: filter expression for exported logs
 
+  ProgressionSensorDataDynamoTableArn:
+    Type: String
+    Description: ARN of dynamodb table containing notifications metadata
+
+  CdcKinesisSourceStreamArn:
+    Type: String
+    Description: 'Where to send CDC'
+
+  CdcKinesisSourceStreamKeyArn:
+    Description: 'Kinesis source CDC stream crypto key ARN'
+    Type: String
+
 Conditions:
   SendLogToKinesis: !Not [ !Equals [ !Ref LogsKinesisSourceStreamArn, '' ] ]
 
@@ -152,26 +164,26 @@ Resources:
   #########################################################
 
   # Lambda function
-  Function2Lambda:
+  ActivityStepManagerLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-Function2Lambda'
-      Runtime: nodejs14.x
+      FunctionName: !Sub '${ProjectName}-ActivityStepManagerLambda'
+      Runtime: nodejs18.x
       Handler: 'index.handler'
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: !Sub "${BucketBasePath}/function2.zip"
-      Role: !GetAtt Function2LambdaRole.Arn
+        S3Key: !Sub "${BucketBasePath}/activityStepManager.zip"
+      Role: !GetAtt ActivityStepManagerLambdaRole.Arn
       TracingConfig:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"          
 
   # Lambda function role
-  Function2LambdaRole:
+  ActivityStepManagerLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${ProjectName}-Function2LambdaRole
+      RoleName: !Sub ${ProjectName}-ActivityStepManagerLambdaRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -186,47 +198,60 @@ Resources:
       Path: /
 
   # Lambda function IAM policy
-  Function2LambdaPolicy:
+  ActivityStepManagerLambdaPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub ${ProjectName}-Function2LambdaPolicy
+      PolicyName: !Sub ${ProjectName}-ActivityStepManagerLambdaPolicy
       Roles:
-        - !Ref Function1LambdaRole
+        - !Ref ActivityStepManagerLambdaRole
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Action:
-              - 'apigateway:*'
-              - 'dynamodb:GetItem'
-              - 'dynamodb:Query'
-            Resource: "*"
+              - 'dynamodb:*'              
+            Resource:
+              - !Ref ProgressionSensorDataDynamoTableArn
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Resource: !Ref CdcKinesisSourceStreamArn
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource: !Ref CdcKinesisSourceStreamKeyArn
 
   # lambda function Log Group
-  Function2LambdaLogGroup:
+  ActivityStepManagerLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${Function2Lambda}"
+      LogGroupName: !Sub "/aws/lambda/${ActivityStepManagerLambda}"
       RetentionInDays: 14
 
   # Lambda function CloudWatch Logs Metric Filter
-  Function2FatalLogsMetricFilter:
+  ActivityStepManagerFatalLogsMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
       LogGroupName:
-        !Ref Function2LambdaLogGroup
+        !Ref ActivityStepManagerLambdaLogGroup
       FilterPattern: '?ERROR ?FATAL ?CRITICAL'
       MetricTransformations:
         - MetricValue: 1
           MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-Function2FatalMetric
+          MetricName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerFatalMetric
 
   # Lambda function CloudWatch alarm
-  Function2ErrorFatalLogsMetricAlarm:
+  ActivityStepManagerErrorFatalLogsMetricAlarm:
     Type: AWS::CloudWatch::Alarm
-    DependsOn: Function2FatalLogsMetricFilter
+    DependsOn: ActivityStepManagerFatalLogsMetricFilter
     Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-Function2ErrorFatalLogsMetricAlarm
+      AlarmName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerErrorFatalLogsMetricAlarm
       AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
       AlarmActions:
         - !Ref AlarmSNSTopicArn
@@ -235,7 +260,7 @@ Resources:
       OKActions:
         - !Ref AlarmSNSTopicArn
       DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-Function2ErrorFatalMetric
+      MetricName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerErrorFatalMetric
       Namespace: ErrorFatalLogs
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 60
@@ -284,11 +309,28 @@ Resources:
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
 
-  Function2SubscriptionFilter:
+  ActivityStepManagerSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
     Properties:
       RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
-      LogGroupName: !Ref Function2LambdaLogGroup
+      LogGroupName: !Ref ActivityStepManagerLambdaLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  # CDC to Activity Step Manager
+  ActivityStepManagerLambdaKinesisSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 100
+      BisectBatchOnFunctionError: true
+      EventSourceArn: !Ref CdcKinesisSourceStreamArn
+      FunctionName: !Ref ActivityStepManagerLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 60 # 1 minute
+      StartingPosition: LATEST
+      FilterCriteria:
+        Filters: 
+          - Pattern: "{\"eventName\": \"INSERT\", \"tableName\": \"pn-Timelines\"}"
+          - Pattern: "{\"eventName\": \"INSERT\", \"tableName\": \"pn-Notifications\"}"
