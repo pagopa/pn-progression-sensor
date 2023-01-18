@@ -1,7 +1,11 @@
 import pkg from "aws-sdk";
 const { AWS } = pkg;
 
-import { isValidDate, isValidType } from "../utils.js";
+import {
+  dateTimeStringToUNIXTimeStamp,
+  isValidDate,
+  isValidType,
+} from "../utils.js";
 
 const tableName = process.env.DYNAMODB_TABLE;
 
@@ -70,31 +74,52 @@ const handler = async (event, context, callback) => {
 
   try {
     if (event.active) {
-      // index: activeViolations-index
+      // index: activeViolations-index (attive)
       // ...
+      // alarmTTL is a string... possibile problema: forse conviene averne comunque una copia non datetime iso, ma con unix timestamp, per l'ordinamento...
+      //
+      // Dato un “type“ elencare le “SLA Violation“ attive di quel tipo
+      let keyConditionExpression = "active_sla_entityName_type = :partitionKey";
+      //let maxEpoch = 0;
+      if (event.olderThan != null) {
+        //maxEpoch = dateTimeStringToUNIXTimeStamp(event.olderThan); // we don't check for exception, because we already know the datetime string is valid
+        keyConditionExpression += " and alarmTTL < :sortKey";
+      }
       response = await dynamoDB
         .query({
           TableName: tableName,
           IndexName: "activeViolations-index",
-          KeyConditionExpression: "gsi1pk = :gsi1pk... INSERT",
+          KeyConditionExpression: keyConditionExpression,
           ExpressionAttributeValues: {
-            //':gsi1pk': '123',
+            ":partitionKey": event.type,
+            //":sortKey": maxEpoch,
+            ":sortKey": event.olderThan,
           },
-          ScanIndexForward: false,
+          ScanIndexForward: false, // descending (newer to older)
         })
         .promise();
     } else {
-      // index: partitionedEndTimestamp-index
+      // index: partitionedEndTimestamp-index (storicizzate)
       // ...
-      response = await dynamoDB
+      // Dato un “type“ e una data elencare le “SLA Violation“ storicizzate relative ad attività cominciate precedentemente a quella data, restituite dalla più recente alla più remota (partizionare per mese)
+
+      // let keyConditionExpression = "active_sla_entityName_type = :partitionKey";
+      // let maxEpoch = 0;
+      // if (event.olderThan != null) {
+      //   maxEpoch = dateTimeStringToUNIXTimeStamp(event.olderThan); // we don't check for exception, because we already know the datetime string is valid
+      //   keyConditionExpression += " and alarmTTL < :sortKey";
+      // }
+
+      response = await dynamoDB // scan instead on query...?
         .query({
           TableName: tableName,
           IndexName: "partitionedEndTimestamp-index",
-          KeyConditionExpression: "gsi1pk = :gsi1pk... INSERT",
+          KeyConditionExpression: "gsi1pk = :gsi1pk... INSERT", // ...
           ExpressionAttributeValues: {
             //':gsi1pk': '123',
+            // ...
           },
-          ScanIndexForward: false,
+          ScanIndexForward: false, // descending
         })
         .promise();
     }
@@ -109,6 +134,11 @@ const handler = async (event, context, callback) => {
   if (response?.Items && response.Items.length > 0) {
     payload.results = response.Items;
     lastScannedKey = response.lastScannedKey;
+  } else {
+    payload.success = false;
+    payload.message = "problem getting response";
+    console.err("event", payload.message);
+    return JSON.stringify(payload);
   }
 };
 

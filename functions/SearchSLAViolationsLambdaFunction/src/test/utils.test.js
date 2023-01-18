@@ -1,5 +1,9 @@
 import { expect } from "chai";
-import { isValidDate, isValidType } from "../utils.js";
+import {
+  isValidDate,
+  isValidType,
+  dateTimeStringToUNIXTimeStamp,
+} from "../utils.js";
 
 describe("is valid datetime string", function () {
   it("valid ISO datetime (now)", () => {
@@ -21,6 +25,14 @@ describe("is valid datetime string", function () {
 
   it("null datetime", () => {
     expect(isValidDate()).to.be.false;
+  });
+});
+
+describe("datetime string to UNIX epoch", function () {
+  it("valid known ISO datetime to UNIX epoch", () => {
+    expect(dateTimeStringToUNIXTimeStamp("2023-01-18T16:03:40.597Z")).to.equal(
+      1674057820
+    );
   });
 });
 

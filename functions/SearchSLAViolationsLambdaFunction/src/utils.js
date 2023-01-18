@@ -10,6 +10,22 @@ function isValidDate(dateString) {
 }
 
 /**
+ * returns a number containing the UNIX timestamp, converted from the passed datetime string
+ *
+ * @param {string} dateString a string containing a valid datetime
+ * @returns {number} UNIX timestamp
+ * @throws {string} "Not a valid datetime string"
+ */
+function dateTimeStringToUNIXTimeStamp(dateString) {
+  if (isValidDate(dateString)) {
+    const datetimeObject = new Date(dateString);
+    return Math.floor(datetimeObject.getTime() / 1000);
+  } else {
+    throw "Not a valid datetime string";
+  }
+}
+
+/**
  * checks if a string contains a valid type
  *
  * @param {string} typeString a string containing step type
@@ -31,4 +47,4 @@ function isValidType(typeString) {
   return false;
 }
 
-export { isValidDate, isValidType };
+export { isValidDate, isValidType, dateTimeStringToUNIXTimeStamp };
