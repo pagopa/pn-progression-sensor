@@ -6,7 +6,7 @@ const {
   dateTimeStringToYearAndMonth,
 } = require("../app/utils");
 
-describe("test valid datetime string", function () {
+describe("test valid datetime string", () => {
   it("should be valid with valid ISO datetime (now)", () => {
     const now = new Date().toISOString();
     expect(isValidDate(now)).to.be.true;
@@ -29,7 +29,7 @@ describe("test valid datetime string", function () {
   });
 });
 
-describe("test datetime string to UNIX epoch", function () {
+describe("test datetime string to UNIX epoch", () => {
   it("should be valid", () => {
     expect(dateTimeStringToUNIXTimeStamp("2023-01-18T16:03:40.597Z")).to.equal(
       1674057820
@@ -57,7 +57,7 @@ describe("test datetime string to UNIX epoch", function () {
   });
 });
 
-describe("test datetime string to UNIX epoch", function () {
+describe("test datetime string to UNIX epoch", () => {
   it("should be 2023-01 with january 2023", () => {
     expect(dateTimeStringToYearAndMonth("2023-01-18T16:03:40.597Z")).to.equal(
       "2023-01"
@@ -121,7 +121,7 @@ describe("test datetime string to UNIX epoch", function () {
   });
 });
 
-describe("test valid type string", function () {
+describe("test valid type string", () => {
   const knownTypes = [
     "VALIDATION",
     "REFINEMENT",
