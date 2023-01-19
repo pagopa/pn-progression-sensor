@@ -1,3 +1,5 @@
+const { DateTimeParsingException } = require("./exceptions");
+
 /**
  * checks if a string contains a valid datetime
  *
@@ -14,14 +16,14 @@ const isValidDate = (dateString) => {
  *
  * @param {string} dateString a string containing a valid datetime
  * @returns {number} UNIX timestamp
- * @throws {string} "Not a valid datetime string"
+ * @throws {DateTimeParsingException} "Not a valid datetime string"
  */
 const dateTimeStringToUNIXTimeStamp = (dateString) => {
   if (isValidDate(dateString)) {
     const datetimeObject = new Date(dateString);
     return Math.floor(datetimeObject.getTime() / 1000);
   } else {
-    throw "Not a valid datetime string";
+    throw new DateTimeParsingException("Not a valid datetime string");
   }
 };
 
@@ -30,7 +32,7 @@ const dateTimeStringToUNIXTimeStamp = (dateString) => {
  *
  * @param {string} dateString a string containing a valid datetime
  * @returns {string} string in the format "2023-01" from a valid datetime string
- * @throws {string} "Not a valid datetime string"
+ * @throws {DateTimeParsingException} "Not a valid datetime string"
  */
 const dateTimeStringToYearAndMonth = (dateString) => {
   if (isValidDate(dateString)) {
@@ -41,7 +43,7 @@ const dateTimeStringToYearAndMonth = (dateString) => {
     }
     return datetimeObject.getUTCFullYear() + "-" + month;
   } else {
-    throw "Not a valid datetime string";
+    throw new DateTimeParsingException("Not a valid datetime string");
   }
 };
 

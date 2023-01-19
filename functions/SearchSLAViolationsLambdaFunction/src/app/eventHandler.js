@@ -69,23 +69,24 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
 
   // basic return payload
   const payload = {
+    success: true,
     message: "",
     results: null,
     lastScannedKey: null,
   };
 
   try {
-    // -- 1. input verification
+    // -- input verification
     checkSearchSLAViolationsEvent(event);
 
-    // -- 2. DynamoDB query
+    // -- DynamoDB query
     const response = await dynamo.searchSLAviolations(
       event.active,
       event.type,
       event.olderThan
     );
 
-    // -- 3. prepare and return response
+    // -- prepare and return response
     payload.results = response.Items;
     lastScannedKey = response.lastScannedKey;
   } catch (error) {

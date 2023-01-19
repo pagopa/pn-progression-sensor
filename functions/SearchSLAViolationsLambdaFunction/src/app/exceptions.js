@@ -19,8 +19,16 @@ class MissingEventObjectException extends Error {
   }
 }
 
+class DateTimeParsingException extends Error {
+  constructor(message) {
+    super(message);
+    this.name = "DateTimeParsingException";
+  }
+}
+
 module.exports = {
   MissingRequiredParametersException,
   WrongInputParametersException,
   MissingEventObjectException,
+  DateTimeParsingException,
 };

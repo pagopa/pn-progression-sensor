@@ -36,15 +36,25 @@ describe("test datetime string to UNIX epoch", function () {
     );
   });
 
-  /*it("empty datetime", () => {
-    expect(dateTimeStringToUNIXTimeStamp("")).not.to.equal(1674057820);
-  });*/
+  it("should give exception, with empty datetime", () => {
+    try {
+      dateTimeStringToUNIXTimeStamp("");
+    } catch (error) {
+      expect(error).to.not.be.null;
+      expect(error).to.not.be.undefined;
+      expect(error.message).to.equal("Not a valid datetime string");
+    }
+  });
 
-  /*it("null datetime", () => {
-    expect(
-      dateTimeStringToUNIXTimeStamp("2023-01-18T16:03:40.597Z")
-    ).not.to.equal(1674057820);
-  });*/
+  it("should give exception, with null datetime", () => {
+    try {
+      dateTimeStringToUNIXTimeStamp();
+    } catch (error) {
+      expect(error).to.not.be.null;
+      expect(error).to.not.be.undefined;
+      expect(error.message).to.equal("Not a valid datetime string");
+    }
+  });
 });
 
 describe("test datetime string to UNIX epoch", function () {
@@ -88,6 +98,26 @@ describe("test datetime string to UNIX epoch", function () {
     expect(dateTimeStringToYearAndMonth("2022-12-18T16:03:40.597Z")).to.equal(
       "2022-12"
     );
+  });
+
+  it("should give exception, with empty datetime", () => {
+    try {
+      dateTimeStringToYearAndMonth("");
+    } catch (error) {
+      expect(error).to.not.be.null;
+      expect(error).to.not.be.undefined;
+      expect(error.message).to.equal("Not a valid datetime string");
+    }
+  });
+
+  it("should give exception, with null datetime", () => {
+    try {
+      dateTimeStringToYearAndMonth(null);
+    } catch (error) {
+      expect(error).to.not.be.null;
+      expect(error).to.not.be.undefined;
+      expect(error.message).to.equal("Not a valid datetime string");
+    }
   });
 });
 
