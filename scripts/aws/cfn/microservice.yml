@@ -283,13 +283,12 @@ Resources:
                 Effect: Allow
                 Resource: "*"
 
-  # ????
-  2SubscriptionFilter:
+  SearchSLAViolationsLambdaFunctionSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
     Properties:
       RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
-      LogGroupName: !Ref Function2LambdaLogGroup
+      LogGroupName: !Ref SearchSLAViolationsLambdaFunctionLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
 
