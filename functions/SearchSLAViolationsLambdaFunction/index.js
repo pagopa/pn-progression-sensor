@@ -1,10 +1,7 @@
-const handler = async (event) => {
-    console.log('event', event)
-    const payload = {
-        date: new Date(),
-        message: 'Hello Lambda, function1'
-    };
-    return JSON.stringify(payload);
-};
+//import { eventHandler } from "./src/app/eventHandler.js";
+const eventHandler = require("./src/app/eventHandler");
 
-export { handler };
+export async function handler(event) {
+  console.log("event", event);
+  return eventHandler(event);
+}

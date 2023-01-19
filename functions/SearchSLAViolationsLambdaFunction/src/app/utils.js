@@ -4,10 +4,10 @@
  * @param {string} dateString a string containing a datetime (it must be able to become a valida Date object)
  * @returns {boolean} returns true if the passed string is a correct datetime
  */
-function isValidDate(dateString) {
+const isValidDate = (dateString) => {
   const datetimeObject = new Date(dateString);
   return !Number.isNaN(datetimeObject.getTime());
-}
+};
 
 /**
  * returns a number containing the UNIX timestamp, converted from the passed datetime string
@@ -16,14 +16,14 @@ function isValidDate(dateString) {
  * @returns {number} UNIX timestamp
  * @throws {string} "Not a valid datetime string"
  */
-function dateTimeStringToUNIXTimeStamp(dateString) {
+const dateTimeStringToUNIXTimeStamp = (dateString) => {
   if (isValidDate(dateString)) {
     const datetimeObject = new Date(dateString);
     return Math.floor(datetimeObject.getTime() / 1000);
   } else {
     throw "Not a valid datetime string";
   }
-}
+};
 
 /**
  * returns a string in the format "2023-01" from a valid datetime string
@@ -32,7 +32,7 @@ function dateTimeStringToUNIXTimeStamp(dateString) {
  * @returns {string} string in the format "2023-01" from a valid datetime string
  * @throws {string} "Not a valid datetime string"
  */
-function dateTimeStringToYearAndMonth(dateString) {
+const dateTimeStringToYearAndMonth = (dateString) => {
   if (isValidDate(dateString)) {
     const datetimeObject = new Date(dateString);
     let month = datetimeObject.getUTCMonth() + 1;
@@ -43,7 +43,7 @@ function dateTimeStringToYearAndMonth(dateString) {
   } else {
     throw "Not a valid datetime string";
   }
-}
+};
 
 /**
  * checks if a string contains a valid type
@@ -51,7 +51,7 @@ function dateTimeStringToYearAndMonth(dateString) {
  * @param {string} typeString a string containing step type
  * @returns {boolean} returns true if the passed string is a correct step type
  */
-function isValidType(typeString) {
+const isValidType = (typeString) => {
   const knownTypes = [
     "VALIDATION",
     "REFINEMENT",
@@ -65,9 +65,9 @@ function isValidType(typeString) {
   }
 
   return false;
-}
+};
 
-export {
+module.exports = {
   isValidDate,
   isValidType,
   dateTimeStringToUNIXTimeStamp,

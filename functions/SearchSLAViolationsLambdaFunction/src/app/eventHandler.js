@@ -1,13 +1,46 @@
-import pkg from "aws-sdk";
-const { AWS } = pkg;
+const AWS = require("aws-sdk");
 
-import {
+const {
   dateTimeStringToUNIXTimeStamp,
   isValidDate,
   isValidType,
-} from "../utils.js";
+} = require("./utils");
+
+const {
+  MissingRequiredParametersException,
+  WrongInputParametersException,
+  MissingEventObjectException,
+} = require("./exceptions");
 
 const tableName = process.env.DYNAMODB_TABLE;
+
+/**
+ * stops if there's a problem with the event
+ *
+ * @param {object} event the AWS Lambda event object
+ * @throws MissingEventObjectException, MissingRequiredParametersException, WrongInputParametersException
+ */
+const checkSearchSLAViolationsEvent = (event) => {
+  // problem with event
+  if (!event) {
+    throw new MissingEventObjectException("Missing event object");
+  }
+
+  // check required input parameters
+  if (!event.type || !event.active) {
+    throw new MissingRequiredParametersException("Required parameters missing");
+  }
+
+  // check input parameters correctness
+  if (
+    !isValidType(event.type) ||
+    typeof event.active !== "boolean" ||
+    (event.olderThan != null && !isValidDate(event.olderThan)) || // we control it only if passed
+    typeof event.lastScannedKey !== "string"
+  ) {
+    throw new WrongInputParametersException("Incorrect input parameters");
+  }
+};
 
 // Request
 //
@@ -29,7 +62,7 @@ const tableName = process.env.DYNAMODB_TABLE;
 //   isActive: boolean
 //   endTimestamp: string con formato date-time
 
-const handler = async (event, context, callback) => {
+module.exports.eventHandler = async (event /*, context, callback*/) => {
   // event = {
   //  type,           // required, string
   //  active,         // required, boolean
@@ -40,33 +73,15 @@ const handler = async (event, context, callback) => {
 
   // basic return payload
   const payload = {
-    success: true,
     message: "",
     results: null,
     lastScannedKey: null,
   };
 
-  // -- 1. input verification -> go on or 400
+  // -- 1. input verification
 
-  // check required input parameters
-  if (!event.type || !event.active) {
-    payload.success = false;
-    payload.message = "required parameters missing";
-    console.err("event", payload.message);
-    return JSON.stringify(payload);
-  }
-  // check input paramters correctness
-  if (
-    !isValidType(event.type) ||
-    typeof event.active !== "boolean" ||
-    (event.olderThan != null && !isValidDate(event.olderThan)) || // we control it only if passed
-    typeof event.lastScannedKey !== "string"
-  ) {
-    payload.success = false;
-    payload.message = "incorrect input parameters";
-    console.err("event", payload.message);
-    return JSON.stringify(payload);
-  }
+  checkSearchSLAViolationsEvent(event);
+
   // -- 2. DynamoDB query
   const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
@@ -75,14 +90,13 @@ const handler = async (event, context, callback) => {
   try {
     if (event.active) {
       // index: activeViolations-index (attive)
-      // ...
+      //
       // alarmTTL is a string... possibile problema: forse conviene averne comunque una copia non datetime iso, ma con unix timestamp, per l'ordinamento...
       //
       // Dato un “type“ elencare le “SLA Violation“ attive di quel tipo
       let keyConditionExpression = "active_sla_entityName_type = :partitionKey";
       //let maxEpoch = 0;
       if (event.olderThan != null) {
-        //maxEpoch = dateTimeStringToUNIXTimeStamp(event.olderThan); // we don't check for exception, because we already know the datetime string is valid
         keyConditionExpression += " and alarmTTL < :sortKey";
       }
       response = await dynamoDB
@@ -92,7 +106,6 @@ const handler = async (event, context, callback) => {
           KeyConditionExpression: keyConditionExpression,
           ExpressionAttributeValues: {
             ":partitionKey": event.type,
-            //":sortKey": maxEpoch,
             ":sortKey": event.olderThan,
           },
           ScanIndexForward: false, // descending (newer to older)
@@ -124,7 +137,7 @@ const handler = async (event, context, callback) => {
             //':gsi1pk': '123',
             // ...
           },
-          ScanIndexForward: false, // descending
+          ScanIndexForward: false, // descending (newer to older)
         })
         .promise();
     }
@@ -146,5 +159,3 @@ const handler = async (event, context, callback) => {
     return JSON.stringify(payload);
   }
 };
-
-export { handler };
