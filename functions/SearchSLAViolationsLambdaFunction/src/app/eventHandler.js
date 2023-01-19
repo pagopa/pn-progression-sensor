@@ -80,7 +80,7 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
     checkSearchSLAViolationsEvent(event);
 
     // -- DynamoDB query
-    const response = await dynamo.searchSLAviolations(
+    const response = await dynamo.searchSLAViolations(
       event.active,
       event.type,
       event.olderThan

@@ -1,7 +1,7 @@
 const AWS = require("aws-sdk");
 const { dateTimeStringToUNIXTimeStamp } = require("./utils");
 
-module.exports.searchSLAviolations = async (active, type, olderThan) => {
+module.exports.searchSLAViolations = async (active, type, olderThan) => {
   const dynamoDB = new AWS.DynamoDB.DocumentClient();
 
   let response = null;
