@@ -1,10 +1,6 @@
-const AWS = require("aws-sdk");
+const dynamo = require("./dynamoFunctions.js");
 
-const {
-  dateTimeStringToUNIXTimeStamp,
-  isValidDate,
-  isValidType,
-} = require("./utils");
+const { isValidDate, isValidType } = require("./utils");
 
 const {
   MissingRequiredParametersException,
@@ -78,83 +74,23 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
     lastScannedKey: null,
   };
 
-  // -- 1. input verification
-
-  checkSearchSLAViolationsEvent(event);
-
-  // -- 2. DynamoDB query
-  const dynamoDB = new AWS.DynamoDB.DocumentClient();
-
-  let response = null;
-
   try {
-    if (event.active) {
-      // index: activeViolations-index (attive)
-      //
-      // alarmTTL is a string... possibile problema: forse conviene averne comunque una copia non datetime iso, ma con unix timestamp, per l'ordinamento...
-      //
-      // Dato un “type“ elencare le “SLA Violation“ attive di quel tipo
-      let keyConditionExpression = "active_sla_entityName_type = :partitionKey";
-      //let maxEpoch = 0;
-      if (event.olderThan != null) {
-        keyConditionExpression += " and alarmTTL < :sortKey";
-      }
-      response = await dynamoDB
-        .query({
-          TableName: tableName,
-          IndexName: "activeViolations-index",
-          KeyConditionExpression: keyConditionExpression,
-          ExpressionAttributeValues: {
-            ":partitionKey": event.type,
-            ":sortKey": event.olderThan,
-          },
-          ScanIndexForward: false, // descending (newer to older)
-        })
-        .promise();
-    } else {
-      // index: partitionedEndTimestamp-index (storicizzate)
-      // ...
-      // Dato un “type“ e una data elencare le “SLA Violation“ storicizzate relative ad attività cominciate precedentemente a quella data, restituite dalla più recente alla più remota (partizionare per mese)
+    // -- 1. input verification
+    checkSearchSLAViolationsEvent(event);
 
-      // let keyConditionExpression = "active_sla_entityName_type = :partitionKey";
-      // let maxEpoch = 0;
-      // if (event.olderThan != null) {
-      //   maxEpoch = dateTimeStringToUNIXTimeStamp(event.olderThan); // we don't check for exception, because we already know the datetime string is valid
-      //   keyConditionExpression += " and alarmTTL < :sortKey";
-      // }
+    // -- 2. DynamoDB query
+    const response = await dynamo.searchSLAviolations(
+      event.active,
+      event.type,
+      event.olderThan
+    );
 
-      // partition key without olderThan: take current month
-      //
-      // partition key with olderThan: current month from date
-      // ...
-
-      response = await dynamoDB // scan instead on query...?
-        .query({
-          TableName: tableName,
-          IndexName: "partitionedEndTimestamp-index",
-          KeyConditionExpression: "gsi1pk = :gsi1pk... INSERT", // ...
-          ExpressionAttributeValues: {
-            //':gsi1pk': '123',
-            // ...
-          },
-          ScanIndexForward: false, // descending (newer to older)
-        })
-        .promise();
-    }
-  } catch (error) {
-    payload.success = false;
-    payload.message = JSON.stringify(error);
-    console.err("error on query", payload.message);
-    return JSON.stringify(payload);
-  }
-
-  // -- 3. prepare and return response
-  if (response?.Items && response.Items.length > 0) {
+    // -- 3. prepare and return response
     payload.results = response.Items;
     lastScannedKey = response.lastScannedKey;
-  } else {
+  } catch (error) {
     payload.success = false;
-    payload.message = "problem getting response";
+    payload.message = error.message || error;
     console.err("event", payload.message);
     return JSON.stringify(payload);
   }
