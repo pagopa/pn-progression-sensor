@@ -1,5 +1,6 @@
 const { extractKinesisData } = require('./lib/kinesis.js');
-const { preparePayload, executeCommands } =  require('./lib/dynamodb.js');
+const { persistEvents } =  require('./lib/repository.js');
+const { mapEvents } =  require('./lib/eventMapper.js');
 
 exports.handleEvent = async (event) => {
     const cdcEvents = extractKinesisData(event);
@@ -8,7 +9,7 @@ exports.handleEvent = async (event) => {
     const processedItems = preparePayload(cdcEvents)
     console.log(`Processed items`, processedItems)
 
-    await executeCommands(processedItems)
+    await persistEvents(processedItems)
 
     return {
         batchItemFailures: []

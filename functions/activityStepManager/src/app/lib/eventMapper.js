@@ -1,5 +1,3 @@
-const { ddbDocClient } = require('./ddbClient.js');
-const { DeleteItemCommand, PutItemCommand } = require("@aws-sdk/lib-dynamodb");
 const moment = require('moment-business-days-it');
 
 const allowedTimelineCategories = [
@@ -215,62 +213,16 @@ function mapPayload(event){
     return dynamoDbOps;
 }
 
-function makePartitionKey(event){
-    return 'step_'+event.type+'_'+event.relatedEntityId   
-}
 
-function makeDeleteCommandFromEvent(event){
-    const params = {
-        TableName: process.env.PROGRESSION_SENSOR_TABLE_NAME,
-        Key: {
-            entityName_type_relatedEntityId: makePartitionKey(event),
-            id: event.id
-        },
-        ConditionExpression: 'attribute_exists(entityName_type_relatedEntityId)'
-    }
-    
-    return params
-}
-
-function makeInsertCommandFromEvent(event){
-    const params = {
-        TableName: process.env.PROGRESSION_SENSOR_TABLE_NAME,
-        Item: {
-            entityName_type_relatedEntityId: makePartitionKey(event),
-            id: event.id,
-            relatedEntityId: event.relatedEntityId,
-            startTimestamp: event.startTimestamp,
-            slaExpiration: event.slaExpiration,
-            step_alarmTTL: event.step_alarmTTL,
-            alarmTTL: event.alarmTTL
-        },
-        ConditionExpression: 'attribute_not_exists(entityName_type_relatedEntityId)'
-    }
-    
-    return params
-}
-
-exports.preparePayload = (events) => {
+exports.mapEvents = (events) => {
     const filteredEvents = events.filter((e) => {
         return e.eventName=='INSERT' && (e.tableName=='pn-Notifications' || (e.tableName=='pn-Timelines' && e.dynamodb.NewImage.category && allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S)>=0 ))
     })
 
     let ops = []
     for(let i=0; i<filteredEvents.length; i++){
-        const dynamoDbOps = mapPayload(filter[i])
+        const dynamoDbOps = mapPayload(filteredEvents[i])
         ops = ops.concat(dynamoDbOps)
     }
     return ops
-}
-
-exports.executeCommands = async (events) => {
-    for(let i=0; i<events.length; i++){
-        if(events.opType=='DELETE'){
-            const params = makeDeleteCommandFromEvent(events[i])
-            await ddbDocClient.send(new DeleteItemCommand(params));
-        } else if(events.opType=='INSERT'){
-            const params = makeInsertCommandFromEvent(events[i])
-            await ddbDocClient.send(new PutItemCommand(params));
-        }
-    }
 }

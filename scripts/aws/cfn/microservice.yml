@@ -51,6 +51,10 @@ Parameters:
     Type: String
     Description: ARN of dynamodb table containing notifications metadata
 
+  ProgressionSensorDataDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing notifications metadata
+
   CdcKinesisSourceStreamArn:
     Type: String
     Description: 'Where to send CDC'
@@ -172,6 +176,10 @@ Resources:
         S3Bucket: !Ref LambdasBucketName
         S3Key: !Sub "${BucketBasePath}/activityStepManager.zip"
       Role: !GetAtt ActivityStepManagerLambdaRole.Arn
+      Environment:
+         Variables:
+          REGION: !Sub ${AWS::Region}
+          PROGRESSION_SENSOR_TABLE_NAME: !Ref ProgressionSensorDataDynamoTableName   
       TracingConfig:
         Mode: Active
       Layers:
