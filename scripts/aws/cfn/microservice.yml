@@ -61,20 +61,20 @@ Conditions:
 
 Resources:
   #########################################################
-  ###         SearchSLAViolationsLambdaFunction         ###
+  ###         SearchSLAViolations         ###
   #########################################################
 
   # Lambda function
-  SearchSLAViolationsLambdaFunction:
+  SearchSLAViolations:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-SearchSLAViolationsLambdaFunction"
+      FunctionName: !Sub "${ProjectName}-searchSLAViolations"
       Runtime: nodejs18.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: !Sub "${BucketBasePath}/SearchSLAViolationsLambdaFunction.zip"
-      Role: !GetAtt SearchSLAViolationsLambdaFunctionRole.Arn
+        S3Key: !Sub "${BucketBasePath}/searchSLAViolations.zip"
+      Role: !GetAtt SearchSLAViolationsRole.Arn
       TracingConfig:
         Mode: Active
       Layers:
@@ -84,10 +84,10 @@ Resources:
           DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
 
   # Lambda function role
-  SearchSLAViolationsLambdaFunctionRole:
+  SearchSLAViolationsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${ProjectName}-SearchSLAViolationsLambdaFunctionRole
+      RoleName: !Sub ${ProjectName}-SearchSLAViolationsRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -102,12 +102,12 @@ Resources:
       Path: /
 
   # Lambda function IAM policy
-  SearchSLAViolationsLambdaFunctionRolePolicy:
+  SearchSLAViolationsRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub ${ProjectName}-SearchSLAViolationsLambdaFunctionRolePolicy
+      PolicyName: !Sub ${ProjectName}-SearchSLAViolationsRolePolicy
       Roles:
-        - !Ref SearchSLAViolationsLambdaFunctionRole
+        - !Ref SearchSLAViolationsRole
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -119,30 +119,30 @@ Resources:
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
 
   # lambda function Log Group
-  SearchSLAViolationsLambdaFunctionLogGroup:
+  SearchSLAViolationsLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${SearchSLAViolationsLambdaFunction}"
+      LogGroupName: !Sub "/aws/lambda/${SearchSLAViolations}"
       RetentionInDays: 14
 
   # Lambda function CloudWatch Logs Metric Filter
-  SearchSLAViolationsLambdaFunctionFatalLogsMetricFilter:
+  SearchSLAViolationsFatalLogsMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
-      LogGroupName: !Ref SearchSLAViolationsLambdaFunctionLogGroup
+      LogGroupName: !Ref SearchSLAViolationsLogGroup
       FilterPattern: "?ERROR ?FATAL ?CRITICAL"
       MetricTransformations:
         - MetricValue: 1
           MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsLambdaFunctionFatalMetric
+          MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsFatalMetric
 
   # Lambda function CloudWatch alarm
-  SearchSLAViolationsLambdaFunctionErrorFatalLogsMetricAlarm:
+  SearchSLAViolationsErrorFatalLogsMetricAlarm:
     Type: AWS::CloudWatch::Alarm
-    DependsOn: SearchSLAViolationsLambdaFunctionFatalLogsMetricFilter
+    DependsOn: SearchSLAViolationsFatalLogsMetricFilter
     Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsLambdaFunctionErrorFatalLogsMetricAlarm
-      AlarmDescription: "CloudWatch alarm for SearchSLAViolationsLambdaFunction Lambda logs with ERROR or FATAL line."
+      AlarmName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for SearchSLAViolations Lambda logs with ERROR or FATAL line."
       AlarmActions:
         - !Ref AlarmSNSTopicArn
       InsufficientDataActions:
@@ -150,7 +150,7 @@ Resources:
       OKActions:
         - !Ref AlarmSNSTopicArn
       DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsLambdaFunctionErrorFatalMetric
+      MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalMetric
       Namespace: ErrorFatalLogs
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 60
@@ -283,12 +283,12 @@ Resources:
                 Effect: Allow
                 Resource: "*"
 
-  SearchSLAViolationsLambdaFunctionSubscriptionFilter:
+  SearchSLAViolationsSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
     Properties:
       RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
-      LogGroupName: !Ref SearchSLAViolationsLambdaFunctionLogGroup
+      LogGroupName: !Ref SearchSLAViolationsLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
 
