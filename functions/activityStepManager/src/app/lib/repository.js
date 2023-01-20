@@ -1,5 +1,5 @@
 const { ddbDocClient } = require('./ddbClient.js');
-const { DeleteItemCommand, PutItemCommand } = require("@aws-sdk/lib-dynamodb");
+const { DeleteCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 
 function makePartitionKey(event){
     return 'step_'+event.type+'_'+event.relatedEntityId   
@@ -37,13 +37,32 @@ function makeInsertCommandFromEvent(event){
 }
 
 exports.persistEvents = async (events) => {
+    const summary = {
+        deletions: 0,
+        insertions: 0,
+        errors: []
+    }
+
     for(let i=0; i<events.length; i++){
-        if(events.opType=='DELETE'){
+        /* istanbul ignore else */
+        if(events[i].opType=='DELETE'){
             const params = makeDeleteCommandFromEvent(events[i])
-            await ddbDocClient.send(new DeleteItemCommand(params));
-        } else if(events.opType=='INSERT'){
+            try {
+                await ddbDocClient.send(new DeleteCommand(params));
+                summary.deletions++
+            } catch(e){
+                summary.errors.push(events[i])              
+            }
+        } else if(events[i].opType=='INSERT'){
             const params = makeInsertCommandFromEvent(events[i])
-            await ddbDocClient.send(new PutItemCommand(params));
+            try {
+                await ddbDocClient.send(new PutCommand(params));
+                summary.insertions++
+            } catch(e){
+                summary.errors.push(events[i])       
+            }
         }
     }
+
+    return summary
 }

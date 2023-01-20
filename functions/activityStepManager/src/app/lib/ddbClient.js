@@ -1,6 +1,6 @@
 // Create a service client module using ES6 syntax.
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
-const { ddbClient } = require("./ddbClient.js");
 
 const region = process.env.REGION?process.env.REGION:'eu-south-1'
 const ddbClient = new DynamoDBClient({

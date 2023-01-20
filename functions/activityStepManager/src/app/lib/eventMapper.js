@@ -22,8 +22,7 @@ function calculateNextDate(startTS, days){
         return date.nextBusinessDay().toISOString();
     } else {
         const date = moment(startTS).businessAdd(days);
-        if(date.isBusinessDay()) return date.toISOString();
-        return date.nextBusinessDay().toISOString();
+        return date.toString();
     }
 }
 
@@ -35,6 +34,7 @@ function extractRecIdsFromTimelineId(timelineElementId){
 
 function mapPayload(event){
     const dynamoDbOps = []
+    /* istanbul ignore else */
     if(event.tableName=='pn-Notifications') {
         const alarmTTL = calculateNextDate(event.dynamodb.NewImage.sentAt.S, 0.5)
         const slaExpiration = calculateNextDate(event.dynamodb.NewImage.sentAt.S, 1)
@@ -52,7 +52,7 @@ function mapPayload(event){
         dynamoDbOps.push(op)
     } else if(event.tableName=='pn-Timelines'){
         let op, recIdx, alarmTTL, slaExpiration, step_alarmTTL;
-        const category = e.dynamodb.NewImage.category.S;
+        const category = event.dynamodb.NewImage.category.S;
         switch(category) {
             case 'REQUEST_ACCEPTED':
                 op = {
@@ -192,7 +192,7 @@ function mapPayload(event){
                 dynamoDbOps.push(op)
                 break; 
             case 'SEND_SIMPLE_REGISTERD_LETTER_PROGRESS':
-                if(e.dynamodb.NewImage.registeredLetterCode && e.dynamodb.NewImage.registeredLetterCode.S){
+                if(event.dynamodb.NewImage.registeredLetterCode && event.dynamodb.NewImage.registeredLetterCode.S){
                     recIdx = event.dynamodb.NewImage.details.M.recIndex.N
     
                     op = {

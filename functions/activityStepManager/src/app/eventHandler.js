@@ -6,13 +6,13 @@ exports.handleEvent = async (event) => {
     const cdcEvents = extractKinesisData(event);
     console.log(`Batch size: ${cdcEvents.length} cdc`);
   
-    const processedItems = preparePayload(cdcEvents)
+    const processedItems = mapEvents(cdcEvents)
     console.log(`Processed items`, processedItems)
 
-    await persistEvents(processedItems)
+    const batchItemFailures = await persistEvents(processedItems)
 
     return {
-        batchItemFailures: []
+        batchItemFailures: batchItemFailures
     }
   };
   
