@@ -1,9 +1,11 @@
 //const AWS = require("aws-sdk");
-const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient, QueryCommand } = require("@aws-sdk/client-dynamodb");
 const { dateTimeStringToUNIXTimeStamp } = require("./utils");
 
 module.exports.searchSLAViolations = async (active, type, olderThan) => {
-  //const dynamoDB = new AWS.DynamoDB.DocumentClient();
+  const tableName = process.env.DYNAMODB_TABLE;
+  console.log(tableName);
+
   const dynamoDB = new DynamoDBClient();
 
   let response = null;
@@ -23,31 +25,19 @@ module.exports.searchSLAViolations = async (active, type, olderThan) => {
       attributeValues[":sortKey"] = olderThan;
     }
 
-    response = await dynamoDB
-      .query({
+    response = await dynamoDB.send(
+      new QueryCommand({
         TableName: tableName,
         IndexName: "activeViolations-index",
         KeyConditionExpression: keyConditionExpression,
         ExpressionAttributeValues: attributeValues,
         ScanIndexForward: false, // descending (newer to older)
       })
-      .promise();
+    );
   } else {
     // index: partitionedEndTimestamp-index (storicizzate)
     // ...
-    // Dato un “type“ e una data elencare le “SLA Violation“ storicizzate relative ad attività cominciate precedentemente a quella data, restituite dalla più recente alla più remota (partizionare per mese)
-
-    // let keyConditionExpression = "active_sla_entityName_type = :partitionKey";
-    // let maxEpoch = 0;
-    // if (event.olderThan != null) {
-    //   maxEpoch = dateTimeStringToUNIXTimeStamp(event.olderThan); // we don't check for exception, because we already know the datetime string is valid
-    //   keyConditionExpression += " and alarmTTL < :sortKey";
-    // }
-
-    // partition key without olderThan: take current month
-    //
-    // partition key with olderThan: current month from date
-    // ...
+    // Dato un “type“ e una data elencare le “SLA Violation“ storicizzate relative ad attività cominciate precedentemente a quella
 
     let maxEpoch = 0;
     let partitionYearMonth = "";
@@ -71,16 +61,18 @@ module.exports.searchSLAViolations = async (active, type, olderThan) => {
     }
     attributeValues[":partitionKey"] = partitionYearMonth;
 
-    response = await dynamoDB
-      .query({
+    response = await dynamoDB.send(
+      new QueryCommand({
         TableName: tableName,
         IndexName: "partitionedEndTimestamp-index",
         KeyConditionExpression: keyConditionExpression,
         ExpressionAttributeValues: attributeValues,
         ScanIndexForward: false,
       })
-      .promise();
+    );
   }
+
+  //console.log("response", response);
 
   return response;
 };

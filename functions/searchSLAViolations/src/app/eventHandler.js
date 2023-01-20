@@ -8,8 +8,6 @@ const {
   MissingEventObjectException,
 } = require("./exceptions");
 
-const tableName = process.env.DYNAMODB_TABLE;
-
 /**
  * stops if there's a problem with the event
  *
@@ -32,7 +30,7 @@ const checkSearchSLAViolationsEvent = (event) => {
     !isValidType(event.type) ||
     typeof event.active !== "boolean" ||
     (event.olderThan != null && !isValidDate(event.olderThan)) || // we control it only if passed
-    typeof event.lastScannedKey !== "string"
+    (event.lastScannedKey != null && typeof event.lastScannedKey !== "string")
   ) {
     throw new WrongInputParametersException("Incorrect input parameters");
   }
