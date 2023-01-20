@@ -62,15 +62,15 @@ module.exports.searchSLAViolations = async (
 
       partitionYearMonth = dateTimeStringToYearAndMonth(olderThan);
 
-      maxEpoch = dateTimeStringToUNIXTimeStamp(olderThan); // we don't check for exception, because we already know the datetime string is valid
-      attributeValues[":sortKey"] = maxEpoch;
+      //maxEpoch = dateTimeStringToUNIXTimeStamp(olderThan); // we don't check for exception, because we already know the datetime string is valid
+      attributeValues[":sortKey"] = olderThan;
     } else {
       // current month is used in this case
       partitionYearMonth = dateTimeStringToYearAndMonth(
         new Date().toISOString()
       );
     }
-    attributeValues[":partitionKey"] = partitionYearMonth;
+    attributeValues[":partitionKey"] = type + "##" + partitionYearMonth; // example: "VALIDATION##2023-01"
 
     params = {
       TableName: tableName,
