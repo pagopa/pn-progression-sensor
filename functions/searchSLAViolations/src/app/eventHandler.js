@@ -63,7 +63,7 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
   //  olderThan,      // datetime string
   //  lastScannedKey, // string
   // }
-  console.log("event", event);
+  console.log("event: ", event);
 
   // basic return payload
   const payload = {
@@ -90,7 +90,7 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
   } catch (error) {
     payload.success = false;
     payload.message = error.message || error;
-    console.error("event", payload.message);
+    console.error("error: ", payload.message);
     return JSON.stringify(payload);
   }
 };

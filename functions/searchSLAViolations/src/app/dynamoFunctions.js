@@ -1,14 +1,19 @@
 //const AWS = require("aws-sdk");
-const { DynamoDBClient, QueryCommand } = require("@aws-sdk/client-dynamodb");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  QueryCommand,
+} = require("@aws-sdk/lib-dynamodb");
 const { dateTimeStringToUNIXTimeStamp } = require("./utils");
 
 module.exports.searchSLAViolations = async (active, type, olderThan) => {
-  const tableName = process.env.DYNAMODB_TABLE;
-  console.log(tableName);
+  const tableName = process.env.DYNAMODB_TABLE || "testTable";
+  //console.log(tableName);
 
-  const dynamoDB = new DynamoDBClient();
+  const client = new DynamoDBClient();
+  const dynamoDB = DynamoDBDocumentClient.from(client);
 
-  let response = null;
+  let params = {};
 
   if (active) {
     // index: activeViolations-index (attive)
@@ -25,15 +30,15 @@ module.exports.searchSLAViolations = async (active, type, olderThan) => {
       attributeValues[":sortKey"] = olderThan;
     }
 
-    response = await dynamoDB.send(
-      new QueryCommand({
-        TableName: tableName,
-        IndexName: "activeViolations-index",
-        KeyConditionExpression: keyConditionExpression,
-        ExpressionAttributeValues: attributeValues,
-        ScanIndexForward: false, // descending (newer to older)
-      })
-    );
+    params = {
+      TableName: tableName,
+      IndexName: "activeViolations-index",
+      KeyConditionExpression: keyConditionExpression,
+      ExpressionAttributeValues: attributeValues,
+      ScanIndexForward: false, // descending (newer to older)
+    };
+
+    //console.log(params);
   } else {
     // index: partitionedEndTimestamp-index (storicizzate)
     // ...
@@ -61,17 +66,19 @@ module.exports.searchSLAViolations = async (active, type, olderThan) => {
     }
     attributeValues[":partitionKey"] = partitionYearMonth;
 
-    response = await dynamoDB.send(
-      new QueryCommand({
-        TableName: tableName,
-        IndexName: "partitionedEndTimestamp-index",
-        KeyConditionExpression: keyConditionExpression,
-        ExpressionAttributeValues: attributeValues,
-        ScanIndexForward: false,
-      })
-    );
+    params = {
+      TableName: tableName,
+      IndexName: "partitionedEndTimestamp-index",
+      KeyConditionExpression: keyConditionExpression,
+      ExpressionAttributeValues: attributeValues,
+      ScanIndexForward: false,
+    };
   }
 
+  await dynamoDB.send(new QueryCommand(params));
+  console.log("-----------\nhere");
+
+  const response = await dynamoDB.send(new QueryCommand(params));
   //console.log("response", response);
 
   return response;
