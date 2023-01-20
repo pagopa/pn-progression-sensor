@@ -53,7 +53,7 @@ module.exports.searchSLAViolations = async (
     let maxEpoch = 0;
     let partitionYearMonth = "";
 
-    let keyConditionExpression = "endTimestampYearMonth = :partitionKey";
+    let keyConditionExpression = "type_endTimestampYearMonth = :partitionKey";
 
     let attributeValues = {};
 
