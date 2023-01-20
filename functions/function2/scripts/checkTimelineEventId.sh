@@ -1,10 +1,17 @@
 # la data in cui è stato controllata la logica della lambda rispetto al file TimelineEventId,java
 APP_LAST_CHECK_DATE="2024-07-18"
 
+headBranch=$(git for-each-ref --format='%(objectname) %(refname:short)' refs/heads | awk "/^$(git rev-parse HEAD)/ {print \$2}")   
+BRANCH=develop
+
+if [[ "$headBranch" == *hotfix* || "$headBranch" == *main* ]]; then
+    BRANCH=main
+fi
+
+echo "pn-delivery-push $BRANCH"
 cd /tmp/
 git clone git@github.com:pagopa/pn-delivery-push.git
 cd pn-delivery-push
-# TODO: definire regola per impostare $BRANCH
 git checkout $BRANCH
 filePath="src/main/java/it/pagopa/pn/deliverypush/dto/timeline/TimelineEventId.java"
 GIT_LAST_MODIFICATION_DATE=$(git log -1 --pretty="format:%ci" ${filePath})
