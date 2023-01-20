@@ -1,8 +1,11 @@
 // Create a service client module using ES6 syntax.
-import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { ddbClient } from "./ddbClient.js";
+const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
+const { ddbClient } = require("./ddbClient.js");
 
-const ddbClient = new DynamoDBClient();
+const region = process.env.REGION?process.env.REGION:'eu-south-1'
+const ddbClient = new DynamoDBClient({
+  region: region
+});
 
 const marshallOptions = {
   // Whether to automatically convert empty strings, blobs, and sets to `null`.
@@ -19,9 +22,7 @@ const unmarshallOptions = {
 };
 
 // Create the DynamoDB document client.
-const ddbDocClient = DynamoDBDocumentClient.from(ddbClient, {
+exports.ddbDocClient = DynamoDBDocumentClient.from(ddbClient, {
   marshallOptions,
   unmarshallOptions,
 });
-
-export { ddbDocClient };

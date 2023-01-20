@@ -9,7 +9,7 @@ if (typeof process.env.PR_NUM !== 'undefined' ) {
     options["sonar.pullrequest.key"] = process.env.PR_NUM;
 }
 
-import scanner from "sonarqube-scanner";
+const scanner = require("sonarqube-scanner");
 
 scanner(
   {

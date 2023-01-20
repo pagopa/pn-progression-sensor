@@ -1,10 +1,9 @@
-import { Buffer } from 'node:buffer';
-import { gunzipSync } from 'node:zlib';
+const { Buffer } = require('node:buffer');
+const { gunzipSync } = require('node:zlib');
 
 function myGunzip( buffer ) {
   return gunzipSync(buffer);
 }
-
 
 function decodePayload(b64Str) {
   const payloadBuf = Buffer.from(b64Str, 'base64');
@@ -26,7 +25,7 @@ function mustProcess(rec){
   return allowedTables.indexOf(rec.tableName) && rec.eventName=='INSERT'
 }
 
-function extractKinesisData(kinesisEvent) {
+exports.extractKinesisData = function(kinesisEvent) {
   return kinesisEvent.Records.map((rec) => {
     const decodedPayload = decodePayload(rec.kinesis.data);
     return {
@@ -37,5 +36,3 @@ function extractKinesisData(kinesisEvent) {
     return mustProcess(rec);
   });
 }
-
-export { extractKinesisData };
