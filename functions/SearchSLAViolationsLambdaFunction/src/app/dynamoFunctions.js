@@ -1,8 +1,10 @@
-const AWS = require("aws-sdk");
+//const AWS = require("aws-sdk");
+const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { dateTimeStringToUNIXTimeStamp } = require("./utils");
 
 module.exports.searchSLAViolations = async (active, type, olderThan) => {
-  const dynamoDB = new AWS.DynamoDB.DocumentClient();
+  //const dynamoDB = new AWS.DynamoDB.DocumentClient();
+  const dynamoDB = new DynamoDBClient();
 
   let response = null;
 

@@ -10,11 +10,11 @@
     "sonar": "node sonarqube-scanner.js -Dsonar.login=${SONAR_TOKEN}"
   },
   "devDependencies": {
-    "eslint": "^8.23.1",
-    "eslint-plugin-import": "^2.26.0",
-    "aws-sdk": "^2.1295.0",
+    "@aws-sdk/client-dynamodb": "^3.254.0",
     "aws-sdk-mock": "^5.6.2",
     "chai": "^4.3.6",
+    "eslint": "^8.23.1",
+    "eslint-plugin-import": "^2.26.0",
     "lambda-tester": "^4.0.1",
     "mocha": "^9.2.2",
     "mocha-lcov-reporter": "^1.3.0",
