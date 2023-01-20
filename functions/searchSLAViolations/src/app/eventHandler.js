@@ -90,7 +90,7 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
     lastScannedKey = response.LastEvaluatedKey || null;
   } catch (error) {
     payload.success = false;
-    payload.message = error.message || error;
+    payload.message = error?.message;
     console.error("error: ", payload.message);
   }
   return JSON.stringify(payload);

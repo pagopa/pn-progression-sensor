@@ -70,7 +70,7 @@ describe("dynamoFunction tests", function () {
     expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 
-  it("basic searchSLAViolations test, active, with olderThan, with null returned result (TO BE IMPROVED...)", async () => {
+  it("basic searchSLAViolations test, active, with olderThan", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -88,11 +88,16 @@ describe("dynamoFunction tests", function () {
     expect(response.queryParameters.KeyConditionExpression).equal(
       "active_sla_entityName_type = :partitionKey and alarmTTL < :sortKey"
     );
-    // ..
+    expect(
+      response.queryParameters.ExpressionAttributeValues[":partitionKey"]
+    ).equal("VALIDATION");
+    expect(
+      response.queryParameters.ExpressionAttributeValues[":sortKey"]
+    ).to.be.equal("2023-01-20T13:28:52.819Z");
     expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 
-  it("basic searchSLAViolations test, storicized, with olderThan, with null returned result (TO BE IMPROVED...)", async () => {
+  it("basic searchSLAViolations test, storicized, with olderThan", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -112,7 +117,12 @@ describe("dynamoFunction tests", function () {
     expect(response.queryParameters.KeyConditionExpression).equal(
       "type_endTimestampYearMonth = :partitionKey and endTimeStamp < :sortKey"
     );
-    // ..
+    expect(
+      response.queryParameters.ExpressionAttributeValues[":partitionKey"]
+    ).equal("VALIDATION##2023-01");
+    expect(
+      response.queryParameters.ExpressionAttributeValues[":sortKey"]
+    ).to.be.equal("2023-01-20T13:28:52.819Z");
     expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 

@@ -2,6 +2,11 @@
 const { expect } = require("chai");
 const event = require("../../event.json");
 const { eventHandler } = require("../app/eventHandler.js");
+const { mockClient } = require("aws-sdk-client-mock");
+const {
+  DynamoDBDocumentClient,
+  QueryCommand,
+} = require("@aws-sdk/lib-dynamodb");
 
 describe("test missing mandatory event parameters", function () {
   // missing parameters errors
@@ -88,5 +93,25 @@ describe("test missing mandatory event parameters", function () {
       expect(error).to.not.be.undefined;
       expect(error.message).to.equal("Incorrect input parameters");
     }
+  });
+
+  it("should return without giving errors", async () => {
+    const ddbMock = mockClient(DynamoDBDocumentClient);
+    ddbMock.on(QueryCommand).resolves({
+      Items: [],
+    });
+
+    // DynamoDB tests cover different cases better
+
+    let testEvent = {
+      type: "REFINEMENT",
+      active: true,
+      olderThan: "2023-01-20T13:28:52.819Z",
+      lastScannedKey: "testKey",
+    };
+
+    const response = await eventHandler(testEvent); // we just want it not to thor and exceptio
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
   });
 });
