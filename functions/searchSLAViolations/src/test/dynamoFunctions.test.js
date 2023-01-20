@@ -5,6 +5,7 @@ const {
   DynamoDBDocumentClient,
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
+const { dateTimeStringToYearAndMonth } = require("../app/utils");
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
@@ -13,7 +14,7 @@ describe("dynamoFunction tests", function () {
     ddbMock.reset();
   });
 
-  it("basic searchSLAViolations test, active, with null returned result (to be improved...)", async () => {
+  it("basic searchSLAViolations test, active", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -28,9 +29,18 @@ describe("dynamoFunction tests", function () {
     expect(response.Items).to.not.be.null;
     expect(response.Items).to.not.be.undefined;
     expect(response.queryParameters.IndexName).equal("activeViolations-index");
+    expect(response.queryParameters.KeyConditionExpression).equal(
+      "active_sla_entityName_type = :partitionKey"
+    );
+    expect(
+      response.queryParameters.ExpressionAttributeValues[":partitionKey"]
+    ).equal("VALIDATION");
+    expect(response.queryParameters.ExpressionAttributeValues[":sortKey"]).to.be
+      .undefined;
+    expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 
-  it("basic searchSLAViolations test, storicized, with null returned result (to be improved...)", async () => {
+  it("basic searchSLAViolations test, storicized", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -47,9 +57,20 @@ describe("dynamoFunction tests", function () {
     expect(response.queryParameters.IndexName).equal(
       "partitionedEndTimeStamp-index"
     );
+    expect(response.queryParameters.KeyConditionExpression).equal(
+      "type_endTimestampYearMonth = :partitionKey"
+    );
+    expect(
+      response.queryParameters.ExpressionAttributeValues[":partitionKey"]
+    ).equal(
+      "VALIDATION##" + dateTimeStringToYearAndMonth(new Date().toISOString())
+    );
+    expect(response.queryParameters.ExpressionAttributeValues[":sortKey"]).to.be
+      .undefined;
+    expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 
-  it("basic searchSLAViolations test, active, with olderThan, with null returned result (to be improved...)", async () => {
+  it("basic searchSLAViolations test, active, with olderThan, with null returned result (TO BE IMPROVED...)", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -64,9 +85,14 @@ describe("dynamoFunction tests", function () {
     expect(response.Items).to.not.be.null;
     expect(response.Items).to.not.be.undefined;
     expect(response.queryParameters.IndexName).equal("activeViolations-index");
+    expect(response.queryParameters.KeyConditionExpression).equal(
+      "active_sla_entityName_type = :partitionKey and alarmTTL < :sortKey"
+    );
+    // ..
+    expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 
-  it("basic searchSLAViolations test, storicized, with olderThan, with null returned result (to be improved...)", async () => {
+  it("basic searchSLAViolations test, storicized, with olderThan, with null returned result (TO BE IMPROVED...)", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -83,9 +109,14 @@ describe("dynamoFunction tests", function () {
     expect(response.queryParameters.IndexName).equal(
       "partitionedEndTimeStamp-index"
     );
+    expect(response.queryParameters.KeyConditionExpression).equal(
+      "type_endTimestampYearMonth = :partitionKey and endTimeStamp < :sortKey"
+    );
+    // ..
+    expect(response.queryParameters.lastScannedKey).to.be.undefined;
   });
 
-  it("basic searchSLAViolations test, active, with lastScannedKey, with null returned result (to be improved...)", async () => {
+  it("basic searchSLAViolations test, active, with lastScannedKey", async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [],
     });
@@ -100,5 +131,9 @@ describe("dynamoFunction tests", function () {
     expect(response.Items).to.not.be.null;
     expect(response.Items).to.not.be.undefined;
     expect(response.queryParameters.IndexName).equal("activeViolations-index");
+    expect(response.queryParameters.KeyConditionExpression).equal(
+      "active_sla_entityName_type = :partitionKey"
+    );
+    expect(response.queryParameters.lastScannedKey).equal("testKey");
   });
 });
