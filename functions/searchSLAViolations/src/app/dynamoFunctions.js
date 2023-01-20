@@ -5,7 +5,7 @@ const {
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const {
-  dateTimeStringToUNIXTimeStamp,
+  //dateTimeStringToUNIXTimeStamp,
   dateTimeStringToYearAndMonth,
 } = require("./utils");
 
@@ -83,9 +83,10 @@ module.exports.searchSLAViolations = async (
   if (lastScannedKey != undefined) {
     params.lastScannedKey = lastScannedKey;
   }
-  console.log("params: ", params);
+  //console.log("params: ", params);
 
-  const response = await dynamoDB.send(new QueryCommand(params));
+  let response = await dynamoDB.send(new QueryCommand(params));
+  response.queryParameters = params;
   console.log("response: ", response);
 
   return response;
