@@ -74,7 +74,7 @@ module.exports.searchSLAViolations = async (
 
     params = {
       TableName: tableName,
-      IndexName: "partitionedEndTimestamp-index",
+      IndexName: "partitionedEndTimeStamp-index",
       KeyConditionExpression: keyConditionExpression,
       ExpressionAttributeValues: attributeValues,
       ScanIndexForward: false,
