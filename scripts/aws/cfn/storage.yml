@@ -52,10 +52,10 @@ Resources:
         # secondary keys
         - AttributeName: "sla_relatedEntityId" # IUN
           AttributeType: "S"
-        - AttributeName: "endTimestampYearMonth"
+        - AttributeName: "type_endTimestampYearMonth"
           AttributeType: "S"
         - AttributeName: "endTimeStamp" # bool
-          AttributeType: "N"
+          AttributeType: "S"
         - AttributeName: "alarmTTLYearToMinute"
           AttributeType: "S"
         - AttributeName: "alarmTTL" # alarmTTL set both for steps and SLA; step_alarmTTL only set for steps (and TTL is set on step_alarmTTL, so it's an 'N' type)
@@ -87,7 +87,7 @@ Resources:
             ProjectionType: "ALL"
         - IndexName: "partitionedEndTimeStamp-index"
           KeySchema:
-            - AttributeName: "endTimestampYearMonth" # 2023-01 - present only for storicized SLA Violations (when endTimestamp != null)
+            - AttributeName: "type_endTimestampYearMonth" # TYPE##2023-01 - present only for storicized SLA Violations (when endTimestamp != null)
               KeyType: "HASH"
             - AttributeName: "endTimeStamp"
               KeyType: "RANGE"
