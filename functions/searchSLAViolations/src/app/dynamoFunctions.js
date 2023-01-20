@@ -50,7 +50,7 @@ module.exports.searchSLAViolations = async (
     // ...
     // Dato un “type“ e una data elencare le “SLA Violation“ storicizzate relative ad attività cominciate precedentemente a quella
 
-    let maxEpoch = 0;
+    //let maxEpoch = 0;
     let partitionYearMonth = "";
 
     let keyConditionExpression = "type_endTimestampYearMonth = :partitionKey";
@@ -58,7 +58,7 @@ module.exports.searchSLAViolations = async (
     let attributeValues = {};
 
     if (olderThan != null) {
-      keyConditionExpression += " and endTimestamp < :sortKey";
+      keyConditionExpression += " and endTimeStamp < :sortKey";
 
       partitionYearMonth = dateTimeStringToYearAndMonth(olderThan);
 
