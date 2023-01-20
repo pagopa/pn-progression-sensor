@@ -88,11 +88,10 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
     // -- prepare and return response
     payload.results = response.Items;
     lastScannedKey = response.lastScannedKey;
-    return JSON.stringify(payload);
   } catch (error) {
     payload.success = false;
     payload.message = error.message || error;
     console.error("error: ", payload.message);
-    return JSON.stringify(payload);
   }
+  return JSON.stringify(payload);
 };
