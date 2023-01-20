@@ -1,6 +1,6 @@
 {
     "type": "VALIDATION",
-    "active": true,
-    "olderThan": null,
+    "active": false,
+    "olderThan": "2023-01-20T13:28:52.819Z",
     "lastScannedKey": null
 }

@@ -4,9 +4,17 @@ const {
   DynamoDBDocumentClient,
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
-const { dateTimeStringToUNIXTimeStamp } = require("./utils");
+const {
+  dateTimeStringToUNIXTimeStamp,
+  dateTimeStringToYearAndMonth,
+} = require("./utils");
 
-module.exports.searchSLAViolations = async (active, type, olderThan) => {
+module.exports.searchSLAViolations = async (
+  active,
+  type,
+  olderThan,
+  lastScannedKey
+) => {
   const tableName = process.env.DYNAMODB_TABLE || "testTable";
   //console.log(tableName);
 
@@ -37,8 +45,6 @@ module.exports.searchSLAViolations = async (active, type, olderThan) => {
       ExpressionAttributeValues: attributeValues,
       ScanIndexForward: false, // descending (newer to older)
     };
-
-    //console.log(params);
   } else {
     // index: partitionedEndTimestamp-index (storicizzate)
     // ...
@@ -74,6 +80,10 @@ module.exports.searchSLAViolations = async (active, type, olderThan) => {
       ScanIndexForward: false,
     };
   }
+  if (lastScannedKey != undefined) {
+    params.lastScannedKey = lastScannedKey;
+  }
+  console.log("params: ", params);
 
   await dynamoDB.send(new QueryCommand(params));
   console.log("-----------\nhere");

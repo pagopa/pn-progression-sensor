@@ -21,7 +21,7 @@ const checkSearchSLAViolationsEvent = (event) => {
   }
 
   // check required input parameters
-  if (!event.type || !event.active) {
+  if (event.type == null || !event.active == null) {
     throw new MissingRequiredParametersException("Required parameters missing");
   }
 
@@ -81,7 +81,8 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
     const response = await dynamo.searchSLAViolations(
       event.active,
       event.type,
-      event.olderThan
+      event.olderThan,
+      event.lastScannedKey
     );
 
     // -- prepare and return response
