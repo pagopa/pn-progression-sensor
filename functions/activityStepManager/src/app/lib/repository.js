@@ -2,7 +2,7 @@ const { ddbDocClient } = require('./ddbClient.js');
 const { DeleteCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 
 function makePartitionKey(event){
-    return 'step_'+event.type+'_'+event.relatedEntityId   
+    return 'step##'+event.type+'##'+event.relatedEntityId   
 }
 
 function makeDeleteCommandFromEvent(event){
@@ -56,6 +56,8 @@ exports.persistEvents = async (events) => {
     const summary = {
         deletions: 0,
         insertions: 0,
+        skippedDeletions: 0,
+        skippedInsertions: 0,
         errors: []
     }
 
@@ -67,7 +69,14 @@ exports.persistEvents = async (events) => {
                 await ddbDocClient.send(new DeleteCommand(params));
                 summary.deletions++
             } catch(e){
-                summary.errors.push(events[i])              
+                if(e.name=='ConditionalCheckFailedException'){
+                    summary.skippedDeletions++
+                } else { 
+                    console.error('Error on delete', events[i])
+                    console.error('Error details', e)                
+                    events[i].exception = e
+                    summary.errors.push(events[i])              
+                }
             }
         } else if(events[i].opType=='INSERT'){
             const params = makeInsertCommandFromEvent(events[i])
@@ -75,7 +84,14 @@ exports.persistEvents = async (events) => {
                 await ddbDocClient.send(new PutCommand(params));
                 summary.insertions++
             } catch(e){
-                summary.errors.push(events[i])       
+                if(e.name=='ConditionalCheckFailedException'){
+                    summary.skippedInsertions++
+                } else {
+                    console.error('Error on insert', events[i])
+                    console.error('Error details', e)                
+                    events[i].exception = e
+                    summary.errors.push(events[i])       
+                }
             }
         }
     }

@@ -6,6 +6,8 @@ const { DynamoDBDocumentClient, DeleteCommand, PutCommand } = require("@aws-sdk/
 const { expect } = require('chai');
 const { persistEvents } = require('../app/lib/repository');
 const ddbMock = mockClient(DynamoDBDocumentClient);
+const { ConditionalCheckFailedException } = require('./testException')
+
 const events = [
     {
         opType: 'INSERT',
@@ -79,6 +81,30 @@ describe('repository tests', function() {
         expect(res.insertions).equal(0)
         expect(res.deletions).equal(0)
         expect(res.errors.length).equal(2)       
+    });
+
+    it("test DELETE Conditional Check Error", async () => {
+        ddbMock.on(PutCommand).resolves({});
+        ddbMock.on(DeleteCommand).rejects(new ConditionalCheckFailedException('abc'));
+
+        const res = await persistEvents(events)
+
+        expect(res.insertions).equal(1)
+        expect(res.deletions).equal(0)
+        expect(res.skippedDeletions).equal(1)
+        expect(res.errors.length).equal(0)       
+    });
+
+    it("test INSERT Conditional Check Error", async () => {
+        ddbMock.on(PutCommand).rejects(new ConditionalCheckFailedException('abc'));
+        ddbMock.on(DeleteCommand).resolves({});
+
+        const res = await persistEvents(events)
+
+        expect(res.insertions).equal(0)
+        expect(res.deletions).equal(1)
+        expect(res.skippedInsertions).equal(1)
+        expect(res.errors.length).equal(0)       
     });
 
 });

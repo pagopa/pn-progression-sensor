@@ -22,13 +22,13 @@ function calculateNextDate(startTS, days){
         return date.nextBusinessDay().toISOString();
     } else {
         const date = moment(startTS).businessAdd(days);
-        return date.toString();
+        return date.toISOString();
     }
 }
 
 function extractRecIdsFromTimelineId(timelineElementId){
     const tokens = timelineElementId.split('_')
-    const lastToken = tokens[tokens.lenght-1]
+    const lastToken = tokens[tokens.length-1]
     return lastToken;
 }
 
@@ -60,6 +60,7 @@ function mapPayload(event){
                     type: 'VALIDATION',
                     id: "00_VALID##"+event.dynamodb.NewImage.iun.S,
                     opType: 'DELETE',
+                    relatedEntityId: event.dynamodb.NewImage.iun.S,
                     kinesisSeqNumber: event.kinesisSeqNumber
                 }
                 dynamoDbOps.push(op)
@@ -72,7 +73,7 @@ function mapPayload(event){
 
                 const op1 = {
                     type: 'REFINEMENT',
-                    id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'_'+recIdx,
+                    id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'##'+recIdx,
                     relatedEntityId: event.dynamodb.NewImage.iun.S,
                     startTimestamp: event.dynamodb.NewImage.notificationSentAt.S,
                     slaExpiration: slaExpiration,
@@ -100,7 +101,7 @@ function mapPayload(event){
 
                 op = {
                     type: 'REFINEMENT',
-                    id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'_'+recIdx,
+                    id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'##'+recIdx,
                     opType: 'DELETE',
                     relatedEntityId: event.dynamodb.NewImage.iun.S,
                     kinesisSeqNumber: event.kinesisSeqNumber                    
@@ -113,7 +114,7 @@ function mapPayload(event){
 
                 op = {
                     type: 'REFINEMENT',
-                    id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'_'+recIdx,
+                    id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'##'+recIdx,
                     opType: 'DELETE',
                     relatedEntityId: event.dynamodb.NewImage.iun.S,
                     kinesisSeqNumber: event.kinesisSeqNumber                    
@@ -190,7 +191,7 @@ function mapPayload(event){
 
                 op = {
                     type: 'SEND_AMR',
-                    id: "04_AMR##"+event.dynamodb.NewImage.iun.S+'#'+recIdx,
+                    id: "04_AMR##"+event.dynamodb.NewImage.iun.S+'##'+recIdx,
                     relatedEntityId: event.dynamodb.NewImage.iun.S,
                     startTimestamp: event.dynamodb.NewImage.timestamp.S,
                     slaExpiration: slaExpiration,
@@ -208,7 +209,7 @@ function mapPayload(event){
     
                     op = {
                         type: 'SEND_AMR',
-                        id: "04_AMR##"+event.dynamodb.NewImage.iun.S+'#'+recIdx,                        
+                        id: "04_AMR##"+event.dynamodb.NewImage.iun.S+'##'+recIdx,                        
                         opType: 'DELETE',
                         relatedEntityId: event.dynamodb.NewImage.iun.S,
                         kinesisSeqNumber: event.kinesisSeqNumber
