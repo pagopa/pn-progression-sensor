@@ -7,31 +7,47 @@ function makePartitionKey(event){
 
 function makeDeleteCommandFromEvent(event){
     const params = {
-        TableName: process.env.PROGRESSION_SENSOR_TABLE_NAME,
+        TableName: process.env.DYNAMODB_TABLE,
         Key: {
             entityName_type_relatedEntityId: makePartitionKey(event),
             id: event.id
         },
         ConditionExpression: 'attribute_exists(entityName_type_relatedEntityId)'
     }
+
+    console.log(params)
     
     return params
 }
 
+function fromTimestampToYearToMinute(timestamp){
+    const d = new Date(timestamp);
+    const isoString = d.toISOString();
+    const dateTokens = isoString.split('T')
+    let ret = dateTokens[0]
+    const timeTokens = dateTokens[1].split(':')
+    ret += 'T'+timeTokens[0]+':'+timeTokens[1]
+    return ret
+}
+
 function makeInsertCommandFromEvent(event){
     const params = {
-        TableName: process.env.PROGRESSION_SENSOR_TABLE_NAME,
+        TableName: process.env.DYNAMODB_TABLE,
         Item: {
             entityName_type_relatedEntityId: makePartitionKey(event),
             id: event.id,
+            type: event.type,
             relatedEntityId: event.relatedEntityId,
             startTimestamp: event.startTimestamp,
             slaExpiration: event.slaExpiration,
-            step_alarmTTL: event.step_alarmTTL,
-            alarmTTL: event.alarmTTL
+            step_alarmTTL: Math.floor(event.step_alarmTTL / 1000) ,
+            alarmTTL: event.alarmTTL,
+            alarmTTLYearToMinute: fromTimestampToYearToMinute(event.alarmTTL)
         },
         ConditionExpression: 'attribute_not_exists(entityName_type_relatedEntityId)'
     }
+
+    console.log(params)
     
     return params
 }

@@ -1,3 +1,6 @@
+process.env.DYNAMODB_TABLE='pn-test'
+process.env.REGION='eu-central-1'
+
 const { mockClient } = require("aws-sdk-client-mock");
 const { DynamoDBDocumentClient, DeleteCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
 const { expect } = require('chai');
@@ -12,7 +15,7 @@ const events = [
         startTimestamp: "2011-10-05T14:48:00.000Z",
         slaExpiration: "2011-10-05T14:48:00.000Z",
         alarmTTL: "2011-10-05T14:48:00.000Z",
-        step_alarmTTL: 1231231212312
+        step_alarmTTL: 1674469350754
     },
     {
         opType: 'DELETE',
@@ -21,8 +24,6 @@ const events = [
         id: '123123'
     }
 ]
-
-
 
 describe('repository tests', function() {
 
@@ -56,6 +57,7 @@ describe('repository tests', function() {
 
 
     it("test DELETE ERROR", async () => {
+        process.env.REGION = 'eu-central-1'
         ddbMock.on(PutCommand).resolves({
             
         });

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'Example microservice deploy'
+Description: "Example microservice deploy"
 
 Transform:
   - UpdateDeploymentTransform
@@ -7,43 +7,44 @@ Transform:
 Parameters:
   ProjectName:
     Type: String
-    Description: 'Usually pn can be pnXYZ where XYZ are the feature number, useful to create
-      experimental environments without crash official development environment'
-  
+    Description:
+      "Usually pn can be pnXYZ where XYZ are the feature number, useful to create
+      experimental environments without crash official development environment"
+
   LambdasBucketName:
     Type: String
-    Description: 'The S3 bucket from which to fetch the templates used by this stack.'
+    Description: "The S3 bucket from which to fetch the templates used by this stack."
 
   BucketBasePath:
     Type: String
-    Description: 'The S3 bucket base path where lambda functions are stored'
+    Description: "The S3 bucket base path where lambda functions are stored"
 
   # Unused but required by CD pipeline
   MicroserviceNumber:
     Type: Number
-    Description: 'Disambiguation useful for load balancer rules'
+    Description: "Disambiguation useful for load balancer rules"
 
   # Unused but required by CD pipeline
   TemplateBucketBaseUrl:
     Type: String
-    Description: 'The S3 bucket from which to fetch the templates used by this stack.'
+    Description: "The S3 bucket from which to fetch the templates used by this stack."
 
   #SNS Topic Alarm Arn and Name
   AlarmSNSTopicArn:
     Type: String
-    Description: "An ARN of an SNS topic where to send alarm when log line includes ERROR or FATAL" 
-  
+    Description: "An ARN of an SNS topic where to send alarm when log line includes ERROR or FATAL"
+
   Version:
     Type: String
     Description: "Keep versioning of commitIds used for cloudformation templates"
-  
+
   LogsKinesisSourceStreamArn:
     Type: String
-    Description: 'Kinesis stream that receive logs'
+    Description: "Kinesis stream that receive logs"
 
   # - Log exports parameters
   CloudwatchFilterPattern:
-    Default: ''
+    Default: ""
     Type: String
     Description: filter expression for exported logs
 
@@ -66,32 +67,35 @@ Parameters:
 Conditions:
   SendLogToKinesis: !Not [ !Equals [ !Ref LogsKinesisSourceStreamArn, '' ] ]
 
-
 Resources:
-  ###             LAMBDA1             ###
+  #########################################################
+  ###         SearchSLAViolations         ###
   #########################################################
 
   # Lambda function
-  Function1Lambda:
+  SearchSLAViolations:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-Function1Lambda'
-      Runtime: nodejs14.x
-      Handler: 'index.handler'
+      FunctionName: !Sub "${ProjectName}-searchSLAViolations"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: !Sub "${BucketBasePath}/function1.zip"
-      Role: !GetAtt Function1LambdaRole.Arn
+        S3Key: !Sub "${BucketBasePath}/searchSLAViolations.zip"
+      Role: !GetAtt SearchSLAViolationsRole.Arn
       TracingConfig:
         Mode: Active
       Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"          
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Environment:
+        Variables:
+          DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
 
   # Lambda function role
-  Function1LambdaRole:
+  SearchSLAViolationsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${ProjectName}-Function1LambdaRole
+      RoleName: !Sub ${ProjectName}-SearchSLAViolationsRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -106,54 +110,53 @@ Resources:
       Path: /
 
   # Lambda function IAM policy
-  Function1LambdaPolicy:
+  SearchSLAViolationsRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub ${ProjectName}-Function1LambdaPolicy
+      PolicyName: !Sub ${ProjectName}-SearchSLAViolationsRolePolicy
       Roles:
-        - !Ref Function1LambdaRole
+        - !Ref SearchSLAViolationsRole
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
             Action:
-              - 'apigateway:*'
-              - 'dynamodb:GetItem'
-              - 'dynamodb:Query'
-            Resource: "*"
+              - "dynamodb:Query"
+            Resource:
+              - !Sub "${ProgressionSensorDataDynamoTableArn}"
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
 
   # lambda function Log Group
-  Function1LambdaLogGroup:
+  SearchSLAViolationsLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${Function1Lambda}"
+      LogGroupName: !Sub "/aws/lambda/${SearchSLAViolations}"
       RetentionInDays: 14
 
   # Lambda function CloudWatch Logs Metric Filter
-  Function1FatalLogsMetricFilter:
+  SearchSLAViolationsFatalLogsMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
-      LogGroupName:
-        !Ref Function1LambdaLogGroup
-      FilterPattern: '?ERROR ?FATAL ?CRITICAL'
+      LogGroupName: !Ref SearchSLAViolationsLogGroup
+      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
       MetricTransformations:
         - MetricValue: 1
           MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-Function1FatalMetric
+          MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsFatalMetric
 
   # Lambda function CloudWatch alarm
-  Function1ErrorFatalLogsMetricAlarm:
+  SearchSLAViolationsErrorFatalLogsMetricAlarm:
     Type: AWS::CloudWatch::Alarm
-    DependsOn: Function1FatalLogsMetricFilter
+    DependsOn: SearchSLAViolationsFatalLogsMetricFilter
     Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-Function1ErrorFatalLogsMetricAlarm
-      AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
+      AlarmName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for SearchSLAViolations Lambda logs with ERROR or FATAL line."
       AlarmActions:
         - !Ref AlarmSNSTopicArn
       OKActions:
         - !Ref AlarmSNSTopicArn
       DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-Function1ErrorFatalMetric
+      MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalMetric
       Namespace: ErrorFatalLogs
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 60
@@ -169,7 +172,7 @@ Resources:
   ActivityStepManagerLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-ActivityStepManagerLambda'
+      FunctionName: !Sub '${ProjectName}-activityStepManagerLambda'
       Runtime: nodejs18.x
       Handler: 'index.handler'
       Code:
@@ -179,17 +182,17 @@ Resources:
       Environment:
          Variables:
           REGION: !Sub ${AWS::Region}
-          PROGRESSION_SENSOR_TABLE_NAME: !Ref ProgressionSensorDataDynamoTableName   
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName   
       TracingConfig:
         Mode: Active
       Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"          
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
 
   # Lambda function role
   ActivityStepManagerLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${ProjectName}-ActivityStepManagerLambdaRole
+      RoleName: !Sub ${ProjectName}-activityStepManagerLambdaRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -286,8 +289,7 @@ Resources:
         Version: "2012-10-17"
       Path: /
       Policies:
-        -
-          PolicyName: !Sub '${ProjectName}-progression-sensor-logs-subscription-role'
+        - PolicyName: !Sub "${ProjectName}-progression-sensor-logs-subscription-role"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -302,13 +304,12 @@ Resources:
                 Effect: Allow
                 Resource: "*"
 
- 
-  Function1SubscriptionFilter:
+  SearchSLAViolationsSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
     Properties:
       RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
-      LogGroupName: !Ref Function1LambdaLogGroup
+      LogGroupName: !Ref SearchSLAViolationsLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
 

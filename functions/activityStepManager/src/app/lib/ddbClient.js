@@ -2,9 +2,8 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient } = require("@aws-sdk/lib-dynamodb");
 
-const region = process.env.REGION?process.env.REGION:'eu-south-1'
 const ddbClient = new DynamoDBClient({
-  region: region
+  region: process.env.REGION
 });
 
 const marshallOptions = {

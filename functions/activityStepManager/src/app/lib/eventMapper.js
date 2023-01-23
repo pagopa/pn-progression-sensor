@@ -47,7 +47,8 @@ function mapPayload(event){
             slaExpiration: slaExpiration,
             step_alarmTTL: step_alarmTTL,
             alarmTTL: alarmTTL,
-            opType: 'INSERT'
+            opType: 'INSERT',
+            kinesisSeqNumber: event.kinesisSeqNumber
         }
         dynamoDbOps.push(op)
     } else if(event.tableName=='pn-Timelines'){
@@ -58,7 +59,8 @@ function mapPayload(event){
                 op = {
                     type: 'VALIDATION',
                     id: "00_VALID##"+event.dynamodb.NewImage.iun.S,
-                    opType: 'DELETE'
+                    opType: 'DELETE',
+                    kinesisSeqNumber: event.kinesisSeqNumber
                 }
                 dynamoDbOps.push(op)
 
@@ -76,7 +78,8 @@ function mapPayload(event){
                     slaExpiration: slaExpiration,
                     step_alarmTTL: step_alarmTTL,
                     alarmTTL: alarmTTL,
-                    opType: 'INSERT'
+                    opType: 'INSERT',
+                    kinesisSeqNumber: event.kinesisSeqNumber
                 }
 
                 dynamoDbOps.push(op1)
@@ -86,7 +89,8 @@ function mapPayload(event){
                     type: 'VALIDATION',
                     id: "00_VALID##"+event.dynamodb.NewImage.iun.S,
                     opType: 'DELETE',
-                    relatedEntityId: event.dynamodb.NewImage.iun.S                    
+                    relatedEntityId: event.dynamodb.NewImage.iun.S,
+                    kinesisSeqNumber: event.kinesisSeqNumber                    
                 }
                 dynamoDbOps.push(op)
 
@@ -98,7 +102,8 @@ function mapPayload(event){
                     type: 'REFINEMENT',
                     id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'_'+recIdx,
                     opType: 'DELETE',
-                    relatedEntityId: event.dynamodb.NewImage.iun.S                    
+                    relatedEntityId: event.dynamodb.NewImage.iun.S,
+                    kinesisSeqNumber: event.kinesisSeqNumber                    
                 }
 
                 dynamoDbOps.push(op)
@@ -110,7 +115,8 @@ function mapPayload(event){
                     type: 'REFINEMENT',
                     id: "01_REFIN##"+event.dynamodb.NewImage.iun.S+'_'+recIdx,
                     opType: 'DELETE',
-                    relatedEntityId: event.dynamodb.NewImage.iun.S                    
+                    relatedEntityId: event.dynamodb.NewImage.iun.S,
+                    kinesisSeqNumber: event.kinesisSeqNumber                    
                 }
 
                 dynamoDbOps.push(op)
@@ -128,7 +134,8 @@ function mapPayload(event){
                     slaExpiration: slaExpiration,
                     step_alarmTTL: step_alarmTTL,
                     alarmTTL: alarmTTL,
-                    opType: 'INSERT'
+                    opType: 'INSERT',
+                    kinesisSeqNumber: event.kinesisSeqNumber
                 }
 
                 dynamoDbOps.push(op)
@@ -138,7 +145,8 @@ function mapPayload(event){
                     type: 'SEND_PEC',
                     id: "02_PEC__##"+event.dynamodb.NewImage.timelineElementId.S,
                     opType: 'DELETE',
-                    relatedEntityId: event.dynamodb.NewImage.iun.S                    
+                    relatedEntityId: event.dynamodb.NewImage.iun.S,
+                    kinesisSeqNumber: event.kinesisSeqNumber                    
                 }
 
                 dynamoDbOps.push(op)
@@ -157,7 +165,8 @@ function mapPayload(event){
                     slaExpiration: slaExpiration,
                     step_alarmTTL: step_alarmTTL,
                     alarmTTL: alarmTTL,
-                    opType: 'INSERT'
+                    opType: 'INSERT',
+                    kinesisSeqNumber: event.kinesisSeqNumber
                 }
 
                 dynamoDbOps.push(op)
@@ -167,7 +176,8 @@ function mapPayload(event){
                     type: 'SEND_PAPER_AR_890',
                     id: "03_PAPER##"+event.dynamodb.NewImage.timelineElementId.S,
                     opType: 'DELETE',
-                    relatedEntityId: event.dynamodb.NewImage.iun.S                    
+                    relatedEntityId: event.dynamodb.NewImage.iun.S,
+                    kinesisSeqNumber: event.kinesisSeqNumber                    
                 }
 
                 dynamoDbOps.push(op)
@@ -186,7 +196,8 @@ function mapPayload(event){
                     slaExpiration: slaExpiration,
                     step_alarmTTL: step_alarmTTL,
                     alarmTTL: alarmTTL,
-                    opType: 'INSERT'
+                    opType: 'INSERT',
+                    kinesisSeqNumber: event.kinesisSeqNumber
                 }
 
                 dynamoDbOps.push(op)
@@ -199,7 +210,8 @@ function mapPayload(event){
                         type: 'SEND_AMR',
                         id: "04_AMR##"+event.dynamodb.NewImage.iun.S+'#'+recIdx,                        
                         opType: 'DELETE',
-                        relatedEntityId: event.dynamodb.NewImage.iun.S
+                        relatedEntityId: event.dynamodb.NewImage.iun.S,
+                        kinesisSeqNumber: event.kinesisSeqNumber
                     }
     
                     dynamoDbOps.push(op)
