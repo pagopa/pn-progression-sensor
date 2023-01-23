@@ -1,6 +1,6 @@
 let options = {
     "sonar.organization": "pagopa",
-    "sonar.projectKey": "pagopa_pn-progression-sensor-function2"
+    "sonar.projectKey": "pagopa_pn-progression-sensor-activityStepManager"
 }
 
 if (typeof process.env.PR_NUM !== 'undefined' ) {
@@ -9,7 +9,7 @@ if (typeof process.env.PR_NUM !== 'undefined' ) {
     options["sonar.pullrequest.key"] = process.env.PR_NUM;
 }
 
-import scanner from "sonarqube-scanner";
+const scanner = require("sonarqube-scanner");
 
 scanner(
   {

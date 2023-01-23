@@ -1,0 +1,20 @@
+{
+    "tableName": "pn-Timelines",
+    "eventName": "INSERT",
+    "dynamodb": {
+        "NewImage": {
+            "iun": {
+                "S": "abcd"
+            },
+            "timelineElementId": {
+                "S": "123123123123_IDX1"
+            },
+            "notificationSentAt": {
+                "S": "2023-01-20T14:48:00.000Z"
+            },
+            "timestamp": {
+                "S": "2023-01-20T14:48:00.000Z"
+            }
+        }
+    }
+}
