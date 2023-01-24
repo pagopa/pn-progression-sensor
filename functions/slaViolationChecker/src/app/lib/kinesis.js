@@ -24,6 +24,39 @@ function decodePayload(b64Str) {
 function mustProcess(rec) {
   const allowedTables = ["pn-ProgressionSensorData"];
   //console.log("mustProcess, record: ", rec);
+  //   {
+  //     kinesisSeqNumber: '49637329937448784559035416658086603608349162186672701458',
+  //     awsRegion: 'eu-south-1',
+  //     eventID: '509b20a7-42f3-47af-b571-bfdb980d68f4',
+  //     eventName: 'REMOVE',
+  //     userIdentity: null,
+  //     recordFormat: 'application/json',
+  //     tableName: 'pn-ProgressionSensorData',
+  //     dynamodb: {
+  //       ApproximateCreationDateTime: 1674576197043,
+  //       Keys: [Object],
+  //       OldImage: [Object],
+  //       SizeBytes: 480
+  //     },
+  //     eventSource: 'aws:dynamodb'
+  //   }
+  //
+  // Keys: {
+  //     id: { S: 'DELETE##01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted' },
+  //     entityName_type_relatedEntityId: { S: 'step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1' }
+  //   },
+  //
+  // OldImage: {
+  //     startTimestamp: { S: '2023-01-24T15:06:12.470719211Z' },
+  //     step_alarmTTL: { N: '1688396772' },
+  //     entityName_type_relatedEntityId: { S: 'step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1' },
+  //     alarmTTLYearToMinute: { S: '2023-07-03T15:06' },
+  //     alarmTTL: { S: '2023-07-03T15:06:12.470Z' },
+  //     relatedEntityId: { S: 'YZPN-ZTVQ-UTGU-202301-Y-1' },
+  //     slaExpiration: { S: '2023-07-17T15:06:12.470Z' },
+  //     id: { S: 'DELETE##01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted' },
+  //     type: { S: 'REFINEMENT' }
+  //   },
   return allowedTables.indexOf(rec.tableName) > -1 && rec.eventName == "REMOVE";
 }
 
