@@ -64,6 +64,14 @@ Parameters:
     Description: "Kinesis source CDC stream crypto key ARN"
     Type: String
 
+  CdcProgressionSensorKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
+  CdcProgressionSensorKinesisSourceStreamKeyArn:
+    Description: "Kinesis source CDC stream crypto key ARN"
+    Type: String
+
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
 
@@ -89,6 +97,7 @@ Resources:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Environment:
         Variables:
+          REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
 
   # Lambda function role
@@ -387,13 +396,16 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Action: # TO BE VERIFIED!!!!
+            Action:
               - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem" # for the complete implementation
             Resource:
               - !Ref ProgressionSensorDataDynamoTableArn
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+          # for the complete implementation, add GetItem permission on pn-Timelines DynamoDB table
+          # ...
           - Effect: Allow
-            Action: # TO BE VERIFIED!!!!
+            Action:
               - kinesis:DescribeStream
               - kinesis:DescribeStreamSummary
               - kinesis:GetShardIterator
@@ -401,10 +413,10 @@ Resources:
               - kinesis:ListShards
               - kinesis:ListStreams
               - kinesis:SubscribeToShard
-            Resource: !Ref CdcKinesisSourceStreamArn # TO BE VERIFIED!!!!
+            Resource: !Ref CdcProgressionSensorKinesisSourceStreamArn
           - Action: kms:Decrypt
             Effect: Allow
-            Resource: !Ref CdcKinesisSourceStreamKeyArn # TO BE VERIFIED!!!!
+            Resource: !Ref CdcProgressionSensorKinesisSourceStreamKeyArn
 
   # lambda function Log Group
   SLAViolationCheckerLambdaLogGroup:
@@ -460,9 +472,12 @@ Resources:
     Properties:
       BatchSize: 20
       BisectBatchOnFunctionError: true
-      EventSourceArn: !Ref CdcKinesisSourceStreamArn # TO BE VERIFIED!!!!
+      EventSourceArn: !Ref CdcProgressionSensorKinesisSourceStreamArn
       FunctionName: !Ref SLAViolationCheckerLambda
       FunctionResponseTypes:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
+
+  # for the complete implementation, also attach to SQS
+  # ...

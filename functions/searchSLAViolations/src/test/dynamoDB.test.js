@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const dynamo = require("../app/dynamoFunctions.js");
+const dynamo = require("../app/dynamoDB.js");
 const { mockClient } = require("aws-sdk-client-mock");
 const {
   DynamoDBDocumentClient,

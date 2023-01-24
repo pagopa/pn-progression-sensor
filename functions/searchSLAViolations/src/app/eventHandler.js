@@ -1,4 +1,4 @@
-const dynamo = require("./dynamoFunctions.js");
+const dynamo = require("./dynamoDB.js");
 
 const { isValidDate, isValidType } = require("./utils");
 

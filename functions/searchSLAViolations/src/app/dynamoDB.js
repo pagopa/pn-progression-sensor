@@ -15,10 +15,12 @@ module.exports.searchSLAViolations = async (
   olderThan,
   lastScannedKey
 ) => {
-  const tableName = process.env.DYNAMODB_TABLE || "testTable";
+  const tableName = process.env.DYNAMODB_TABLE || "pn-ProgressionSensorData";
   //console.log(tableName);
 
-  const client = new DynamoDBClient();
+  const client = new DynamoDBClient({
+    region: process.env.REGION,
+  });
   const dynamoDB = DynamoDBDocumentClient.from(client);
 
   let params = {};
