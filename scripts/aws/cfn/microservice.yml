@@ -334,3 +334,135 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
+
+  #########################################################
+  ###              SLAViolationCheckerLambda            ###
+  #########################################################
+
+  # Lambda function
+  SLAViolationCheckerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambda"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationChecker.zip"
+      Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+
+  # Lambda function role
+  SLAViolationCheckerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-slaViolationCheckerLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda function IAM policy
+  SLAViolationCheckerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-SLAViolationCheckerLambdaPolicy
+      Roles:
+        - !Ref SLAViolationCheckerLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: # TO BE VERIFIED!!!!
+              - "dynamodb:PutItem"
+            Resource:
+              - !Ref ProgressionSensorDataDynamoTableArn
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+          - Effect: Allow
+            Action: # TO BE VERIFIED!!!!
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Resource: !Ref CdcKinesisSourceStreamArn # TO BE VERIFIED!!!!
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource: !Ref CdcKinesisSourceStreamKeyArn # TO BE VERIFIED!!!!
+
+  # lambda function Log Group
+  SLAViolationCheckerLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SLAViolationCheckerLambda}"
+      RetentionInDays: 14
+
+  # Lambda function CloudWatch Logs Metric Filter
+  SLAViolationCheckerFatalLogsMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref SLAViolationCheckerLambdaLogGroup
+      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
+      MetricTransformations:
+        - MetricValue: 1
+          MetricNamespace: "ErrorFatalLogs"
+          MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerFatalMetric
+
+  # Lambda function CloudWatch alarm
+  SLAViolationCheckerErrorFatalLogsMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: SLAViolationCheckerFatalLogsMetricFilter
+    Properties:
+      AlarmName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for SLAViolationChecker Lambda logs with ERROR or FATAL line."
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      DatapointsToAlarm: 1
+      MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerErrorFatalMetric
+      Namespace: ErrorFatalLogs
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  SLAViolationCheckerSubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref SLAViolationCheckerLambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  # CDC to SLA Violation Checker
+  SLAViolationCheckerLambdaKinesisSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 20
+      BisectBatchOnFunctionError: true
+      EventSourceArn: !Ref CdcKinesisSourceStreamArn # TO BE VERIFIED!!!!
+      FunctionName: !Ref SLAViolationCheckerLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 300 # 1 minute
+      StartingPosition: LATEST
