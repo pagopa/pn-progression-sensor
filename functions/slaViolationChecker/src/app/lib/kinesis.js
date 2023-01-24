@@ -23,12 +23,12 @@ function decodePayload(b64Str) {
 // DELETE intead of INSERT ()
 function mustProcess(rec) {
   const allowedTables = ["pn-ProgressionSensorData"];
-  console.log("mustProcess, record: ", rec);
-  return allowedTables.indexOf(rec.tableName) && rec.eventName == "DELETE";
+  //console.log("mustProcess, record: ", rec);
+  return allowedTables.indexOf(rec.tableName) > -1 && rec.eventName == "REMOVE";
 }
 
 exports.extractKinesisData = function (kinesisEvent) {
-  console.log("kinesis event: ", kinesisEvent);
+  //console.log("kinesis event: ", kinesisEvent);
   if (kinesisEvent == null || kinesisEvent.Records == null) {
     return [];
   }

@@ -14,6 +14,7 @@ module.exports.eventHandler = async (event) => {
   // 1. get event from Kinesis and filter for delete
   const cdcEvents = extractKinesisData(event);
   console.log(`Batch size: ${cdcEvents.length} cdc`);
+  //console.log("kinesis data: ", cdcEvents);
 
   if (cdcEvents.length == 0) {
     // no delete event in the CDC stream from Kinesis
