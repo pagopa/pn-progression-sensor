@@ -32,7 +32,6 @@ module.exports.eventHandler = async (event) => {
 
   // 2. process if reason is TTL: create an Active SLA Violation
   const persistSummary = await persistEvents(processedItems); // actually produce changes to DB (in out case only create Active Sla Violations)
-  let batchItemFailures = [];
 
   console.log("Persist summary", persistSummary);
   console.log(`Inserted ${persistSummary.insertions} records`);
@@ -43,7 +42,7 @@ module.exports.eventHandler = async (event) => {
       `SLA Violation Checker execution finished with ${persistSummary.errors.length} errors`,
       persistSummary.errors
     );
-    batchItemFailures = persistSummary.errors.map((i) => {
+    payload.batchItemFailures = persistSummary.errors.map((i) => {
       return i.kinesisSeqNumber;
     });
   }
