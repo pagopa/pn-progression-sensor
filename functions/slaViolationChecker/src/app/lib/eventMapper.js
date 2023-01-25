@@ -1,7 +1,7 @@
 function makeInsertIfNotExistOp(event) {
   const op = {
     entityName_type_relatedEntityId:
-      vent.dynamodb.OldImage.entityName_type_relatedEntityId.S,
+      event.dynamodb.OldImage.entityName_type_relatedEntityId.S,
     type: event.dynamodb.OldImage.type.S,
     id: event.dynamodb.OldImage.id.S,
     relatedEntityId: event.dynamodb.OldImage.relatedEntityId.S,

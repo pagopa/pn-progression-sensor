@@ -1,27 +1,29 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
 
-// function makeInsertCommandFromEvent(event){
-//     const params = {
-//         TableName: process.env.DYNAMODB_TABLE,
-//         Item: {
-//             entityName_type_relatedEntityId: makePartitionKey(event),
-//             id: event.id,
-//             type: event.type,
-//             relatedEntityId: event.relatedEntityId,
-//             startTimestamp: event.startTimestamp,
-//             slaExpiration: event.slaExpiration,
-//             step_alarmTTL: Math.floor(event.step_alarmTTL / 1000),
-//             alarmTTL: event.alarmTTL,
-//             alarmTTLYearToMinute: fromTimestampToYearToMinute(event.alarmTTL)
-//         },
-//         ConditionExpression: 'attribute_not_exists(entityName_type_relatedEntityId)'
-//     }
+function makeInsertIfNotExistsCommandFromEvent(event) {
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE,
+    Item: {
+      entityName_type_relatedEntityId:
+        event.entityName_type_relatedEntityId.replace("step##", "sla##"), // replace: step## -> sla## (not a step, but a sla violation)
+      type: event.type,
+      id: event.it,
+      relatedEntityId: event.relatedEntityId,
+      startTimestamp: event.startTimestamp,
+      slaExpiration: event.slaExpiration,
+      alarmTTL: event.alarmTTL,
+      entityName_type_relatedEntityId: event.entityName_type_relatedEntityId,
+      active_sla_entityName_type: event.type,
+    },
+    ConditionExpression:
+      "attribute_not_exists(entityName_type_relatedEntityId)",
+  };
 
-//     console.log(params)
+  console.log(params);
 
-//     return params
-// }
+  return params;
+}
 
 exports.persistEvents = async (events) => {
   const summary = {
@@ -39,8 +41,7 @@ exports.persistEvents = async (events) => {
 
   for (let i = 0; i < events.length; i++) {
     if (events[i].opType == "INSERT_IF_NOT_EXISTS") {
-      //const params = makeDeleteCommandFromEvent(events[i]);
-      let params = {};
+      const params = makeInsertIfNotExistsCommandFromEvent(events[i]);
       try {
         // db operation
         await dynamoDB.send(new PutCommand(params));

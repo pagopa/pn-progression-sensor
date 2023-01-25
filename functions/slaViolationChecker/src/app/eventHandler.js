@@ -13,9 +13,9 @@ module.exports.eventHandler = async (event) => {
   };
 
   // 1. get event from Kinesis and filter for delete
-  const cdcEvents = extractKinesisData(event);
+  const cdcEvents = extractKinesisData(event); // only needed events (REMOVE)
   console.log(`Batch size: ${cdcEvents.length} cdc`);
-  //console.log("kinesis data: ", cdcEvents);
+  console.log("kinesis data: ", JSON.stringify(cdcEvents));
 
   if (cdcEvents.length == 0) {
     // no delete event in the CDC stream from Kinesis
@@ -23,7 +23,7 @@ module.exports.eventHandler = async (event) => {
     return payload;
   }
 
-  const processedItems = mapEvents(cdcEvents);
+  const processedItems = mapEvents(cdcEvents); // map events to DB operations to perform (in out case, only PUT if not exists for TTL REMOVE)
   if (processedItems.length == 0) {
     console.log("No events to persist");
     return payload;
@@ -31,28 +31,22 @@ module.exports.eventHandler = async (event) => {
   console.log(`Items to persist`, processedItems);
 
   // 2. process if reason is TTL: create an Active SLA Violation
-  const persistSummary = await persistEvents(processedItems);
+  const persistSummary = await persistEvents(processedItems); // actually produce changes to DB (in out case only create Active Sla Violations)
   let batchItemFailures = [];
 
-  // console.log("Persist summary", persistSummary);
-  // console.log(`Inserted ${persistSummary.insertions} records`);
-  // console.log(`Deleted ${persistSummary.deletions} records`);
+  console.log("Persist summary", persistSummary);
+  console.log(`Inserted ${persistSummary.insertions} records`);
+  console.log(`Deleted ${persistSummary.deletions} records`);
 
-  // if (persistSummary.errors.length > 0) {
-  //   console.error(
-  //     `Activity Step Manager execution finished with ${persistSummary.errors.length} errors`,
-  //     persistSummary.errors
-  //   );
-  //   batchItemFailures = persistSummary.errors.map((i) => {
-  //     return i.kinesisSeqNumber;
-  //   });
-  // }
+  if (persistSummary.errors.length > 0) {
+    console.error(
+      `SLA Violation Checker execution finished with ${persistSummary.errors.length} errors`,
+      persistSummary.errors
+    );
+    batchItemFailures = persistSummary.errors.map((i) => {
+      return i.kinesisSeqNumber;
+    });
+  }
 
-  // try {
-
-  //   // ...
-  // } catch (error) {
-  //   // ...
-  // }
   return JSON.stringify(payload);
 };

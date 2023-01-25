@@ -61,7 +61,7 @@ function mustProcess(rec) {
 }
 
 exports.extractKinesisData = function (kinesisEvent) {
-  //console.log("kinesis event: ", kinesisEvent);
+  console.log("kinesis event: ", JSON.stringify(kinesisEvent));
   if (kinesisEvent == null || kinesisEvent.Records == null) {
     return [];
   }
