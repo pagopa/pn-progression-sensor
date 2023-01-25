@@ -1,4 +1,4 @@
-function makeInsertIfNotExistOp(event) {
+function makeInsertOp(event) {
   const op = {
     entityName_type_relatedEntityId:
       event.dynamodb.OldImage.entityName_type_relatedEntityId.S,
@@ -9,13 +9,12 @@ function makeInsertIfNotExistOp(event) {
     slaExpiration: event.dynamodb.OldImage.slaExpiration.S,
     // NO step_alarmTTL: this is an Active SLA Violation
     alarmTTL: event.dynamodb.OldImage.alarmTTL.S,
-    entityName_type_relatedEntityId:
-      event.dynamodb.OldImage.entityName_type_relatedEntityId.S,
+    alarmTTLYearToMinute: event.dynamodb.OldImage.alarmTTLYearToMinute.S,
     // end of original fields
     active_sla_entityName_type: event.dynamodb.OldImage.type.S, // new field for SLA violations, to be removed when endTimestamp is eventually set
     //endTimestamp is null because it's an active SLA Violation
     // end of fields
-    opType: "INSERT_IF_NOT_EXISTS",
+    opType: "INSERT",
     kinesisSeqNumber: event.kinesisSeqNumber,
   };
 
@@ -25,7 +24,7 @@ function makeInsertIfNotExistOp(event) {
 const mapPayload = (event) => {
   const dynamoDbOps = [];
   if (checkRemovedByTTL(event)) {
-    const op = makeInsertIfNotExistOp(event);
+    const op = makeInsertOp(event);
     dynamoDbOps.push(op);
   }
 

@@ -9,7 +9,7 @@ const { dateTimeStringToYearAndMonth } = require("../app/utils");
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
-describe("dynamoFunction tests", function () {
+describe("DynamoDB tests", function () {
   this.beforeEach(() => {
     ddbMock.reset();
   });
