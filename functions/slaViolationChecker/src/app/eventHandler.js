@@ -48,5 +48,5 @@ module.exports.eventHandler = async (event) => {
     });
   }
 
-  return JSON.stringify(payload);
+  return payload;
 };
