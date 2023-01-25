@@ -1,5 +1,5 @@
 const { expect } = require("chai");
-const { checkRemovebyTTL } = require("../app/lib/eventMapper");
+const { checkRemovedByTTL } = require("../app/lib/eventMapper");
 
 describe("test check REMOVE by TTL", () => {
   const sampleKinesisEventNotByTTL = {
@@ -21,7 +21,7 @@ describe("test check REMOVE by TTL", () => {
   };
 
   it("should be not removed by TTL", () => {
-    expect(checkRemovebyTTL(sampleKinesisEventNotByTTL)).to.be.false;
+    expect(checkRemovedByTTL(sampleKinesisEventNotByTTL)).to.be.false;
   });
 
   it("should be removed by TTL", () => {
@@ -31,14 +31,14 @@ describe("test check REMOVE by TTL", () => {
       principalId: "dynamodb.amazonaws.com",
     };
 
-    expect(checkRemovebyTTL(sampleKinesisEventByTTL)).to.be.true;
+    expect(checkRemovedByTTL(sampleKinesisEventByTTL)).to.be.true;
   });
 
   it("should be invalid with kinesis event", () => {
-    expect(checkRemovebyTTL("")).to.be.false;
+    expect(checkRemovedByTTL("")).to.be.false;
   });
 
   it("should be invalid with null kinesis event", () => {
-    expect(checkRemovebyTTL()).to.be.false;
+    expect(checkRemovedByTTL()).to.be.false;
   });
 });
