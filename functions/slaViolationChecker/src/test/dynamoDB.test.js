@@ -26,16 +26,7 @@ describe("DynamoDB tests", function () {
   };
 
   const updateEvent = {
-    entityName_type_relatedEntityId:
-      "step##SEND_PEC##GVPH-ZMZX-ZULV-202301-P-1",
-    type: type,
-    id: "02_PEC__##GVPH-ZMZX-ZULV-202301-P-1_send_digital_domicile_0_source_SPECIAL_attempt_0",
-    relatedEntityId: "GVPH-ZMZX-ZULV-202301-P-1",
-    startTimestamp: "2023-01-23T14:43:58.897907952Z",
-    slaExpiration: "2023-01-25T14:43:58.897Z",
-    alarmTTL: "2023-01-25T14:43:58.897Z",
-    alarmTTLYearToMinute: "2023-01-25T14:43",
-    active_sla_entityName_type: type,
+    ...insertEvent,
     opType: "UPDATE",
   };
 

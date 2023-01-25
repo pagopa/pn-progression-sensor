@@ -42,7 +42,7 @@ function mustProcess(rec) {
   //   }
   //
   // Keys: {
-  //     id: { S: 'DELETE##01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted' },
+  //     id: { S: '01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted' },
   //     entityName_type_relatedEntityId: { S: 'step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1' }
   //   },
   //

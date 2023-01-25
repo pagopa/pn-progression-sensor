@@ -1,4 +1,4 @@
-function makeInsertOp(event) {
+const makeInsertOp = (event) => {
   const op = {
     entityName_type_relatedEntityId:
       event.dynamodb.OldImage.entityName_type_relatedEntityId.S,
@@ -19,25 +19,16 @@ function makeInsertOp(event) {
   };
 
   return op;
-}
+};
 
 const mapPayload = (event) => {
   const dynamoDbOps = [];
-  if (checkRemovedByTTL(event)) {
+  if (this.checkRemovedByTTL(event)) {
     const op = makeInsertOp(event);
     dynamoDbOps.push(op);
   }
 
   return dynamoDbOps;
-};
-
-exports.mapEvents = (events) => {
-  let ops = [];
-  for (let i = 0; i < events.length; i++) {
-    const dynamoDbOps = mapPayload(filteredEvents[i]);
-    ops = ops.concat(dynamoDbOps);
-  }
-  return ops;
 };
 
 exports.checkRemovedByTTL = (kinesisEvent) => {
@@ -52,4 +43,13 @@ exports.checkRemovedByTTL = (kinesisEvent) => {
     return true;
   }
   return false;
+};
+
+exports.mapEvents = (events) => {
+  let ops = [];
+  for (let i = 0; i < events.length; i++) {
+    const dynamoDbOps = mapPayload(events[i]);
+    ops = ops.concat(dynamoDbOps);
+  }
+  return ops;
 };
