@@ -50,7 +50,7 @@ function mustProcess(rec) {
   //     startTimestamp: { S: '2023-01-24T15:06:12.470719211Z' },
   //     step_alarmTTL: { N: '1688396772' },
   //     entityName_type_relatedEntityId: { S: 'step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1' },
-  //     alarmTTLYearToMinute: { S: '2023-07-03T15:06' },
+  //     alarmTTLYearToMinute: { S: '03#2023-07-03T15:06' },
   //     alarmTTL: { S: '2023-07-03T15:06:12.470Z' },
   //     relatedEntityId: { S: 'YZPN-ZTVQ-UTGU-202301-Y-1' },
   //     slaExpiration: { S: '2023-07-17T15:06:12.470Z' },
