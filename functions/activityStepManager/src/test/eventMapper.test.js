@@ -1,8 +1,6 @@
 const { expect } = require('chai');
 const { mapEvents } = require('../app/lib/eventMapper');
-const Repository = require('../app/lib/repository');
 const fs = require('fs');
-const { after } = require('node:test');
 
 describe('event mapper tests', function() {
 
