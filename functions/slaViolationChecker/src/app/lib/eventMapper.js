@@ -24,11 +24,18 @@ const makeInsertOp = (event) => {
   return op;
 };
 
-const mapPayload = (event) => {
+const mapPayload = async (event) => {
   const dynamoDbOps = [];
   if (this.checkRemovedByTTL(event)) {
-    const op = makeInsertOp(event);
-    dynamoDbOps.push(op);
+    if (await checkStillRunningActivity()) {
+      // add SLA Violation
+      dynamoDbOps.push(makeInsertOp(event));
+    } else {
+      // update SLA Violation (if present)
+      // ...
+    }
+    //const op = makeInsertOp(event);
+    //dynamoDbOps.push(op);
   }
 
   return dynamoDbOps;
@@ -51,15 +58,8 @@ exports.checkRemovedByTTL = (kinesisEvent) => {
 exports.mapEvents = async (events) => {
   let ops = [];
   for (let i = 0; i < events.length; i++) {
-    if (await checkStillRunningActivity()) {
-      // add SLA Violation
-      ops = ops.concat(mapPayload(events[i])); // we are adding an array, not a single element
-    } else {
-      // update SLA Violation (if present)
-      // ...
-    }
-    //const dynamoDbOps = mapPayload(events[i]);
-    //ops = ops.concat(dynamoDbOps);
+    const dynamoDbOps = await mapPayload(events[i]); // we are adding an array, not a single element
+    ops = ops.concat(dynamoDbOps);
   }
   return ops;
 };
