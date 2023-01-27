@@ -9,12 +9,11 @@ exports.makeInsertCommandFromEvent = (event) => {
         event.entityName_type_relatedEntityId.replace("step##", "sla##"), // replace: step## -> sla## (not a step, but a sla violation)
       type: event.type,
       id: event.id,
-      relatedEntityId: event.relatedEntityId,
       startTimestamp: event.startTimestamp,
       slaExpiration: event.slaExpiration,
       alarmTTL: event.alarmTTL,
-      alarmTTLYearToMinute: event.alarmTTLYearToMinute,
       active_sla_entityName_type: event.type,
+      sla_relatedEntityId: event.sla_relatedEntityId,
     },
     ConditionExpression:
       "attribute_not_exists(entityName_type_relatedEntityId)",
