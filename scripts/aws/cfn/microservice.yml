@@ -242,6 +242,12 @@ Resources:
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
           - Effect: Allow
             Action:
+              - "dynamodb:GetItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Notifications
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Notifications/*"
+          - Effect: Allow
+            Action:
               - kinesis:DescribeStream
               - kinesis:DescribeStreamSummary
               - kinesis:GetShardIterator

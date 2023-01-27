@@ -1,5 +1,5 @@
 const { ddbDocClient } = require("./ddbClient.js");
-const { DeleteCommand, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const { DeleteCommand, PutCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
 const { twoNumbersFromIUN } = require("./utils");
 
 function makePartitionKey(event) {
@@ -41,7 +41,7 @@ function makeInsertCommandFromEvent(event) {
       relatedEntityId: event.relatedEntityId,
       startTimestamp: event.startTimestamp,
       slaExpiration: event.slaExpiration,
-      step_alarmTTL: Math.floor(event.step_alarmTTL / 1000),
+      step_alarmTTL: event.step_alarmTTL,
       alarmTTL: event.alarmTTL,
       alarmTTLYearToMinute:
         twoNumbersFromIUN(event.relatedEntityId) +
@@ -103,3 +103,30 @@ exports.persistEvents = async (events) => {
 
   return summary;
 };
+
+exports.getNotification = async function(iun){
+  try {
+    const params = {
+      TableName: TABLES.NOTIFICATIONS,
+      Key: {
+        iun: iun
+      },
+    };
+    const response = await ddbDocClient.send(new GetCommand(params));
+    if(response.Item){
+      return response.Item
+    } 
+
+    return null;
+  } catch (e) {
+    console.log('Get Notification error '+iun, e)
+  }
+  return null
+}
+
+const TABLES = {
+  NOTIFICATIONS: 'pn-Notifications',
+  TIMELINES: 'pn-Timelines'
+}
+
+exports.TABLES = TABLES
