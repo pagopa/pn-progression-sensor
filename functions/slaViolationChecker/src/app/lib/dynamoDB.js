@@ -2,7 +2,7 @@ const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
 const {
   DynamoDBDocumentClient,
   PutCommand,
-  QueryCommand,
+  GetCommand,
   UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
@@ -10,8 +10,27 @@ const {
  * checks wheter the activity is ended or is still running
  * @returns {string} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
  */
-exports.checkStillRunningActivity = async () => {
+exports.findActivityEnd = async () => {
   const tableName = "pn-Timelines";
+  // query con iun e timelineElementId da costruire -> getitem
+  //
+  // type VALIDATION:
+  // - INSERT in pn-Timelines di un record con category REQUEST_ACCEPTED indica la terminazione di una “attività di validazione”
+  // - INSERT in pn-Timelines di un record con category REQUEST_REFUSED indica la terminazione di una “attività di validazione”:
+  //
+  // type REFINEMENT:
+  // - INSERT in pn-Timelines di un record con category REFINEMENT indica la fine di una “attività di consegna” per uno dei destinatari della notifica
+  // - INSERT in pn-Timelines di un record con category NOTIFICATION_VIEWED indica la fine di una “attività di consegna” per uno dei destinatari della notifica
+  //
+  // SEND_PEC:
+  // - INSERT in pn-Timelines di un record con category SEND_DIGITAL_FEEDBACK indica la fine di una “attività di invio PEC”
+  //
+  // SEND_PAPER_AR_890
+  // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
+  //
+  // SEND_AMR
+  // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERD_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
+
   return null;
 };
 
@@ -55,7 +74,7 @@ exports.makeUpdateCommandFromEvent = (event) => {
       id: event.id,
     },
     UpdateExpression:
-      "SET #active_sla_entityName_type = :eT REMOVE #endTimestamp",
+      "SET #endTimestamp = :eT REMOVE #active_sla_entityName_type",
     ExpressionAttributeNames: {
       "#endTimestamp": "endTimestamp",
       "#active_sla_entityName_type": "active_sla_entityName_type",

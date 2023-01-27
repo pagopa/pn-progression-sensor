@@ -1,4 +1,4 @@
-const { checkStillRunningActivity: findActivityEnd } = require("./dynamoDB");
+const { findActivityEnd } = require("./dynamoDB");
 
 const makeInsertOp = (event) => {
   const op = {

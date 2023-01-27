@@ -405,7 +405,8 @@ Resources:
           - Effect: Allow
             Action:
               - "dynamodb:GetItem"
-            Resource: "arn:aws:dynamodb:eu-south-1:558518206506:table/pn-Timelines" # VEDERE...!
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines"
           - Effect: Allow
             Action:
               - kinesis:DescribeStream
