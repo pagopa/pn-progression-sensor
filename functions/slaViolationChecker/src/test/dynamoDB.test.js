@@ -16,12 +16,11 @@ describe("DynamoDB tests", function () {
       "step##SEND_PEC##GVPH-ZMZX-ZULV-202301-P-1",
     type: type,
     id: "02_PEC__##GVPH-ZMZX-ZULV-202301-P-1_send_digital_domicile_0_source_SPECIAL_attempt_0",
-    relatedEntityId: "GVPH-ZMZX-ZULV-202301-P-1",
     startTimestamp: "2023-01-23T14:43:58.897907952Z",
     slaExpiration: "2023-01-25T14:43:58.897Z",
     alarmTTL: "2023-01-25T14:43:58.897Z",
-    alarmTTLYearToMinute: "2023-01-25T14:43",
     active_sla_entityName_type: type,
+    sla_relatedEntityId: "GVPH-ZMZX-ZULV-202301-P-1",
     opType: "INSERT",
   };
 
@@ -42,9 +41,6 @@ describe("DynamoDB tests", function () {
     );
     expect(insertionCommandParams.Item.type).equal(insertEvent.type);
     expect(insertionCommandParams.Item.id).equal(insertEvent.id);
-    expect(insertionCommandParams.Item.relatedEntityId).equal(
-      insertEvent.relatedEntityId
-    );
     expect(insertionCommandParams.Item.startTimestamp).equal(
       insertEvent.startTimestamp
     );
@@ -52,11 +48,11 @@ describe("DynamoDB tests", function () {
       insertEvent.slaExpiration
     );
     expect(insertionCommandParams.Item.alarmTTL).equal(insertEvent.alarmTTL);
-    expect(insertionCommandParams.Item.alarmTTLYearToMinute).equal(
-      insertEvent.alarmTTLYearToMinute
-    );
     expect(insertionCommandParams.Item.active_sla_entityName_type).equal(
       insertEvent.type
+    );
+    expect(insertionCommandParams.Item.sla_relatedEntityId).equal(
+      insertEvent.sla_relatedEntityId
     );
   });
 
