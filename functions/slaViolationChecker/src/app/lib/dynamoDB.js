@@ -44,6 +44,31 @@ exports.makeInsertCommandFromEvent = (event) => {
   return params;
 };
 
+exports.makeUpdateCommandFromEvent = (event) => {
+  // if attribute active_sla_entityName_type exist:
+  //  - remove active_sla_entityName_type
+  //  - set endTimestamp
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE,
+    Key: {
+      entityName_type_relatedEntityId: event.entityName_type_relatedEntityId,
+      id: event.id,
+    },
+    UpdateExpression:
+      "SET #active_sla_entityName_type = :eT REMOVE #endTimestamp",
+    ExpressionAttributeNames: {
+      "#endTimestamp": "endTimestamp",
+      "#active_sla_entityName_type": "active_sla_entityName_type",
+    },
+    ExpressionAttributeValues: {
+      ":eT": event.endTimestamp,
+    },
+    ConditionExpression: "attribute_exists(#active_sla_entityName_type)",
+  };
+
+  return params;
+};
+
 exports.persistEvents = async (events) => {
   const summary = {
     insertions: 0,
@@ -77,10 +102,21 @@ exports.persistEvents = async (events) => {
         }
       }
     } else if (events[i].opType == "UPDATE") {
-      // ...
-      // if attribute active_sla_entityName_type exist, remove it, then set endTimestamp
-      // ...
-      // endTimestamp probabilmente non è UTC now, ma l'effettivo momento di fine attività
+      const params = this.makeUpdateCommandFromEvent(events[i]);
+      try {
+        await dynamoDB.send(new UpdateCommand(params));
+        summary.updates++;
+      } catch (error) {
+        /* istanbul ignore next */
+        if (error.name == "ConditionalCheckFailedException") {
+          summary.skippedUpdates++;
+        } else {
+          console.error("Error on update if exists", events[i]);
+          console.error("Error details", error);
+          events[i].exception = error;
+          summary.errors.push(events[i]);
+        }
+      }
     }
   }
 

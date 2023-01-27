@@ -24,9 +24,17 @@ const makeInsertOp = (event) => {
   return op;
 };
 
-const makeUpdateOp = (event) => {
+const makeUpdateOp = (event, endTimestamp) => {
   const op = {
-    // ...
+    // keys
+    entityName_type_relatedEntityId:
+      event.dynamodb.OldImage.entityName_type_relatedEntityId.S,
+    id: event.dynamodb.OldImage.id.S,
+    // what to set
+    endTimestamp: endTimestamp,
+    // end of fields
+    opType: "UPDATE",
+    kinesisSeqNumber: event.kinesisSeqNumber,
   };
 
   return op;
@@ -35,15 +43,14 @@ const makeUpdateOp = (event) => {
 const mapPayload = async (event) => {
   const dynamoDbOps = [];
   if (this.checkRemovedByTTL(event)) {
-    if ((await findActivityEnd()) === null) {
+    const endTimeStamp = await findActivityEnd();
+    if (endTimeStamp === null) {
       // add SLA Violation, since the activity was not terminated
       dynamoDbOps.push(makeInsertOp(event));
     } else {
-      // update SLA Violation (if present)
-      dynamoDbOps.push(makeUpdateOp(event));
+      // update SLA Violation (if present): active becomes storicized
+      dynamoDbOps.push(makeUpdateOp(event, endTimeStamp));
     }
-    //const op = makeInsertOp(event);
-    //dynamoDbOps.push(op);
   }
 
   return dynamoDbOps;

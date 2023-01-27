@@ -398,12 +398,14 @@ Resources:
           - Effect: Allow
             Action:
               - "dynamodb:PutItem"
-              - "dynamodb:UpdateItem" # for the complete implementation
+              - "dynamodb:UpdateItem"
             Resource:
               - !Ref ProgressionSensorDataDynamoTableArn
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
-          # for the complete implementation, add GetItem permission on pn-Timelines DynamoDB table
-          # ...
+          - Effect: Allow
+            Action:
+              - "dynamodb:GetItem"
+            Resource: "arn:aws:dynamodb:eu-south-1:558518206506:table/pn-Timelines" # VEDERE...!
           - Effect: Allow
             Action:
               - kinesis:DescribeStream
