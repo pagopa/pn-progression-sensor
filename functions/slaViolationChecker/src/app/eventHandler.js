@@ -35,7 +35,7 @@ module.exports.eventHandler = async (event) => {
 
   console.log("Persist summary", persistSummary);
   console.log(`Inserted ${persistSummary.insertions} records`);
-  console.log(`Deleted ${persistSummary.deletions} records`);
+  console.log(`Inserted ${persistSummary.updates} records`);
 
   if (persistSummary.errors.length > 0) {
     console.error(

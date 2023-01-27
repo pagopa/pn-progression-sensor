@@ -21,6 +21,7 @@ describe("event handler tests", function () {
           return new Promise((res) =>
             res({
               insertions: 1,
+              updates: 0,
               deletions: 0,
               errors: [],
             })
@@ -54,7 +55,7 @@ describe("event handler tests", function () {
           return new Promise((res) =>
             res({
               insertions: 1,
-              deletions: 0,
+              updates: 0,
               errors: [],
             })
           );
@@ -87,7 +88,7 @@ describe("event handler tests", function () {
           return new Promise((res) =>
             res({
               insertions: 1,
-              deletions: 0,
+              updates: 0,
               errors: [],
             })
           );
@@ -120,7 +121,7 @@ describe("event handler tests", function () {
           return new Promise((res) =>
             res({
               insertions: 1,
-              deletions: 0,
+              updates: 0,
               errors: [
                 {
                   kinesisSeqNumber: "abc",

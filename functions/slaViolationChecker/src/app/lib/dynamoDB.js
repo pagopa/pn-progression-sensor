@@ -8,11 +8,11 @@ const {
 
 /**
  * checks wheter the activity is ended or is still running
- * @returns {boolean} true if the activity is still running, false if an activity terminated event is found
+ * @returns {string} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
  */
 exports.checkStillRunningActivity = async () => {
   const tableName = "pn-Timelines";
-  return true;
+  return null;
 };
 
 /**
@@ -46,10 +46,10 @@ exports.makeInsertCommandFromEvent = (event) => {
 
 exports.persistEvents = async (events) => {
   const summary = {
-    deletions: 0,
     insertions: 0,
-    skippedDeletions: 0,
+    updates: 0,
     skippedInsertions: 0,
+    skippedUpdates: 0,
     errors: [],
   };
 
@@ -76,6 +76,11 @@ exports.persistEvents = async (events) => {
           summary.errors.push(events[i]);
         }
       }
+    } else if (events[i].opType == "UPDATE") {
+      // ...
+      // if attribute active_sla_entityName_type exist, remove it, then set endTimestamp
+      // ...
+      // endTimestamp probabilmente non è UTC now, ma l'effettivo momento di fine attività
     }
   }
 

@@ -1,4 +1,4 @@
-const { checkStillRunningActivity } = require("./dynamoDB");
+const { checkStillRunningActivity: findActivityEnd } = require("./dynamoDB");
 
 const makeInsertOp = (event) => {
   const op = {
@@ -24,15 +24,23 @@ const makeInsertOp = (event) => {
   return op;
 };
 
+const makeUpdateOp = (event) => {
+  const op = {
+    // ...
+  };
+
+  return op;
+};
+
 const mapPayload = async (event) => {
   const dynamoDbOps = [];
   if (this.checkRemovedByTTL(event)) {
-    if (await checkStillRunningActivity()) {
-      // add SLA Violation
+    if ((await findActivityEnd()) === null) {
+      // add SLA Violation, since the activity was not terminated
       dynamoDbOps.push(makeInsertOp(event));
     } else {
       // update SLA Violation (if present)
-      // ...
+      dynamoDbOps.push(makeUpdateOp(event));
     }
     //const op = makeInsertOp(event);
     //dynamoDbOps.push(op);
