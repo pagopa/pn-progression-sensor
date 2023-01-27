@@ -6,9 +6,10 @@ const {
   DynamoDBDocumentClient,
   DeleteCommand,
   PutCommand,
+  GetCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { expect } = require("chai");
-const { persistEvents } = require("../app/lib/repository");
+const { persistEvents, getNotification } = require("../app/lib/repository");
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const { ConditionalCheckFailedException } = require("./testException");
 
@@ -32,6 +33,31 @@ const events = [
 ];
 
 describe("repository tests", function () {
+  it("test GET ITEM FOUND", async () => {
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        recipients: []
+      }
+    });
+
+    const res = await getNotification('abc');
+
+    expect(res).deep.equals( {
+      recipients: []
+    });
+  });
+
+  it("test GET ITEM Not FOUND", async () => {
+    ddbMock.on(GetCommand).resolves({
+      
+    });
+
+    const res = await getNotification('abc');
+
+    expect(res).equal(null);
+
+  });
+
   it("test INSERT / DELETE", async () => {
     ddbMock.on(PutCommand).resolves({});
 
