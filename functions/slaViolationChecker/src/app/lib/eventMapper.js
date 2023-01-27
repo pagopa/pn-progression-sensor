@@ -43,7 +43,10 @@ const makeUpdateOp = (event, endTimestamp) => {
 const mapPayload = async (event) => {
   const dynamoDbOps = [];
   if (this.checkRemovedByTTL(event)) {
-    const endTimeStamp = await findActivityEnd();
+    const endTimeStamp = await findActivityEnd(
+      event.dynamodb.OldImage.relatedEntityId.S, // IUN,
+      event.dynamodb.OldImage.id.S // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+    );
     if (endTimeStamp === null) {
       // add SLA Violation, since the activity was not terminated
       dynamoDbOps.push(makeInsertOp(event));

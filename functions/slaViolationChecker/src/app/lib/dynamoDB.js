@@ -10,7 +10,7 @@ const {
  * checks wheter the activity is ended or is still running
  * @returns {string} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
  */
-exports.findActivityEnd = async () => {
+exports.findActivityEnd = async (iun, id) => {
   const tableName = "pn-Timelines";
   // query con iun e timelineElementId da costruire -> getitem
   //
@@ -28,8 +28,21 @@ exports.findActivityEnd = async () => {
   // SEND_PAPER_AR_890
   // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
   //
-  // SEND_AMR
-  // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERD_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
+  // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
+  // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
+
+  // 1. get IUN directly and build timelineElementId from event id
+  const params = {
+    TableName: process.env.DYNAMODB_TABLE,
+    // ...
+  };
+  try {
+    const response = await dynamoDB.send(new GetCommand(params));
+    // 2. extract and return endTimestamp
+    // ...
+  } catch (error) {
+    // ...
+  }
 
   return null;
 };

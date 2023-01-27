@@ -12,6 +12,16 @@ module.exports.eventHandler = async (event) => {
     batchItemFailures: [],
   };
 
+  if (process.env.INVOCATION_TYPE === "SQS") {
+    // SQS path
+    // ...
+  } else {
+    // "normal" Kinesis path
+    // ...
+    // what we already did
+    // ...
+  }
+
   // 1. get event from Kinesis and filter for delete
   const cdcEvents = extractKinesisData(event); // only needed events (REMOVE)
   console.log(`Batch size: ${cdcEvents.length} cdc`);

@@ -354,7 +354,7 @@ Resources:
   ###              SLAViolationCheckerLambda            ###
   #########################################################
 
-  # Lambda function
+  # Lambda function (from Kinesis)
   SLAViolationCheckerLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -369,6 +369,28 @@ Resources:
         Variables:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOCATION_TYPE: "Kinesis"
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+
+  # Lambda function (from SQS)
+  SLAViolationCheckerLambdaSQS:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationCheckerSQS.zip"
+      Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOCATION_TYPE: "SQS"
       TracingConfig:
         Mode: Active
       Layers:
