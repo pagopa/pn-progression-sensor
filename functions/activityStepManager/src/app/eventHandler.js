@@ -12,7 +12,7 @@ exports.handleEvent = async (event) => {
             batchItemFailures: []
         }
     }
-    const processedItems = mapEvents(cdcEvents)
+    const processedItems = await mapEvents(cdcEvents)
     if(processedItems.length==0){
         console.log('No events to persist')        
         return {
