@@ -22,7 +22,9 @@ function decodePayload(b64Str) {
 
 // DELETE intead of INSERT ()
 function mustProcess(rec) {
-  const allowedTables = ["pn-ProgressionSensorData"];
+  const allowedTables = [
+    /*"pn-ProgressionSensorData"*/ process.env.DYNAMODB_TABLE,
+  ];
   //console.log("mustProcess, record: ", rec);
   //   {
   //     kinesisSeqNumber: '49637329937448784559035416658086603608349162186672701458',
