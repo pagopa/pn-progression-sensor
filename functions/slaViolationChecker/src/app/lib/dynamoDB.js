@@ -1,6 +1,26 @@
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
 
+/**
+ * checks wheter the activity is ended or is still running
+ * @returns {boolean} true if the activity is still running, false if an activity terminated event is found
+ */
+exports.checkStillRunningActivity = async () => {
+  const tableName = "pn-Timelines";
+  return true;
+};
+
+/**
+ * create params object for put if not exist operation
+ *
+ * @param {Object} event the event object from eventMapper
+ * @returns {Object} the params object to be used on DynamoDB for the insert operation
+ */
 exports.makeInsertCommandFromEvent = (event) => {
   const params = {
     TableName: process.env.DYNAMODB_TABLE,

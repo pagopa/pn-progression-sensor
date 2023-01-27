@@ -1,3 +1,5 @@
+const { checkStillRunningActivity } = require("./dynamoDB");
+
 const makeInsertOp = (event) => {
   const op = {
     entityName_type_relatedEntityId:
@@ -46,11 +48,18 @@ exports.checkRemovedByTTL = (kinesisEvent) => {
   return false;
 };
 
-exports.mapEvents = (events) => {
+exports.mapEvents = async (events) => {
   let ops = [];
   for (let i = 0; i < events.length; i++) {
-    const dynamoDbOps = mapPayload(events[i]);
-    ops = ops.concat(dynamoDbOps);
+    if (await checkStillRunningActivity()) {
+      // add SLA Violation
+      ops = ops.concat(mapPayload(events[i])); // we are adding an array, not a single element
+    } else {
+      // update SLA Violation (if present)
+      // ...
+    }
+    //const dynamoDbOps = mapPayload(events[i]);
+    //ops = ops.concat(dynamoDbOps);
   }
   return ops;
 };

@@ -23,7 +23,7 @@ module.exports.eventHandler = async (event) => {
     return payload;
   }
 
-  const processedItems = mapEvents(cdcEvents); // map events to DB operations to perform (in out case, only PUT if not exists for TTL REMOVE)
+  const processedItems = await mapEvents(cdcEvents); // map events to DB operations to perform (in out case, only PUT if not exists for TTL REMOVE)
   if (processedItems.length == 0) {
     console.log("No events to persist");
     return payload;
