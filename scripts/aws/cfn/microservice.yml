@@ -58,44 +58,53 @@ Parameters:
 
   CdcKinesisSourceStreamArn:
     Type: String
-    Description: 'Where to send CDC'
+    Description: "Where to send CDC"
 
   CdcKinesisSourceStreamKeyArn:
-    Description: 'Kinesis source CDC stream crypto key ARN'
+    Description: "Kinesis source CDC stream crypto key ARN"
+    Type: String
+
+  CdcProgressionSensorKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
+  CdcProgressionSensorKinesisSourceStreamKeyArn:
+    Description: "Kinesis source CDC stream crypto key ARN"
     Type: String
 
 Conditions:
-  SendLogToKinesis: !Not [ !Equals [ !Ref LogsKinesisSourceStreamArn, '' ] ]
+  SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
 
 Resources:
   #########################################################
-  ###         SearchSLAViolations         ###
+  ###              SearchSLAViolationsLambda            ###
   #########################################################
 
   # Lambda function
-  SearchSLAViolations:
+  SearchSLAViolationsLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-searchSLAViolations"
+      FunctionName: !Sub "${ProjectName}-searchSLAViolationsLambda"
       Runtime: nodejs18.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
         S3Key: !Sub "${BucketBasePath}/searchSLAViolations.zip"
-      Role: !GetAtt SearchSLAViolationsRole.Arn
+      Role: !GetAtt SearchSLAViolationsLambdaRole.Arn
       TracingConfig:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Environment:
         Variables:
+          REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
 
   # Lambda function role
-  SearchSLAViolationsRole:
+  SearchSLAViolationsLambdaRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${ProjectName}-SearchSLAViolationsRole
+      RoleName: !Sub ${ProjectName}-SearchSLAViolationsLambdaRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -110,12 +119,12 @@ Resources:
       Path: /
 
   # Lambda function IAM policy
-  SearchSLAViolationsRolePolicy:
+  SearchSLAViolationsLambdaRolePolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub ${ProjectName}-SearchSLAViolationsRolePolicy
+      PolicyName: !Sub ${ProjectName}-SearchSLAViolationsLambdaRolePolicy
       Roles:
-        - !Ref SearchSLAViolationsRole
+        - !Ref SearchSLAViolationsLambdaRole
       PolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -127,17 +136,17 @@ Resources:
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
 
   # lambda function Log Group
-  SearchSLAViolationsLogGroup:
+  SearchSLAViolationsLambdaLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${SearchSLAViolations}"
+      LogGroupName: !Sub "/aws/lambda/${SearchSLAViolationsLambda}"
       RetentionInDays: 14
 
   # Lambda function CloudWatch Logs Metric Filter
-  SearchSLAViolationsFatalLogsMetricFilter:
+  SearchSLAViolationsLambdaFatalLogsMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
-      LogGroupName: !Ref SearchSLAViolationsLogGroup
+      LogGroupName: !Ref SearchSLAViolationsLambdaLogGroup
       FilterPattern: "?ERROR ?FATAL ?CRITICAL"
       MetricTransformations:
         - MetricValue: 1
@@ -147,7 +156,7 @@ Resources:
   # Lambda function CloudWatch alarm
   SearchSLAViolationsErrorFatalLogsMetricAlarm:
     Type: AWS::CloudWatch::Alarm
-    DependsOn: SearchSLAViolationsFatalLogsMetricFilter
+    DependsOn: SearchSLAViolationsLambdaFatalLogsMetricFilter
     Properties:
       AlarmName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalLogsMetricAlarm
       AlarmDescription: "CloudWatch alarm for SearchSLAViolations Lambda logs with ERROR or FATAL line."
@@ -165,24 +174,34 @@ Resources:
       Threshold: 1
       TreatMissingData: notBreaching
 
-  ###             LAMBDA2             ###
+  SearchSLAViolationsSubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref SearchSLAViolationsLambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  #########################################################
+  ###              ActivityStepManagerLambda            ###
   #########################################################
 
   # Lambda function
   ActivityStepManagerLambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub '${ProjectName}-activityStepManagerLambda'
+      FunctionName: !Sub "${ProjectName}-activityStepManagerLambda"
       Runtime: nodejs18.x
-      Handler: 'index.handler'
+      Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
         S3Key: !Sub "${BucketBasePath}/activityStepManager.zip"
       Role: !GetAtt ActivityStepManagerLambdaRole.Arn
       Environment:
-         Variables:
+        Variables:
           REGION: !Sub ${AWS::Region}
-          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName   
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
       TracingConfig:
         Mode: Active
       Layers:
@@ -217,7 +236,7 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - 'dynamodb:*'              
+              - "dynamodb:*"
             Resource:
               - !Ref ProgressionSensorDataDynamoTableArn
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
@@ -246,9 +265,8 @@ Resources:
   ActivityStepManagerFatalLogsMetricFilter:
     Type: AWS::Logs::MetricFilter
     Properties:
-      LogGroupName:
-        !Ref ActivityStepManagerLambdaLogGroup
-      FilterPattern: '?ERROR ?FATAL ?CRITICAL'
+      LogGroupName: !Ref ActivityStepManagerLambdaLogGroup
+      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
       MetricTransformations:
         - MetricValue: 1
           MetricNamespace: "ErrorFatalLogs"
@@ -304,15 +322,6 @@ Resources:
                 Effect: Allow
                 Resource: "*"
 
-  SearchSLAViolationsSubscriptionFilter:
-    Condition: SendLogToKinesis
-    Type: AWS::Logs::SubscriptionFilter
-    Properties:
-      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
-      LogGroupName: !Ref SearchSLAViolationsLogGroup
-      FilterPattern: !Ref CloudwatchFilterPattern
-      DestinationArn: !Ref LogsKinesisSourceStreamArn
-
   ActivityStepManagerSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
@@ -334,3 +343,141 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
+
+  #########################################################
+  ###              SLAViolationCheckerLambda            ###
+  #########################################################
+
+  # Lambda function
+  SLAViolationCheckerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambda"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationChecker.zip"
+      Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+
+  # Lambda function role
+  SLAViolationCheckerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-slaViolationCheckerLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda function IAM policy
+  SLAViolationCheckerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-SLAViolationCheckerLambdaPolicy
+      Roles:
+        - !Ref SLAViolationCheckerLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem" # for the complete implementation
+            Resource:
+              - !Ref ProgressionSensorDataDynamoTableArn
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+          # for the complete implementation, add GetItem permission on pn-Timelines DynamoDB table
+          # ...
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Resource: !Ref CdcProgressionSensorKinesisSourceStreamArn
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource: !Ref CdcProgressionSensorKinesisSourceStreamKeyArn
+
+  # lambda function Log Group
+  SLAViolationCheckerLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SLAViolationCheckerLambda}"
+      RetentionInDays: 14
+
+  # Lambda function CloudWatch Logs Metric Filter
+  SLAViolationCheckerFatalLogsMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref SLAViolationCheckerLambdaLogGroup
+      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
+      MetricTransformations:
+        - MetricValue: 1
+          MetricNamespace: "ErrorFatalLogs"
+          MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerFatalMetric
+
+  # Lambda function CloudWatch alarm
+  SLAViolationCheckerErrorFatalLogsMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: SLAViolationCheckerFatalLogsMetricFilter
+    Properties:
+      AlarmName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for SLAViolationChecker Lambda logs with ERROR or FATAL line."
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      DatapointsToAlarm: 1
+      MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerErrorFatalMetric
+      Namespace: ErrorFatalLogs
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  SLAViolationCheckerSubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref SLAViolationCheckerLambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  # CDC to SLA Violation Checker
+  SLAViolationCheckerLambdaKinesisSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 20
+      BisectBatchOnFunctionError: true
+      EventSourceArn: !Ref CdcProgressionSensorKinesisSourceStreamArn
+      FunctionName: !Ref SLAViolationCheckerLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 300 # 1 minute
+      StartingPosition: LATEST
+
+  # for the complete implementation, also attach to SQS
+  # ...

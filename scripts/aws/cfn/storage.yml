@@ -96,7 +96,7 @@ Resources:
         # activity step read pattern
         - IndexName: "alarmTTL-index"
           KeySchema:
-            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp, with 00# (hex) deterministic prefix, generated started from IUN (00#[ISOTIMESTAMPYearTominute])
+            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp, with 00# (hex) deterministic prefix, generated starting from IUN (00#[ISOTIMESTAMPYearTominute])
               KeyType: "HASH"
             - AttributeName: "id" # no longer alarmTTLSecondsAndMilliseconds from ISO timestamp
               KeyType: "RANGE"

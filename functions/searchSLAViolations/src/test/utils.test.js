@@ -57,7 +57,7 @@ describe("test datetime string to UNIX epoch", () => {
   });
 });
 
-describe("test datetime string to UNIX epoch", () => {
+describe("test datetime string to Year and Month", () => {
   it("should be 2023-01 with january 2023", () => {
     expect(dateTimeStringToYearAndMonth("2023-01-18T16:03:40.597Z")).to.equal(
       "2023-01"
