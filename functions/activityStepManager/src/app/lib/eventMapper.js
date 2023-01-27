@@ -75,7 +75,7 @@ function makeInsertOp(
     relatedEntityId: event.dynamodb.NewImage.iun.S,
     startTimestamp: event.dynamodb.NewImage[timestampFieldName].S,
     slaExpiration: slaExpiration,
-    step_alarmTTL: step_alarmTTL,
+    step_alarmTTL: Math.floor(step_alarmTTL / 1000),
     alarmTTL: alarmTTL,
     opType: "INSERT",
     kinesisSeqNumber: event.kinesisSeqNumber,

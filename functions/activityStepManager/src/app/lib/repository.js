@@ -41,7 +41,7 @@ function makeInsertCommandFromEvent(event) {
       relatedEntityId: event.relatedEntityId,
       startTimestamp: event.startTimestamp,
       slaExpiration: event.slaExpiration,
-      step_alarmTTL: Math.floor(event.step_alarmTTL / 1000),
+      step_alarmTTL: event.step_alarmTTL,
       alarmTTL: event.alarmTTL,
       alarmTTLYearToMinute:
         twoNumbersFromIUN(event.relatedEntityId) +
