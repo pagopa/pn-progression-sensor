@@ -1,4 +1,5 @@
 const moment = require("moment-business-days-it");
+const { getNotification, TABLES } = require('./repository');
 
 const allowedTimelineCategories = [
   "REQUEST_ACCEPTED",
@@ -83,10 +84,10 @@ function makeInsertOp(
   return op;
 }
 
-function mapPayload(event) {
+async function mapPayload(event) {
   const dynamoDbOps = [];
   /* istanbul ignore else */
-  if (event.tableName == "pn-Notifications") {
+  if (event.tableName == TABLES.NOTIFICATIONS) {
     const op = makeInsertOp(
       "00_VALID##" + event.dynamodb.NewImage.iun.S,
       "VALIDATION",
@@ -96,7 +97,7 @@ function mapPayload(event) {
       1
     );
     if (op) dynamoDbOps.push(op);
-  } else if (event.tableName == "pn-Timelines") {
+  } else if (event.tableName == TABLES.TIMELINES) {
     let op, recIdx;
     const category = event.dynamodb.NewImage.category.S;
     switch (category) {
@@ -108,18 +109,25 @@ function mapPayload(event) {
         );
         dynamoDbOps.push(op);
 
-        recIdx = extractRecIdsFromTimelineId(
-          event.dynamodb.NewImage.timelineElementId.S
-        );
-        const op1 = makeInsertOp(
-          "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
-          "REFINEMENT",
-          event,
-          "notificationSentAt",
-          110,
-          120
-        );
-        dynamoDbOps.push(op1);
+        // read from dynamodb pn-Notifications by IUN -> recipientsCount
+        
+        // recipient
+        const notification = await getNotification(event.dynamodb.NewImage.iun.S)
+        const recipientsCount = notification.recipients.length
+        if(notification){
+          for (let i=0; i<recipientsCount; i++){
+            const op1 = makeInsertOp(
+              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + i,
+              "REFINEMENT",
+              event,
+              "notificationSentAt",
+              110,
+              120
+            );
+            dynamoDbOps.push(op1);
+          }
+        }
+
         break;
       case "REQUEST_REFUSED":
         op = makeDeleteOp(
@@ -215,12 +223,12 @@ function mapPayload(event) {
   return dynamoDbOps;
 }
 
-exports.mapEvents = (events) => {
+exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
-      (e.tableName == "pn-Notifications" ||
-        (e.tableName == "pn-Timelines" &&
+      (e.tableName == TABLES.NOTIFICATIONS||
+        (e.tableName == TABLES.TIMELINES &&
           e.dynamodb.NewImage.category &&
           allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S) >=
             0))
@@ -229,7 +237,7 @@ exports.mapEvents = (events) => {
 
   let ops = [];
   for (let i = 0; i < filteredEvents.length; i++) {
-    const dynamoDbOps = mapPayload(filteredEvents[i]);
+    const dynamoDbOps = await mapPayload(filteredEvents[i]);
     ops = ops.concat(dynamoDbOps);
   }
   return ops;

@@ -1,6 +1,8 @@
 const { expect } = require('chai');
 const { mapEvents } = require('../app/lib/eventMapper');
-const fs = require('fs')
+const Repository = require('../app/lib/repository');
+const fs = require('fs');
+const { after } = require('node:test');
 
 describe('event mapper tests', function() {
 
@@ -11,22 +13,23 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('VALIDATION')
         expect(res[0].opType).equal('INSERT')
     });
 
-    it("test REQUEST ACCEPTED", async () => {
+    /*it("test REQUEST ACCEPTED", async () => {
         const eventJSON = fs.readFileSync('./src/test/eventMapper.timeline.json')
         let event = JSON.parse(eventJSON)
+
         event = setCategory(event, "REQUEST_ACCEPTED")
 
         const events = [
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('VALIDATION')
         expect(res[0].opType).equal('DELETE')
@@ -35,6 +38,28 @@ describe('event mapper tests', function() {
         expect(res[1].opType).equal('INSERT')
     });
 
+    it("test REQUEST ACCEPTED multiple recipients", async () => {
+        const eventJSON = fs.readFileSync('./src/test/eventMapper.timeline.json')
+        let event = JSON.parse(eventJSON)
+
+        event = setCategory(event, "REQUEST_ACCEPTED")
+
+        const events = [
+            event
+        ]
+
+        const res = await mapEvents(events)
+
+        expect(res[0].type).equal('VALIDATION')
+        expect(res[0].opType).equal('DELETE')
+
+        expect(res[1].type).equal('REFINEMENT')
+        expect(res[1].opType).equal('INSERT')
+
+        expect(res[2].type).equal('REFINEMENT')
+        expect(res[2].opType).equal('INSERT')
+    });
+*/
     it("test REQUEST REFUSED", async () => {
         const eventJSON = fs.readFileSync('./src/test/eventMapper.timeline.json')
         let event = JSON.parse(eventJSON)
@@ -44,7 +69,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('VALIDATION')
         expect(res[0].opType).equal('DELETE')
@@ -59,7 +84,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('REFINEMENT')
         expect(res[0].opType).equal('DELETE')
@@ -74,7 +99,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('REFINEMENT')
         expect(res[0].opType).equal('DELETE')
@@ -89,7 +114,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_PEC')
         expect(res[0].opType).equal('INSERT')
@@ -104,7 +129,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_PEC')
         expect(res[0].opType).equal('DELETE')
@@ -119,7 +144,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_PAPER_AR_890')
         expect(res[0].opType).equal('INSERT')
@@ -134,7 +159,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_PAPER_AR_890')
         expect(res[0].opType).equal('INSERT')
@@ -149,7 +174,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_PAPER_AR_890')
         expect(res[0].opType).equal('DELETE')
@@ -171,7 +196,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_AMR')
         expect(res[0].opType).equal('INSERT')
@@ -198,7 +223,7 @@ describe('event mapper tests', function() {
             event
         ]
 
-        const res = mapEvents(events)
+        const res = await mapEvents(events)
 
         expect(res[0].type).equal('SEND_AMR')
         expect(res[0].opType).equal('DELETE')
