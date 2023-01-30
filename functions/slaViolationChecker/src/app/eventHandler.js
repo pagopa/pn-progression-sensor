@@ -33,7 +33,7 @@ module.exports.eventHandler = async (event) => {
     return payload;
   }
 
-  const processedItems = await mapEvents(cdcEvents); // map events to DB operations to perform (in out case, only PUT if not exists for TTL REMOVE)
+  const processedItems = await mapEvents(cdcEvents); // map events to DB operations to perform (in out case, only PUT if not exists or UPDATE violation for TTL Remove)
   if (processedItems.length == 0) {
     console.log("No events to persist");
     return payload;
@@ -41,7 +41,7 @@ module.exports.eventHandler = async (event) => {
   console.log(`Items to persist`, processedItems);
 
   // 2. process if reason is TTL: create an Active SLA Violation
-  const persistSummary = await persistEvents(processedItems); // actually produce changes to DB (in out case only create Active Sla Violations)
+  const persistSummary = await persistEvents(processedItems); // actually produce changes to DB (in our case create Active Sla Violations or soritize them)
 
   console.log("Persist summary", persistSummary);
   console.log(`Inserted ${persistSummary.insertions} records`);

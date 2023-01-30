@@ -8,43 +8,95 @@ const {
 
 /**
  * checks wheter the activity is ended or is still running
- * @returns {string} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
+ * @returns {Promise<string>} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
  */
-exports.findActivityEnd = async (iun, id) => {
+exports.findActivityEnd = async (iun, id, type) => {
   const tableName = "pn-Timelines";
-  // query con iun e timelineElementId da costruire -> getitem
-  //
-  // type VALIDATION:
-  // - INSERT in pn-Timelines di un record con category REQUEST_ACCEPTED indica la terminazione di una “attività di validazione”
-  // - INSERT in pn-Timelines di un record con category REQUEST_REFUSED indica la terminazione di una “attività di validazione”:
-  //
-  // type REFINEMENT:
-  // - INSERT in pn-Timelines di un record con category REFINEMENT indica la fine di una “attività di consegna” per uno dei destinatari della notifica
-  // - INSERT in pn-Timelines di un record con category NOTIFICATION_VIEWED indica la fine di una “attività di consegna” per uno dei destinatari della notifica
-  //
-  // SEND_PEC:
-  // - INSERT in pn-Timelines di un record con category SEND_DIGITAL_FEEDBACK indica la fine di una “attività di invio PEC”
-  //
-  // SEND_PAPER_AR_890
-  // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
-  //
-  // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
-  // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
 
   // 1. get IUN directly and build timelineElementId from event id
   const params = {
-    TableName: process.env.DYNAMODB_TABLE,
-    // ...
+    TableName: tableName,
   };
-  try {
-    const response = await dynamoDB.send(new GetCommand(params));
-    // 2. extract and return endTimestamp
-    // ...
-  } catch (error) {
-    // ...
+  let altSortKey = null;
+
+  // instead of performing a query with filter, we can construct the partition and the sort key and perform a GetItem (eventually two)
+  switch (type) {
+    case "VALIDATION":
+      // type VALIDATION:
+      // - INSERT in pn-Timelines di un record con category REQUEST_ACCEPTED indica la terminazione di una “attività di validazione”
+      // - INSERT in pn-Timelines di un record con category REQUEST_REFUSED indica la terminazione di una “attività di validazione”:
+      const timelineBaseValidation = id.split("##")[1];
+      const timeLineIdAccepted = timelineBaseValidation + "_request_accepted";
+      const timeLineIdRefused = timelineBaseValidation + "_request_refused";
+      params.Key = {
+        iun: iun,
+        timeLineElementId: timeLineIdAccepted,
+      };
+      altSortKey = timeLineIdRefused;
+      break;
+    case "REFINEMENT":
+      // type REFINEMENT:
+      // - INSERT in pn-Timelines di un record con category REFINEMENT indica la fine di una “attività di consegna” per uno dei destinatari della notifica
+      // - INSERT in pn-Timelines di un record con category NOTIFICATION_VIEWED indica la fine di una “attività di consegna” per uno dei destinatari della notifica
+      const timelineBaseRefinement = id.replace("01_REFIN##", "");
+      const timeLineIdRefinement = timelineBaseRefinement.replace(
+        "##",
+        "_refinement_"
+      );
+      const timeLineIdNotificationViewed = timelineBaseRefinement.replace(
+        "##",
+        "_notification_viewed_"
+      );
+      params.Key = {
+        iun: iun,
+        timeLineElementId: timelineBaseRefinement,
+      };
+      altSortKey = timeLineIdRefinement;
+      break;
+    case "SEND_PEC":
+      // SEND_PEC:
+      // - INSERT in pn-Timelines di un record con category SEND_DIGITAL_FEEDBACK indica la fine di una “attività di invio PEC”
+      const timeLineIdSendDigitalFeedback = id
+        .replace("02_PEC__##", "")
+        .replace("send_digital_domicile", "send_digital_feedback");
+      params.Key = {
+        iun: iun,
+        timeLineElementId: timeLineIdSendDigitalFeedback,
+      };
+      break;
+    case "SEND_PAPER_AR_890":
+      // SEND_PAPER_AR_890
+      // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
+      const timelineIdPaperAR890 = id
+        .replace("03_PAPER##", "")
+        .replace("send_analog_domicilie", "send_analog_feedback");
+      params.Key = {
+        iun: iun,
+        timeLineElementId: timelineIdPaperAR890,
+      };
+      break;
+    case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS": // TO BE DEFINED: NOT IMPLEMENTED YET!!! always returns null
+      // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
+      // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
+      return null;
+    //break;
+    default:
+      // nothing...
+      return null;
   }
 
-  return null;
+  try {
+    // we perform a GetItem and, in case we also have an alternative sort key, we perform a second GetItem
+    // in case the first one did not produce a result
+    let response = await dynamoDB.send(new GetCommand(params));
+    if (response.Item == null && altSortKey !== null) {
+      response = await dynamoDB.send(new GetCommand(params));
+    }
+    // 2. extract and return endTimestamp
+    return response.Item?.timestamp;
+  } catch (error) {
+    return null;
+  }
 };
 
 /**

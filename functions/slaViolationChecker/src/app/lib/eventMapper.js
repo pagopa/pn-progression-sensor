@@ -49,7 +49,8 @@ const mapPayload = async (event) => {
     // we would wrongly generate a SLA Violation after a TTL delete of an activity starts's step
     const endTimeStamp = await findActivityEnd(
       event.dynamodb.OldImage.relatedEntityId.S, // IUN,
-      event.dynamodb.OldImage.id.S // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+      event.dynamodb.OldImage.id.S, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+      event.dynamodb.OldImage.type.S
     );
     if (endTimeStamp === null) {
       // add SLA Violation, since the activity was not terminated
@@ -58,7 +59,7 @@ const mapPayload = async (event) => {
       // update SLA Violation (if present): active becomes storicized
       dynamoDbOps.push(makeUpdateOp(event, endTimeStamp));
     }
-  }
+  } // we don't do anything if the remove is not by TTL
 
   return dynamoDbOps;
 };
