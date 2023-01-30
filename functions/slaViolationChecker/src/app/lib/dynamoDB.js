@@ -122,6 +122,10 @@ exports.persistEvents = async (events) => {
         // db operation
         await dynamoDB.send(new PutCommand(params));
         summary.insertions++;
+        console.log(
+          "SLA Violation insertion performed: ",
+          JSON.stringify(params)
+        );
       } catch (error) {
         /* istanbul ignore next */
         if (error.name == "ConditionalCheckFailedException") {
@@ -138,6 +142,10 @@ exports.persistEvents = async (events) => {
       try {
         await dynamoDB.send(new UpdateCommand(params));
         summary.updates++;
+        console.log(
+          "SLA Violation storicization performed: ",
+          JSON.stringify(params)
+        );
       } catch (error) {
         /* istanbul ignore next */
         if (error.name == "ConditionalCheckFailedException") {
