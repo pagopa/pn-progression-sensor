@@ -2,10 +2,10 @@ const dynamo = require("./lib/dynamoDB.js");
 const { extractKinesisData } = require("./lib/kinesis.js");
 const { mapEvents, mapEventsFromSQS } = require("./lib/eventMapper.js");
 const { persistEvents } = require("./lib/dynamoDB.js");
-const { extractSQSData } = require("./lib/kinesis.js");
+const { extractSQSData } = require("./lib/sqs.js");
 
 // input
-module.exports.eventHandler = async (event) => {
+module.exports.eventHandler = async (event, bypassINVOCATION_TYPE) => {
   console.log("event: ", event);
 
   // basic return payload
@@ -15,8 +15,12 @@ module.exports.eventHandler = async (event) => {
 
   let processedItems = [];
 
-  if (process.env.INVOCATION_TYPE === "SQS") {
+  if (
+    bypassINVOCATION_TYPE === "SQS" ||
+    process.env.INVOCATION_TYPE === "SQS"
+  ) {
     // SQS path
+    console.log("*** SQS processing ***");
 
     // get SQS records
     const sqsEvents = extractSQSData(event);
@@ -34,6 +38,7 @@ module.exports.eventHandler = async (event) => {
     console.log(`SQS items to persist`, processedItems);
   } else {
     // "normal" Kinesis path
+    console.log("*** Kinesis processing ***");
 
     // 1. get event from Kinesis and filter for delete
     const cdcEvents = extractKinesisData(event); // only needed events (REMOVE)
@@ -67,7 +72,7 @@ module.exports.eventHandler = async (event) => {
       persistSummary.errors
     );
     payload.batchItemFailures = persistSummary.errors.map((i) => {
-      return i.kinesisSeqNumber;
+      return i.kinesisSeqNumber || i.messageId;
     });
   }
 

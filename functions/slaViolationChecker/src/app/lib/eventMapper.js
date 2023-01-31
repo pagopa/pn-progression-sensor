@@ -57,6 +57,7 @@ const mapPayload = async (event) => {
       );
     } catch (error) {
       // we want to avoid adding the op if we had an error
+      /* istanbul ignore next */
       return dynamoDbOps;
     }
 

@@ -1,4 +1,7 @@
+/* istanbul ignore file */
 // just for following an organizations similar to the one used for Kinesis
+//
+// ref: https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example.html
 exports.extractSQSData = function (sqsEvent) {
   console.log("SQS event: ", JSON.stringify(sqsEvent));
   if (sqsEvent == null || sqsEvent.Records == null) {

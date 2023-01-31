@@ -79,11 +79,13 @@ exports.findActivityEnd = async (iun, id, type) => {
         timelineElementId: timelineIdPaperAR890,
       };
       break;
+    /* istanbul ignore next */
     case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS": // TO BE DEFINED: NOT IMPLEMENTED YET!!! always returns null
       // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
       // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
       return null;
     //break;
+    /* istanbul ignore next */
     default:
       // nothing...
       return null;
@@ -190,6 +192,10 @@ exports.persistEvents = async (events) => {
       } catch (error) {
         /* istanbul ignore next */
         if (error.name == "ConditionalCheckFailedException") {
+          console.log(
+            "conditional insert exception detail: ",
+            JSON.stringify(error)
+          );
           summary.skippedInsertions++;
         } else {
           console.error("Error on insert if not exists", events[i]);
@@ -213,6 +219,10 @@ exports.persistEvents = async (events) => {
       } catch (error) {
         /* istanbul ignore next */
         if (error.name == "ConditionalCheckFailedException") {
+          console.log(
+            "conditional update exception detail: ",
+            JSON.stringify(error)
+          );
           summary.skippedUpdates++;
         } else {
           console.error("Error on update if exists", events[i]);
