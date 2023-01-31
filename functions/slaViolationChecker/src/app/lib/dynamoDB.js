@@ -106,7 +106,7 @@ exports.findActivityEnd = async (iun, id, type) => {
     /* istanbul ignore next */
     console.log("ERROR during GetItem: ", error);
     /* istanbul ignore next */
-    return null;
+    throw error; // after logging, we rethrow the error, for the caller to catch it
   }
 };
 

@@ -47,11 +47,18 @@ const mapPayload = async (event) => {
     // for that activity: this is because the correct order of the events received from pn-Timelines and pn-Notifications
     // is not guaranteed and we could receive and insert after we've processed the delete, and we could be in the case where
     // we would wrongly generate a SLA Violation after a TTL delete of an activity starts's step
-    const endTimeStamp = await findActivityEnd(
-      event.dynamodb.OldImage.relatedEntityId.S, // IUN,
-      event.dynamodb.OldImage.id.S, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
-      event.dynamodb.OldImage.type.S
-    );
+    let endTimeStamp = null;
+    try {
+      endTimeStamp = await findActivityEnd(
+        event.dynamodb.OldImage.relatedEntityId.S, // IUN,
+        event.dynamodb.OldImage.id.S, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+        event.dynamodb.OldImage.type.S
+      );
+    } catch (error) {
+      // we want to avoid adding the op if we had an error
+      return dynamoDbOps;
+    }
+
     if (endTimeStamp === null) {
       // add SLA Violation, since the activity was not terminated
       dynamoDbOps.push(makeInsertOp(event));
