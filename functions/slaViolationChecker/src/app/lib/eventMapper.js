@@ -1,5 +1,6 @@
 const { findActivityEnd } = require("./dynamoDB");
 
+// Kinesis flow
 const makeInsertOp = (event) => {
   const op = {
     entityName_type_relatedEntityId:
@@ -60,7 +61,7 @@ const mapPayload = async (event) => {
     }
 
     if (endTimeStamp === null) {
-      // add SLA Violation, since the activity was not terminated
+      // add SLA Violation, since the activity has not ended
       dynamoDbOps.push(makeInsertOp(event));
     } else {
       // update SLA Violation (if present): active becomes storicized
@@ -89,6 +90,53 @@ exports.mapEvents = async (events) => {
   let ops = [];
   for (let i = 0; i < events.length; i++) {
     const dynamoDbOps = await mapPayload(events[i]); // we are adding an array, not a single element
+    ops = ops.concat(dynamoDbOps);
+  }
+  return ops;
+};
+
+// SQS flow
+const makeUpdateOpFromSQS = (event, endTimestamp) => {
+  const op = {
+    // keys
+    entityName_type_relatedEntityId: event.entityName_type_relatedEntityId,
+    id: event.id,
+    // what to set
+    endTimestamp: endTimestamp,
+    // end of fields
+    opType: "UPDATE",
+    messageId: event.messageId,
+  };
+
+  return op;
+};
+
+const mapPayloadFromSQS = async (event) => {
+  const dynamoDbOps = [];
+  let endTimeStamp = null;
+  try {
+    endTimeStamp = await findActivityEnd(
+      event.relatedEntityId, // IUN,
+      event.id, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+      event.type
+    );
+  } catch (error) {
+    // we want to avoid adding the op if we had an error
+    return dynamoDbOps;
+  }
+
+  if (endTimeStamp !== null) {
+    // update SLA Violation (if present): active becomes storicized
+    dynamoDbOps.push(makeUpdateOpFromSQS(event, endTimeStamp));
+  }
+
+  return dynamoDbOps;
+};
+
+exports.mapEventsFromSQS = async (events) => {
+  let ops = [];
+  for (let i = 0; i < events.length; i++) {
+    const dynamoDbOps = await mapPayloadFromSQS(events[i]); // we are adding an array, not a single element
     ops = ops.concat(dynamoDbOps);
   }
   return ops;

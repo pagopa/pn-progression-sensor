@@ -158,6 +158,7 @@ exports.makeUpdateCommandFromEvent = (event) => {
     ExpressionAttributeValues: {
       ":eT": event.endTimestamp,
     },
+    // so it's an update that doesn't fall back to insert and doesn't try to remove a parameter previously removed
     ConditionExpression: "attribute_exists(#active_sla_entityName_type)",
   };
 
