@@ -24,6 +24,9 @@ module.exports.eventHandler = async (event, bypassINVOCATION_TYPE) => {
 
     // get SQS records
     const sqsEvents = extractSQSData(event);
+    console.log(`Batch size: ${sqsEvents.length} sqs`);
+    console.log("SQS data: ", JSON.stringify(sqsEvents));
+
     if (sqsEvents.length == 0) {
       console.log("No SQS events to process");
       return payload;
