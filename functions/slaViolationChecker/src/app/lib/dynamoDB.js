@@ -6,6 +6,10 @@ const {
   UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
 
+const client = new DynamoDBClient({
+  region: process.env.REGION,
+});
+
 /**
  * checks wheter the activity is ended or is still running
  * @returns {Promise<string>} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
@@ -49,9 +53,9 @@ exports.findActivityEnd = async (iun, id, type) => {
       );
       params.Key = {
         iun: iun,
-        timeLineElementId: timelineBaseRefinement,
+        timeLineElementId: timeLineIdRefinement,
       };
-      altSortKey = timeLineIdRefinement;
+      altSortKey = timeLineIdNotificationViewed;
       break;
     case "SEND_PEC":
       // SEND_PEC:
@@ -69,7 +73,7 @@ exports.findActivityEnd = async (iun, id, type) => {
       // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
       const timelineIdPaperAR890 = id
         .replace("03_PAPER##", "")
-        .replace("send_analog_domicilie", "send_analog_feedback");
+        .replace("send_analog_domicile", "send_analog_feedback"); // SEE: SEND_SIMPLE_REGISTERED_LETTER
       params.Key = {
         iun: iun,
         timeLineElementId: timelineIdPaperAR890,
@@ -85,16 +89,22 @@ exports.findActivityEnd = async (iun, id, type) => {
       return null;
   }
 
+  const dynamoDB = DynamoDBDocumentClient.from(client);
+
   try {
     // we perform a GetItem and, in case we also have an alternative sort key, we perform a second GetItem
     // in case the first one did not produce a result
     let response = await dynamoDB.send(new GetCommand(params));
     if (response.Item == null && altSortKey !== null) {
+      params.Key.timeLineElementId = altSortKey; // query with the alternative sort key
       response = await dynamoDB.send(new GetCommand(params));
     }
     // 2. extract and return endTimestamp
-    return response.Item?.timestamp;
+    return response.Item?.timestamp || null;
   } catch (error) {
+    /* istanbul ignore next */
+    console.log("ERROR during GetItem: ", error);
+    /* istanbul ignore next */
     return null;
   }
 };
@@ -162,9 +172,6 @@ exports.persistEvents = async (events) => {
     errors: [],
   };
 
-  const client = new DynamoDBClient({
-    region: process.env.REGION,
-  });
   const dynamoDB = DynamoDBDocumentClient.from(client);
 
   for (let i = 0; i < events.length; i++) {
@@ -192,12 +199,15 @@ exports.persistEvents = async (events) => {
     } else if (events[i].opType == "UPDATE") {
       const params = this.makeUpdateCommandFromEvent(events[i]);
       try {
-        await dynamoDB.send(new UpdateCommand(params));
-        summary.updates++;
-        console.log(
-          "SLA Violation storicization performed: ",
-          JSON.stringify(params)
-        );
+        const data = await dynamoDB.send(new UpdateCommand(params));
+        if (data) {
+          summary.updates++;
+          console.log(
+            "SLA Violation storicization performed: ",
+            JSON.stringify(params)
+          );
+          console.log("UpdateItem response: ", data);
+        }
       } catch (error) {
         /* istanbul ignore next */
         if (error.name == "ConditionalCheckFailedException") {

@@ -1,7 +1,11 @@
 const { expect } = require("chai");
 const dynamo = require("../app/lib/dynamoDB.js");
 const { mockClient } = require("aws-sdk-client-mock");
-const { DynamoDBDocumentClient, PutCommand } = require("@aws-sdk/lib-dynamodb");
+const {
+  DynamoDBDocumentClient,
+  PutCommand,
+  UpdateCommand,
+} = require("@aws-sdk/lib-dynamodb");
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
@@ -27,6 +31,11 @@ describe("DynamoDB tests", function () {
   const updateEvent = {
     ...insertEvent,
     opType: "UPDATE",
+  };
+
+  const deleteEvent = {
+    ...insertEvent,
+    opType: "DELETE",
   };
 
   it("should create correct insertion command parameters", () => {
@@ -56,7 +65,7 @@ describe("DynamoDB tests", function () {
     );
   });
 
-  it("basic persistEvents with a single event of the correct type", async () => {
+  it("basic persistEvents with a single event of the correct type: insert", async () => {
     ddbMock.on(PutCommand).resolves({});
 
     const response = await dynamo.persistEvents([insertEvent]);
@@ -64,19 +73,31 @@ describe("DynamoDB tests", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.insertions).equal(1);
+    expect(response.updates).equal(0);
     expect(response.skippedInsertions).equal(0);
     expect(response.errors.length).equal(0);
   });
 
-  it("basic persistEvents with a single event of the wrong type", async () => {
-    ddbMock.on(PutCommand).resolves({});
+  it("basic persistEvents with a single event of the correct type: UPDATE", async () => {
+    ddbMock.on(UpdateCommand).resolves({});
 
     const response = await dynamo.persistEvents([updateEvent]);
 
-    console.log(response);
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.insertions).equal(0);
+    expect(response.updates).equal(1);
+    expect(response.skippedInsertions).equal(0);
+    expect(response.errors.length).equal(0);
+  });
+
+  it("basic persistEvents with a single event of the wrong type: DELETE", async () => {
+    const response = await dynamo.persistEvents([deleteEvent]);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.insertions).equal(0);
+    expect(response.updates).equal(0);
     expect(response.skippedInsertions).equal(0);
     expect(response.errors.length).equal(0);
   });
