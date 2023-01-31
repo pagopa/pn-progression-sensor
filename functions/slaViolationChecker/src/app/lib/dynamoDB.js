@@ -34,7 +34,7 @@ exports.findActivityEnd = async (iun, id, type) => {
       const timeLineIdRefused = timelineBaseValidation + "_request_refused";
       params.Key = {
         iun: iun,
-        timeLineElementId: timeLineIdAccepted,
+        timelineElementId: timeLineIdAccepted,
       };
       altSortKey = timeLineIdRefused;
       break;
@@ -53,7 +53,7 @@ exports.findActivityEnd = async (iun, id, type) => {
       );
       params.Key = {
         iun: iun,
-        timeLineElementId: timeLineIdRefinement,
+        timelineElementId: timeLineIdRefinement,
       };
       altSortKey = timeLineIdNotificationViewed;
       break;
@@ -65,7 +65,7 @@ exports.findActivityEnd = async (iun, id, type) => {
         .replace("send_digital_domicile", "send_digital_feedback");
       params.Key = {
         iun: iun,
-        timeLineElementId: timeLineIdSendDigitalFeedback,
+        timelineElementId: timeLineIdSendDigitalFeedback,
       };
       break;
     case "SEND_PAPER_AR_890":
@@ -76,7 +76,7 @@ exports.findActivityEnd = async (iun, id, type) => {
         .replace("send_analog_domicile", "send_analog_feedback"); // SEE: SEND_SIMPLE_REGISTERED_LETTER
       params.Key = {
         iun: iun,
-        timeLineElementId: timelineIdPaperAR890,
+        timelineElementId: timelineIdPaperAR890,
       };
       break;
     case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS": // TO BE DEFINED: NOT IMPLEMENTED YET!!! always returns null
@@ -96,7 +96,8 @@ exports.findActivityEnd = async (iun, id, type) => {
     // in case the first one did not produce a result
     let response = await dynamoDB.send(new GetCommand(params));
     if (response.Item == null && altSortKey !== null) {
-      params.Key.timeLineElementId = altSortKey; // query with the alternative sort key
+      console.log("GetItem with the alternative sort key");
+      params.Key.timeLineElementId = altSortKey; // GetItem with the alternative sort key
       response = await dynamoDB.send(new GetCommand(params));
     }
     // 2. extract and return endTimestamp
