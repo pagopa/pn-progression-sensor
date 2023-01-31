@@ -382,7 +382,7 @@ Resources:
   SLAViolationCheckerLambdaSQS:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS"
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS.zip"
       Runtime: nodejs18.x
       Handler: "index.handler"
       Code:
