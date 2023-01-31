@@ -382,12 +382,12 @@ Resources:
   SLAViolationCheckerLambdaSQS:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS.zip"
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS"
       Runtime: nodejs18.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
-        S3Key: !Sub "${BucketBasePath}/slaViolationCheckerSQS.zip"
+        S3Key: !Sub "${BucketBasePath}/slaViolationChecker.zip"
       Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
       Environment:
         Variables:
