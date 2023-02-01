@@ -72,6 +72,11 @@ Parameters:
     Description: "Kinesis source CDC stream crypto key ARN"
     Type: String
 
+  # SQS
+  ProgressionSensorQueueARN:
+    Description: "SQS queue ARN"
+    Type: String
+
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
 
@@ -451,6 +456,20 @@ Resources:
           - Action: kms:Decrypt
             Effect: Allow
             Resource: !Ref CdcProgressionSensorKinesisSourceStreamKeyArn
+          - Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+            Resource: !Ref ProgressionSensorQueueARN
+
+  SLAViolationCheckerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      EventSourceArn: !Ref ProgressionSensorQueueARN
+      FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
 
   # lambda function Log Group
   SLAViolationCheckerLambdaLogGroup:
@@ -512,6 +531,4 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
-
-  # for the complete implementation, also attach to SQS
-  # ...
+  

@@ -215,6 +215,8 @@ exports.persistEvents = async (events) => {
             JSON.stringify(params)
           );
           console.log("UpdateItem response: ", data);
+        } else {
+          console.log("ERROR: UpdateItem response null!");
         }
       } catch (error) {
         /* istanbul ignore next */

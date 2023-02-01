@@ -113,6 +113,16 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
+
+# SQS Queue
+  ProgressionSensorQueue:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
+      Parameters:
+        QueueName: !Sub '${ProjectName}-progression-sensor-queue'
+        DelaySeconds: 1
+
 Outputs:
   ProgressionSensorDataDynamoTableName:
     Description: Name of dynamodb table containing notifications metadata
@@ -131,3 +141,20 @@ Outputs:
   CdcProgressionSensorKinesisSourceStreamKeyArn:
     Description: "Kinesis source CDC stream crypto key ARN"
     Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamKeyArn
+
+  # Scheduled Actions
+  ProgressionSensorQueueName:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.QueueName
+    Description: pn-delivery-push actions queue name
+  ProgressionSensorQueueURL:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.QueueURL
+    Description: pn-delivery-push actions queue URL
+  ProgressionSensorQueueARN:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.QueueARN
+    Description: pn-delivery-push actions queue ARN
+  ProgressionSensorQueueAlarmARN:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.SqsDLQAlarmArn
+    Description: pn-delivery-push actions queue dlq alarm queue 
+  ProgressionSensorQueueAgeAlarmARN:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.SqsAgeAlarmArn
+    Description: pn-delivery-push actions queue age alarm ARN
