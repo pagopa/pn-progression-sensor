@@ -1,5 +1,9 @@
 const { expect } = require("chai");
-const { checkRemovedByTTL, mapEvents } = require("../app/lib/eventMapper");
+const {
+  checkRemovedByTTL,
+  mapEvents,
+  mapEventsFromSQS,
+} = require("../app/lib/eventMapper");
 const { mockClient } = require("aws-sdk-client-mock");
 const { DynamoDBDocumentClient, GetCommand } = require("@aws-sdk/lib-dynamodb");
 
@@ -47,7 +51,7 @@ describe("test check removed by TTL", () => {
   });
 });
 
-describe("test check removed by TTL: create SLA Violation", function () {
+describe("test Kinesis: create SLA Violation or storicize it", function () {
   this.beforeEach(() => {
     ddbMock.reset();
   });
@@ -213,7 +217,7 @@ describe("test check removed by TTL: create SLA Violation", function () {
     },
   };
 
-  it("should be correct mapping", async () => {
+  it("should be correct mapping - insert", async () => {
     ddbMock.on(GetCommand).resolves({ Item: undefined }); // important: since we are resetting at each test, this must be inside the test
 
     const processedItems = await mapEvents([
@@ -269,5 +273,70 @@ describe("test check removed by TTL: create SLA Violation", function () {
     expect(processedItems[3].sla_relatedEntityId).equal(
       "GEUY-TJTX-NDUA-202301-N-1"
     );
+  });
+
+  it("should be correct mapping - update", async () => {
+    const foundTimestamp = "2023-07-03T15:06:12.470Z";
+
+    ddbMock.on(GetCommand).resolves({ Item: { timestamp: foundTimestamp } });
+
+    const processedItems = await mapEvents([kinesisEventRefinement]);
+    console.log("processed items: ", processedItems);
+
+    expect(processedItems.length).equal(1);
+
+    // REFINEMENT
+    expect(processedItems[0].entityName_type_relatedEntityId).equal(
+      "step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1"
+    );
+    expect(processedItems[0].id).equal(
+      "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted"
+    );
+
+    expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed
+    expect(processedItems[0].endTimestamp).equal(foundTimestamp);
+  });
+});
+
+describe("test SQS: storicize SLA Violation", function () {
+  this.beforeEach(() => {
+    ddbMock.reset();
+  });
+
+  const sqsEventRefinement = {
+    messageId: "49637329937448784559035416658086603",
+    eventName: "REMOVE",
+    dynamodb: {
+      entityName_type_relatedEntityId:
+        "step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1",
+      type: "REFINEMENT",
+      id: "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted",
+      relatedEntityId: "YZPN-ZTVQ-UTGU-202301-Y-1",
+      startTimestamp: "2023-01-24T15:06:12.470719211Z",
+      slaExpiration: "2023-07-17T15:06:12.470Z",
+      alarmTTL: "2023-07-03T15:06:12.470Z",
+    },
+  };
+
+  it("should be correct mapping - update", async () => {
+    const foundTimestamp = "2023-07-03T15:06:12.470Z";
+
+    ddbMock.on(GetCommand).resolves({ Item: { timestamp: foundTimestamp } });
+
+    const processedItems = await mapEventsFromSQS([sqsEventRefinement]);
+    console.log("processed items: ", processedItems);
+
+    expect(processedItems.length).equal(1);
+
+    // REFINEMENT
+    expect(processedItems[0].entityName_type_relatedEntityId).equal(
+      "step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1"
+    );
+    expect(processedItems[0].id).equal(
+      "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted"
+    );
+
+    expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed
+    expect(processedItems[0].endTimestamp).equal(foundTimestamp);
   });
 });

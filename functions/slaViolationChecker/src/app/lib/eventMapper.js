@@ -26,6 +26,7 @@ const makeInsertOp = (event) => {
 };
 
 const makeUpdateOp = (event, endTimestamp) => {
+  // note: we only need to pass whats's needed for seting the primary key and the field to add (endTimeStamp)
   const op = {
     // keys
     entityName_type_relatedEntityId:
@@ -57,6 +58,8 @@ const mapPayload = async (event) => {
       );
     } catch (error) {
       // we want to avoid adding the op if we had an error
+      /* istanbul ignore next */
+      console.log("ERROR mapping payload from Kinesis: ", error);
       /* istanbul ignore next */
       return dynamoDbOps;
     }
@@ -100,8 +103,9 @@ exports.mapEvents = async (events) => {
 const makeUpdateOpFromSQS = (event, endTimestamp) => {
   const op = {
     // keys
-    entityName_type_relatedEntityId: event.entityName_type_relatedEntityId,
-    id: event.id,
+    entityName_type_relatedEntityId:
+      event.dynamodb.entityName_type_relatedEntityId,
+    id: event.dynamodb.id,
     // what to set
     endTimestamp: endTimestamp,
     // end of fields
@@ -117,12 +121,14 @@ const mapPayloadFromSQS = async (event) => {
   let endTimeStamp = null;
   try {
     endTimeStamp = await findActivityEnd(
-      event.relatedEntityId, // IUN,
-      event.id, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
-      event.type
+      event.dynamodb.relatedEntityId, // IUN,
+      event.dynamodb.id, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+      event.dynamodb.type
     );
   } catch (error) {
-    // we want to avoid adding the op if we had an error
+    /* istanbul ignore next */
+    console.log("ERROR mapping payload from SQS: ", error);
+    /* istanbul ignore next */
     return dynamoDbOps;
   }
 

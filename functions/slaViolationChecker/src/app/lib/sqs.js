@@ -1,4 +1,3 @@
-/* istanbul ignore file */
 // just for following an organizations similar to the one used for Kinesis
 //
 // ref: https://docs.aws.amazon.com/lambda/latest/dg/with-sqs-example.html
@@ -7,11 +6,11 @@ exports.extractSQSData = function (sqsEvent) {
   if (sqsEvent == null || sqsEvent.Records == null) {
     return [];
   }
-  return kinesisEvent.Records.map((rec) => {
+  return sqsEvent.Records.map((rec) => {
     const decodedPayload = JSON.parse(rec.body); // the payload will be JSON and will contain the same object
     return {
       messageId: rec.messageId,
-      ...decodedPayload,
+      dynamodb: { ...decodedPayload },
     };
   });
 };
