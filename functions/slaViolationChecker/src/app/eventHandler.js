@@ -63,7 +63,7 @@ module.exports.eventHandler = async (event, bypassINVOCATION_TYPE) => {
   }
 
   // 2. process if reason is TTL: create an Active SLA Violation (part common to Kinesis and SQS path)
-  const persistSummary = await persistEvents(processedItems); // actually produce changes to DB (in our case create Active Sla Violations or soritize them)
+  const persistSummary = await persistEvents(processedItems); // actually produce changes to DB (in our case create Active Sla Violations or storicize them)
 
   console.log("Persist summary", persistSummary);
   console.log(`Inserted ${persistSummary.insertions} records`);
@@ -75,7 +75,7 @@ module.exports.eventHandler = async (event, bypassINVOCATION_TYPE) => {
       persistSummary.errors
     );
     payload.batchItemFailures = persistSummary.errors.map((i) => {
-      return i.kinesisSeqNumber || i.messageId;
+      return i.kinesisSeqNumber || i.messageId; // return one or the other: the first not undefined
     });
   }
 

@@ -121,7 +121,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
       Parameters:
         QueueName: !Sub '${ProjectName}-progression-sensor-queue'
-        DelaySeconds: 1
+        DelaySeconds: 10
 
 Outputs:
   ProgressionSensorDataDynamoTableName:

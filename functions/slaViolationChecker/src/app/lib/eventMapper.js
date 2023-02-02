@@ -25,23 +25,6 @@ const makeInsertOp = (event) => {
   return op;
 };
 
-const makeUpdateOp = (event, endTimestamp) => {
-  // note: we only need to pass whats's needed for seting the primary key and the field to add (endTimeStamp)
-  const op = {
-    // keys
-    entityName_type_relatedEntityId:
-      event.dynamodb.OldImage.entityName_type_relatedEntityId.S,
-    id: event.dynamodb.OldImage.id.S,
-    // what to set
-    endTimestamp: endTimestamp,
-    // end of fields
-    opType: "UPDATE",
-    kinesisSeqNumber: event.kinesisSeqNumber,
-  };
-
-  return op;
-};
-
 const mapPayload = async (event) => {
   const dynamoDbOps = [];
   if (this.checkRemovedByTTL(event)) {
@@ -69,7 +52,7 @@ const mapPayload = async (event) => {
       dynamoDbOps.push(makeInsertOp(event));
     } else {
       // update SLA Violation (if present): active becomes storicized
-      dynamoDbOps.push(makeUpdateOp(event, endTimeStamp));
+      dynamoDbOps.push(makeUpdateOp(event, endTimeStamp, "kinesis"));
     }
   } // we don't do anything if the remove is not by TTL
 
@@ -99,23 +82,35 @@ exports.mapEvents = async (events) => {
   return ops;
 };
 
-// SQS flow
-const makeUpdateOpFromSQS = (event, endTimestamp) => {
+// common
+const makeUpdateOp = (event, endTimestamp, source = "kinesis") => {
+  // note: we only need to pass whats's needed for setting the primary key and the field to add (endTimeStamp)
   const op = {
-    // keys
-    entityName_type_relatedEntityId:
-      event.dynamodb.entityName_type_relatedEntityId,
-    id: event.dynamodb.id,
     // what to set
     endTimestamp: endTimestamp,
     // end of fields
     opType: "UPDATE",
-    messageId: event.messageId,
   };
+
+  if (source.toLowerCase() === "sqs") {
+    op.messageId = event.messageId;
+    // keys
+    op.entityName_type_relatedEntityId =
+      event.dynamodb.entityName_type_relatedEntityId;
+    op.id = event.dynamodb.id;
+  } else {
+    // Kinesis
+    op.kinesisSeqNumber = event.kinesisSeqNumber;
+    // keys
+    op.entityName_type_relatedEntityId =
+      event.dynamodb.OldImage.entityName_type_relatedEntityId.S;
+    op.id = event.dynamodb.OldImage.id.S;
+  }
 
   return op;
 };
 
+// SQS flow
 const mapPayloadFromSQS = async (event) => {
   const dynamoDbOps = [];
   let endTimeStamp = null;
@@ -134,7 +129,7 @@ const mapPayloadFromSQS = async (event) => {
 
   if (endTimeStamp !== null) {
     // update SLA Violation (if present): active becomes storicized
-    dynamoDbOps.push(makeUpdateOpFromSQS(event, endTimeStamp));
+    dynamoDbOps.push(makeUpdateOp(event, endTimeStamp, "sqs"));
   }
 
   return dynamoDbOps;
