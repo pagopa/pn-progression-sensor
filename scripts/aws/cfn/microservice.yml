@@ -552,6 +552,7 @@ Resources:
       Environment:
         Variables:
           REGION: !Sub ${AWS::Region}
+          SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
       TracingConfig:
         Mode: Active
       Layers:
@@ -641,3 +642,21 @@ Resources:
       LogGroupName: !Ref SLAViolationCloseSchedulingLambdaLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  LambdaScheduleRule:
+    Type: AWS::Events::Rule
+    Properties: 
+      Name: !Sub "${ProjectName}-LambdaScheduleRule"
+      ScheduleExpression: rate(5 minute)
+      State: ENABLED
+      Targets: 
+        - Arn: !GetAtt SLAViolationCloseSchedulingLambda.Arn
+          Id: !Ref SLAViolationCloseSchedulingLambda
+          
+  LambdaSchedulePermission: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !Ref SLAViolationCloseSchedulingLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt LambdaScheduleRule.Arn
