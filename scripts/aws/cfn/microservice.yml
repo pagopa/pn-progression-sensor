@@ -647,7 +647,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties: 
       Name: !Sub "${ProjectName}-LambdaScheduleRule"
-      ScheduleExpression: rate(5 minute)
+      ScheduleExpression: rate(5 minutes)
       State: ENABLED
       Targets: 
         - Arn: !GetAtt SLAViolationCloseSchedulingLambda.Arn
