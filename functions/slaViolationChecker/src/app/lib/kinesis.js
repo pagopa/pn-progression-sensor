@@ -1,3 +1,4 @@
+/* istanbul ignore file */
 // copied from activityStepManager
 const { Buffer } = require("node:buffer");
 const { gunzipSync } = require("node:zlib");
@@ -63,7 +64,7 @@ function mustProcess(rec) {
 }
 
 exports.extractKinesisData = function (kinesisEvent) {
-  console.log("kinesis event: ", JSON.stringify(kinesisEvent));
+  console.log("Kinesis event: ", JSON.stringify(kinesisEvent));
   if (kinesisEvent == null || kinesisEvent.Records == null) {
     return [];
   }

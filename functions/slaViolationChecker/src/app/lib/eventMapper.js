@@ -1,3 +1,6 @@
+const { findActivityEnd } = require("./dynamoDB");
+
+// Kinesis flow
 const makeInsertOp = (event) => {
   const op = {
     entityName_type_relatedEntityId:
@@ -22,12 +25,36 @@ const makeInsertOp = (event) => {
   return op;
 };
 
-const mapPayload = (event) => {
+const mapPayload = async (event) => {
   const dynamoDbOps = [];
   if (this.checkRemovedByTTL(event)) {
-    const op = makeInsertOp(event);
-    dynamoDbOps.push(op);
-  }
+    // we perform the SLA Violation insertion only if the pn-Timelines table doesn't contain an activity termination step
+    // for that activity: this is because the correct order of the events received from pn-Timelines and pn-Notifications
+    // is not guaranteed and we could receive and insert after we've processed the delete, and we could be in the case where
+    // we would wrongly generate a SLA Violation after a TTL delete of an activity starts's step
+    let endTimeStamp = null;
+    try {
+      endTimeStamp = await findActivityEnd(
+        event.dynamodb.OldImage.relatedEntityId.S, // IUN,
+        event.dynamodb.OldImage.id.S, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+        event.dynamodb.OldImage.type.S
+      );
+    } catch (error) {
+      // we want to avoid adding the op if we had an error
+      /* istanbul ignore next */
+      console.log("ERROR mapping payload from Kinesis: ", error);
+      /* istanbul ignore next */
+      return dynamoDbOps;
+    }
+
+    if (endTimeStamp === null) {
+      // add SLA Violation, since the activity has not ended
+      dynamoDbOps.push(makeInsertOp(event));
+    } else {
+      // update SLA Violation (if present): active becomes storicized
+      dynamoDbOps.push(makeUpdateOp(event, endTimeStamp, "kinesis"));
+    }
+  } // we don't do anything if the remove is not by TTL
 
   return dynamoDbOps;
 };
@@ -46,10 +73,72 @@ exports.checkRemovedByTTL = (kinesisEvent) => {
   return false;
 };
 
-exports.mapEvents = (events) => {
+exports.mapEvents = async (events) => {
   let ops = [];
   for (let i = 0; i < events.length; i++) {
-    const dynamoDbOps = mapPayload(events[i]);
+    const dynamoDbOps = await mapPayload(events[i]); // we are adding an array, not a single element
+    ops = ops.concat(dynamoDbOps);
+  }
+  return ops;
+};
+
+// common
+const makeUpdateOp = (event, endTimestamp, source = "kinesis") => {
+  // note: we only need to pass whats's needed for setting the primary key and the field to add (endTimeStamp)
+  const op = {
+    // what to set
+    endTimestamp: endTimestamp,
+    // end of fields
+    opType: "UPDATE",
+  };
+
+  if (source.toLowerCase() === "sqs") {
+    op.messageId = event.messageId;
+    // keys
+    op.entityName_type_relatedEntityId =
+      event.dynamodb.entityName_type_relatedEntityId;
+    op.id = event.dynamodb.id;
+  } else {
+    // Kinesis
+    op.kinesisSeqNumber = event.kinesisSeqNumber;
+    // keys
+    op.entityName_type_relatedEntityId =
+      event.dynamodb.OldImage.entityName_type_relatedEntityId.S;
+    op.id = event.dynamodb.OldImage.id.S;
+  }
+
+  return op;
+};
+
+// SQS flow
+const mapPayloadFromSQS = async (event) => {
+  const dynamoDbOps = [];
+  let endTimeStamp = null;
+  try {
+    endTimeStamp = await findActivityEnd(
+      event.dynamodb.relatedEntityId, // IUN,
+      event.dynamodb.id, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
+      event.dynamodb.type
+    );
+  } catch (error) {
+    /* istanbul ignore next */
+    console.log("ERROR mapping payload from SQS: ", error);
+    /* istanbul ignore next */
+    return dynamoDbOps;
+  }
+
+  if (endTimeStamp !== null) {
+    // update SLA Violation (if present): active becomes storicized
+    dynamoDbOps.push(makeUpdateOp(event, endTimeStamp, "sqs"));
+  }
+
+  return dynamoDbOps;
+};
+
+exports.mapEventsFromSQS = async (events) => {
+  let ops = [];
+  for (let i = 0; i < events.length; i++) {
+    const dynamoDbOps = await mapPayloadFromSQS(events[i]); // we are adding an array, not a single element
     ops = ops.concat(dynamoDbOps);
   }
   return ops;
