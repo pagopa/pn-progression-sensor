@@ -1,17 +1,21 @@
 const { LambdaClient, InvokeCommand } = require("@aws-sdk/client-lambda");
+const { fromUtf8 } = require("@aws-sdk/util-utf8-node");
 
 const client = new LambdaClient({ region: process.env.REGION });
 
-module.exports.getActiveSLAViolations = async (type, lastScannedKey) => {
+exports.getActiveSLAViolations = async (type, lastScannedKey) => {
   const payLoad = {
     FunctionName:
       process.env.SEARCH_SLA_VIOLATIONS_FUNCTION_NAME ||
       "pn-searchSLAViolationsLambda",
-    Payload: JSON.stringify({
-      type: type,
-      active: true,
-      lastScannedKey: lastScannedKey,
-    }),
+    InvocationType: "RequestResponse",
+    Payload: fromUtf8(
+      JSON.stringify({
+        type: type,
+        active: true,
+        lastScannedKey: lastScannedKey,
+      })
+    ),
   };
   const command = new InvokeCommand(payLoad);
 
@@ -21,8 +25,9 @@ module.exports.getActiveSLAViolations = async (type, lastScannedKey) => {
 
     // ...
 
-    return [];
+    return {};
   } catch (error) {
     console.log("error calling lambda function: ", error);
+    return {};
   }
 };

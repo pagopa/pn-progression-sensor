@@ -2,7 +2,7 @@ const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
 
 const client = new SQSClient({ region: process.env.REGION });
 
-module.exports.addActiveSLAToQueue = async (violations) => {
+exports.addActiveSLAToQueue = async (violations) => {
   const response = {
     correctlySentViolations: 0,
   };

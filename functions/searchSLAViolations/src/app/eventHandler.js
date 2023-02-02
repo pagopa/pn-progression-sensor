@@ -87,7 +87,7 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
 
     // -- prepare and return response
     payload.results = response.Items;
-    lastScannedKey = response.LastEvaluatedKey || null;
+    payload.lastScannedKey = response.LastEvaluatedKey || null;
   } catch (error) {
     payload.success = false;
     payload.message = error?.message;
