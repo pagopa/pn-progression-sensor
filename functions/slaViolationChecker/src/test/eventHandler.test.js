@@ -137,7 +137,7 @@ describe("event handler tests: Kinesis", function () {
     const res = await lambda.eventHandler(event);
     console.log("ERRORS: ", res);
     expect(res).deep.equals({
-      batchItemFailures: ["abc"],
+      batchItemFailures: [{ itemIdentifier: "abc" }],
     });
   });
 });
@@ -269,7 +269,7 @@ describe("event handler tests: SQS", function () {
     });
     const res = await lambda.eventHandler(event, "SQS");
     expect(res).deep.equals({
-      batchItemFailures: ["abc"],
+      batchItemFailures: [{ itemIdentifier: "abc" }],
     });
   });
 });

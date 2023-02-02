@@ -75,7 +75,7 @@ module.exports.eventHandler = async (event, bypassINVOCATION_TYPE) => {
       persistSummary.errors
     );
     payload.batchItemFailures = persistSummary.errors.map((i) => {
-      return i.kinesisSeqNumber || i.messageId; // return one or the other: the first not undefined
+      return { itemIdentifier: i.kinesisSeqNumber || i.messageId }; // return one or the other: the first not undefined
     });
   }
 

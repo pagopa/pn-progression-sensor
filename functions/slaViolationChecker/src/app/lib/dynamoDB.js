@@ -80,7 +80,7 @@ exports.findActivityEnd = async (iun, id, type) => {
       };
       break;
     /* istanbul ignore next */
-    case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS": // TO BE DEFINED: NOT IMPLEMENTED YET!!! always returns null
+    case "SEND_AMR": // NOT IMPLEMENTED YET!!! always returns null
       // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
       // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
       return null;
