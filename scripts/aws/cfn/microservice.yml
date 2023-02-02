@@ -468,6 +468,8 @@ Resources:
     Properties:
       BatchSize: 10
       Enabled: true
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
       EventSourceArn: !Ref ProgressionSensorQueueARN
       FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
 
