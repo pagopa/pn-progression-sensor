@@ -1,4 +1,3 @@
-const dynamo = require("./lib/dynamoDB.js");
 const { extractKinesisData } = require("./lib/kinesis.js");
 const { mapEvents, mapEventsFromSQS } = require("./lib/eventMapper.js");
 const { persistEvents } = require("./lib/dynamoDB.js");

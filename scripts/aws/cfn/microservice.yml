@@ -534,3 +534,110 @@ Resources:
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
   
+  #########################################################
+  ###          SLAViolationCloseSchedulingLambda        ###
+  #########################################################
+
+  # Lambda function
+  SLAViolationCloseSchedulingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-slaViolationCloseSchedulingLambda"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationCloseScheduling.zip"
+      Role: !GetAtt SLAViolationCloseSchedulingLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout : 10
+
+  # Lambda function role
+  SLAViolationCloseSchedulingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-slaViolationCloseSchedulingLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda function IAM policy
+  SLAViolationCloseSchedulingLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-SLAViolationCloseSchedulingLambdaPolicy
+      Roles:
+        - !Ref SLAViolationCloseSchedulingLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !Ref ProgressionSensorQueueARN
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource: !GetAtt SearchSLAViolationsLambda.Arn
+
+  # lambda function Log Group
+  SLAViolationCloseSchedulingLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SLAViolationCloseSchedulingLambda}"
+      RetentionInDays: 14
+
+  # Lambda function CloudWatch Logs Metric Filter
+  SLAViolationCloseSchedulingFatalLogsMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref SLAViolationCloseSchedulingLambdaLogGroup
+      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
+      MetricTransformations:
+        - MetricValue: 1
+          MetricNamespace: "ErrorFatalLogs"
+          MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCloseSchedulingFatalMetric
+
+  # Lambda function CloudWatch alarm
+  SLAViolationCloseSchedulingErrorFatalLogsMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: SLAViolationCloseSchedulingFatalLogsMetricFilter
+    Properties:
+      AlarmName: !Sub ${ProjectName}-progressionSensor-SLAViolationCloseSchedulingErrorFatalLogsMetricAlarm
+      AlarmDescription: "CloudWatch alarm for SLAViolationCloseScheduling Lambda logs with ERROR or FATAL line."
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      DatapointsToAlarm: 1
+      MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCloseSchedulingErrorFatalMetric
+      Namespace: ErrorFatalLogs
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      Period: 60
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: notBreaching
+
+  SLAViolationCloseSchedulingSubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref SLAViolationCloseSchedulingLambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
