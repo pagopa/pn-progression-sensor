@@ -72,6 +72,11 @@ Parameters:
     Description: "Kinesis source CDC stream crypto key ARN"
     Type: String
 
+  # SQS
+  ProgressionSensorQueueARN:
+    Description: "SQS queue ARN"
+    Type: String
+
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
 
@@ -99,6 +104,7 @@ Resources:
         Variables:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
+      Timeout : 10
 
   # Lambda function role
   SearchSLAViolationsLambdaRole:
@@ -206,6 +212,7 @@ Resources:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout : 10
 
   # Lambda function role
   ActivityStepManagerLambdaRole:
@@ -354,7 +361,7 @@ Resources:
   ###              SLAViolationCheckerLambda            ###
   #########################################################
 
-  # Lambda function
+  # Lambda function (from Kinesis)
   SLAViolationCheckerLambda:
     Type: AWS::Lambda::Function
     Properties:
@@ -369,6 +376,29 @@ Resources:
         Variables:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOCATION_TYPE: "Kinesis"
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout : 10
+
+  # Lambda function (from SQS)
+  SLAViolationCheckerLambdaSQS:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationChecker.zip"
+      Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOCATION_TYPE: "SQS"
       TracingConfig:
         Mode: Active
       Layers:
@@ -404,12 +434,15 @@ Resources:
           - Effect: Allow
             Action:
               - "dynamodb:PutItem"
-              - "dynamodb:UpdateItem" # for the complete implementation
+              - "dynamodb:UpdateItem"
             Resource:
               - !Ref ProgressionSensorDataDynamoTableArn
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
-          # for the complete implementation, add GetItem permission on pn-Timelines DynamoDB table
-          # ...
+          - Effect: Allow
+            Action:
+              - "dynamodb:GetItem"
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines"
           - Effect: Allow
             Action:
               - kinesis:DescribeStream
@@ -423,6 +456,22 @@ Resources:
           - Action: kms:Decrypt
             Effect: Allow
             Resource: !Ref CdcProgressionSensorKinesisSourceStreamKeyArn
+          - Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+            Resource: !Ref ProgressionSensorQueueARN
+
+  SLAViolationCheckerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      EventSourceArn: !Ref ProgressionSensorQueueARN
+      FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
 
   # lambda function Log Group
   SLAViolationCheckerLambdaLogGroup:
@@ -484,6 +533,4 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
-
-  # for the complete implementation, also attach to SQS
-  # ...
+  
