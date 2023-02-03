@@ -77,6 +77,12 @@ Parameters:
     Description: "SQS queue ARN"
     Type: String
 
+  # schedule cron expression:
+  SlaViolationCheckRateExpression:
+    Default: "rate(5 minutes)"
+    Description: "Rate expression for scheduling the Close Schedule Lambda"
+    Type: String
+
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
 
@@ -647,7 +653,7 @@ Resources:
     Type: AWS::Events::Rule
     Properties: 
       Name: !Sub "${ProjectName}-LambdaScheduleRule"
-      ScheduleExpression: rate(5 minutes)
+      ScheduleExpression: !Ref SlaViolationCheckRateExpression
       State: ENABLED
       Targets: 
         - Arn: !GetAtt SLAViolationCloseSchedulingLambda.Arn
