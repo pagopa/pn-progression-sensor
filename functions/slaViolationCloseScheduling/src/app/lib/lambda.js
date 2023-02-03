@@ -35,7 +35,7 @@ exports.getActiveSLAViolations = async (type, lastScannedKey) => {
       JSON.parse(Buffer.from(response.Payload))
     ); // the lambda function returns a string containing a JSON, not a plain object
 
-    console.log("lambda invocation response: ", decodedResponse);
+    //console.log("lambda invocation response: ", decodedResponse);
 
     return decodedResponse;
   } catch (error) {

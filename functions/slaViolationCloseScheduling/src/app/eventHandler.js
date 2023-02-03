@@ -12,7 +12,7 @@ module.exports.eventHandler = async (event) => {
   };
 
   // 1. get currently active SLA Violations
-  const slaViolations = [];
+  let slaViolations = [];
 
   const types = [
     "VALIDATION",
@@ -34,16 +34,20 @@ module.exports.eventHandler = async (event) => {
         lastScannedKey = null;
       } else {
         // success
-        console.log("lambda invocation response: ", lambdaResponse);
+        //console.log("lambda invocation response: ", lambdaResponse);
         payload.activeSLASearchSuccesses++;
-        slaViolations.push(lambdaResponse.results);
+        slaViolations = slaViolations.concat(lambdaResponse.results); // an array is added
         lastScannedKey = lambdaResponse.lastScannedKey || null;
       }
     } while (lastScannedKey != null);
 
-    if (slaViolations.length) {
+    if (slaViolations.length < 1) {
       console.log("No active SLA Violations for type: " + type);
     } else {
+      console.log(
+        slaViolations.length + " active SLA Violations for type: " + type
+      );
+
       // 2. send active queue for checking/processing
       const responses = await addActiveSLAToQueue(slaViolations);
       // ...
