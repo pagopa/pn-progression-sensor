@@ -557,7 +557,7 @@ Resources:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
-      Timeout: 10
+      Timeout: 20 # longer than other functions, since this one calls the search lambda synchronously
 
   # Lambda function role
   SLAViolationCloseSchedulingLambdaRole:
@@ -660,3 +660,23 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       SourceArn: !GetAtt LambdaScheduleRule.Arn
+
+  # Dashboard
+  MicroserviceDashboard:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
+      Parameters:
+        DashboardName: !Sub "${ProjectName}-progression-sensor"
+        LambdaArns: !Join 
+          - ','
+          - - !GetAtt SearchSLAViolationsLambda.Arn
+            - !GetAtt ActivityStepManagerLambda.Arn          
+            - !GetAtt SLAViolationCheckerLambda.Arn          
+            - !GetAtt SLAViolationCloseSchedulingLambda.Arn                      
+        AlarmArns: !Join
+          - ','
+          - - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${SearchSLAViolationsErrorFatalLogsMetricAlarm}"
+            - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${ActivityStepManagerErrorFatalLogsMetricAlarm}"
+            - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${SLAViolationCheckerErrorFatalLogsMetricAlarm}"
+            - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${SLAViolationCloseSchedulingErrorFatalLogsMetricAlarm}"
