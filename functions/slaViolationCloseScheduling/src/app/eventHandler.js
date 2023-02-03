@@ -6,8 +6,8 @@ module.exports.eventHandler = async (event) => {
 
   // basic return payload
   const payload = {
-    lambdaInvocationSuccesses: 0,
-    lambdaInvocationFailures: 0,
+    activeSLASearchSuccesses: 0,
+    activeSLASearchFailures: 0,
     eventsSentToQueue: 0,
   };
 
@@ -22,7 +22,7 @@ module.exports.eventHandler = async (event) => {
     "SEND_AMR",
   ];
 
-  types.forEach(async (type) => {
+  for (const type of types) {
     let lastScannedKey = null;
 
     do {
@@ -30,15 +30,15 @@ module.exports.eventHandler = async (event) => {
 
       if (lambdaResponse && !lambdaResponse.success) {
         console.log("problem calling lambda function for type: ", type);
-        payload.lambdaInvocationFailures++;
+        payload.activeSLASearchFailures++;
+        lastScannedKey = null;
+      } else {
+        // success
+        console.log("lambda invocation response: ", lambdaResponse);
+        payload.activeSLASearchSuccesses++;
+        slaViolations.push(lambdaResponse.results);
+        lastScannedKey = lambdaResponse.lastScannedKey || null;
       }
-
-      console.log("lambda invocation response: ", lambdaResponse);
-      payload.lambdaInvocationSuccesses++;
-
-      slaViolations.push(lambdaResponse.results);
-
-      lastScannedKey = lambdaResponse.lastScannedKey || null;
     } while (lastScannedKey != null);
 
     if (slaViolations.length) {
@@ -51,7 +51,7 @@ module.exports.eventHandler = async (event) => {
       // communicate the metric
       // ...
     }
-  });
+  }
 
   return payload;
 };
