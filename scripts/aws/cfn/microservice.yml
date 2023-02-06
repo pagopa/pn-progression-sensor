@@ -159,6 +159,8 @@ Resources:
 
   SearchSLAViolationsLambdaAlarms:
     Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SearchSLAViolationsLambdaLogGroup
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
@@ -303,6 +305,8 @@ Resources:
 
   ActivityStepManagerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ActivityStepManagerLambdaLogGroup
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
@@ -456,6 +460,8 @@ Resources:
   
   SLAViolationCheckerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SLAViolationCheckerLambdaLogGroup
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
