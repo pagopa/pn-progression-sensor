@@ -609,8 +609,7 @@ Resources:
           - Effect: Allow
             Action:
               - cloudwatch:PutMetricData
-            Resource:
-              - !Sub arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*
+            Resource: "*"
 
   # lambda function Log Group
   SLAViolationCloseSchedulingLambdaLogGroup:
