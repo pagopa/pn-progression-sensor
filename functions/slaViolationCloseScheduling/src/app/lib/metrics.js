@@ -42,7 +42,12 @@ exports.putMetricDataForType = async (value, type) => {
     return true;
   } catch (error) {
     /* istanbul ignore next */
-    console.error("problem publishing metric, for input: ", input);
+    console.error(
+      "problem publishing metric, for input: ",
+      JSON.stringify(input),
+      ", error: ",
+      error
+    );
     /* istanbul ignore next */
     return false;
   }
