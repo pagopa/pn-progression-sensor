@@ -14,7 +14,6 @@ describe("test send metrics", function () {
   });
 
   it("should not send metrics", async () => {
-    // null
     let response = await putMetricDataForType(-1, "VALIDATION"); // existing type
 
     expect(response).to.be.not.null;
@@ -39,8 +38,17 @@ describe("test send metrics", function () {
       "SEND_AMR",
     ];
 
+    // 10
     for (const type of knownTypes) {
       let response = await putMetricDataForType(10, type);
+      expect(response).to.be.not.null;
+      expect(response).to.be.not.undefined;
+      expect(response).equal(true);
+    }
+
+    // value: 0, still ok!
+    for (const type of knownTypes) {
+      let response = await putMetricDataForType(0, type);
       expect(response).to.be.not.null;
       expect(response).to.be.not.undefined;
       expect(response).equal(true);

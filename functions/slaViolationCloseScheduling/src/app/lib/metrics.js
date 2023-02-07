@@ -14,7 +14,7 @@ exports.putMetricDataForType = async (value, type) => {
     console.error("wrong type passed: ", type);
     return false;
   }
-  if (typeof value !== "number" || value < 1) {
+  if (typeof value !== "number" || value < 0) {
     console.error("wrong metric input value: ", value);
     return false;
   }
