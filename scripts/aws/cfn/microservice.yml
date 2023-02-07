@@ -77,6 +77,10 @@ Parameters:
     Description: "SQS queue ARN"
     Type: String
 
+  ProgressionSensorQueueURL:
+    Description: "SQS queue URL"
+    Type: String
+
   # schedule cron expression:
   SlaViolationCheckRateExpression:
     Default: "rate(5 minutes)"
@@ -560,6 +564,7 @@ Resources:
           REGION: !Sub ${AWS::Region}
           #SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
           SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt  SearchSLAViolationsLambda.Arn
+          SEARCH_SLA_VIOLATIONS_QUEUE_URL: !Ref ProgressionSensorQueueURL
       TracingConfig:
         Mode: Active
       Layers:

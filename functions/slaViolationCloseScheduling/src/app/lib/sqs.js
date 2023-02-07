@@ -6,27 +6,63 @@ exports.addActiveSLAToQueue = async (violations) => {
   const response = {
     receivedViolations: 0,
     correctlySentViolations: 0,
+    problemsSendingViolations: 0,
+    skippedViolations: 0,
   };
 
-  // for each violation
   if (violations == null || !Array.isArray(violations)) {
     return response;
   }
 
   response.receivedViolations = violations.length;
 
-  // ...
-  //   const params = {
-  //     // input parameters
-  //   };
-  //   const command = new SendMessageCommand(params);
+  for (const singleViolation of violations) {
+    if (
+      singleViolation.entityName_type_relatedEntityId === undefined ||
+      singleViolation.id === undefined
+    ) {
+      response.skippedViolations++;
+      continue; // we skip this violation
+    }
+    let body = "";
+    try {
+      body = JSON.stringify(singleViolation);
+    } catch (error) {
+      /* istanbul ignore next */
+      response.skippedViolations++;
+      /* istanbul ignore next */
+      continue;
+    }
+    const params = {
+      DelaySeconds: 10,
+      MessageBody: body,
+      QueueUrl: process.env.SEARCH_SLA_VIOLATIONS_QUEUE_URL || "queue",
+      MessageAttributes: {
+        entityName_type_relatedEntityId: {
+          DataType: "String",
+          StringValue: singleViolation.entityName_type_relatedEntityId,
+        },
+        id: {
+          DataType: "String",
+          StringValue: singleViolation.id,
+        },
+      },
+    };
+    console.log("send message params: ", params);
+    const command = new SendMessageCommand(params);
 
-  //   try {
-  //     const data = await client.send(command);
-  //     // process data
-  //   } catch (error) {
-  //     // error handling
-  //   }
+    try {
+      const data = await client.send(command);
+      if (data && data.MessageId) {
+        response.correctlySentViolations++;
+      } else {
+        response.problemsSendingViolations++;
+      }
+    } catch (error) {
+      /* istanbul ignore next */
+      response.problemsSendingViolations++;
+    }
+  } // for end
 
   return response;
 };

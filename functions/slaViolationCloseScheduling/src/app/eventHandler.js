@@ -60,8 +60,9 @@ module.exports.eventHandler = async (event) => {
   // ...
 
   // 2. send active queue for checking/processing
-  const responses = await addActiveSLAToQueue(slaViolations);
-  // ...
+  const queueResponse = await addActiveSLAToQueue(slaViolations);
+
+  console.log("send to queue response: ", queueResponse);
 
   return payload;
 };
