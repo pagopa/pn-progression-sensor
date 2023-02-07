@@ -4,11 +4,16 @@ const client = new SQSClient({ region: process.env.REGION });
 
 exports.addActiveSLAToQueue = async (violations) => {
   const response = {
+    receivedViolations: 0,
     correctlySentViolations: 0,
   };
 
-  // for each violation...
-  // ...
+  // for each violation
+  if (violations == null || !Array.isArray(violations)) {
+    return response;
+  }
+
+  response.receivedViolations = violations.length;
 
   // ...
   //   const params = {

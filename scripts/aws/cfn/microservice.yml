@@ -558,7 +558,8 @@ Resources:
       Environment:
         Variables:
           REGION: !Sub ${AWS::Region}
-          SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
+          #SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
+          SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt  SearchSLAViolationsLambda.Arn
       TracingConfig:
         Mode: Active
       Layers:

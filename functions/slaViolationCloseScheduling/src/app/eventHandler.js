@@ -47,15 +47,21 @@ module.exports.eventHandler = async (event) => {
       console.log(
         slaViolations.length + " active SLA Violations for type: " + type
       );
-
-      // 2. send active queue for checking/processing
-      const responses = await addActiveSLAToQueue(slaViolations);
-      // ...
-
-      // communicate the metric
-      // ...
     }
   }
+
+  const numberOfActiveSLAViolations = slaViolations.length;
+  console.log(
+    "total number of active SLA Violations: ",
+    numberOfActiveSLAViolations
+  );
+
+  // communicate the metric
+  // ...
+
+  // 2. send active queue for checking/processing
+  const responses = await addActiveSLAToQueue(slaViolations);
+  // ...
 
   return payload;
 };

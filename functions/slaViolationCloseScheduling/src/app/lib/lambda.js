@@ -22,7 +22,7 @@ exports.getActiveSLAViolations = async (type, lastScannedKey) => {
 
   const payLoad = {
     FunctionName:
-      process.env.SEARCH_SLA_VIOLATIONS_FUNCTION_NAME ||
+      process.env.SEARCH_SLA_VIOLATIONS_FUNCTION_ARN ||
       "pn-searchSLAViolationsLambda",
     //InvocationType: "RequestResponse", // default: synchronous invocation
     Payload: Buffer.from(JSON.stringify(lambdaFunctionPayload)), // Uint8Array
