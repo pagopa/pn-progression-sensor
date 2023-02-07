@@ -48,7 +48,22 @@ exports.addActiveSLAToQueue = async (violations) => {
         },
       },
     };
-    console.log("send message params: ", params);
+    //console.log("send message params: ", params);
+    // {
+    //   DelaySeconds: 10,
+    //   MessageBody: '{"startTimestamp":"2023-01-27T13:43:06.615351611Z","entityName_type_relatedEntityId":"sla##SEND_AMR##NPKT-QHPH-UJTZ-202301-Y-1","sla_relatedEntityId":"NPKT-QHPH-UJTZ-202301-Y-1","alarmTTL":"2023-01-31T13:43:06.615Z","slaExpiration":"2023-01-31T13:43:06.615Z","id":"04_AMR##NPKT-QHPH-UJTZ-202301-Y-1##0","active_sla_entityName_type":"SEND_AMR","type":"SEND_AMR"}',
+    //   QueueUrl: 'https://sqs.eu-south-1.amazonaws.com/558518206506/pn-progression-sensor-queue',
+    //   MessageAttributes: {
+    //     entityName_type_relatedEntityId: {
+    //       DataType: 'String',
+    //       StringValue: 'sla##SEND_AMR##NPKT-QHPH-UJTZ-202301-Y-1'
+    //     },
+    //     id: {
+    //       DataType: 'String',
+    //       StringValue: '04_AMR##NPKT-QHPH-UJTZ-202301-Y-1##0'
+    //     }
+    //   }
+    // }
     const command = new SendMessageCommand(params);
 
     try {

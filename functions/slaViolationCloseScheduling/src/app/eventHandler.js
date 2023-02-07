@@ -25,6 +25,7 @@ module.exports.eventHandler = async (event) => {
   for (const type of types) {
     let lastScannedKey = null;
 
+    let currentTypeSlaViolations = [];
     do {
       const lambdaResponse = await getActiveSLAViolations(type, lastScannedKey);
 
@@ -36,18 +37,24 @@ module.exports.eventHandler = async (event) => {
         // success
         //console.log("lambda invocation response: ", lambdaResponse);
         payload.activeSLASearchSuccesses++;
-        slaViolations = slaViolations.concat(lambdaResponse.results); // an array is added
+        currentTypeSlaViolations = currentTypeSlaViolations.concat(
+          lambdaResponse.results
+        ); // an array is added to the array for current type
         lastScannedKey = lambdaResponse.lastScannedKey || null;
       }
     } while (lastScannedKey != null);
 
-    if (slaViolations.length < 1) {
+    if (currentTypeSlaViolations.length < 1) {
       console.log("No active SLA Violations for type: " + type);
     } else {
       console.log(
-        slaViolations.length + " active SLA Violations for type: " + type
+        currentTypeSlaViolations.length +
+          " active SLA Violations for type: " +
+          type
       );
     }
+
+    slaViolations = slaViolations.concat(currentTypeSlaViolations); // an array is added to the global array
   }
 
   const numberOfActiveSLAViolations = slaViolations.length;
