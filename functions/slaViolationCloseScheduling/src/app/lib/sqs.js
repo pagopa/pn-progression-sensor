@@ -76,6 +76,8 @@ exports.addActiveSLAToQueue = async (violations) => {
     } catch (error) {
       /* istanbul ignore next */
       response.problemsSendingViolations++;
+      /* istanbul ignore next */
+      console.error("problem sending violations to queue: ", error);
     }
   } // for end
 

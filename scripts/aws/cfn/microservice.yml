@@ -606,6 +606,11 @@ Resources:
             Action:
               - lambda:InvokeFunction
             Resource: !GetAtt SearchSLAViolationsLambda.Arn
+          - Effect: Allow
+            Action:
+              - cloudwatch:PutMetricData
+            Resource:
+              - !Sub arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:*
 
   # lambda function Log Group
   SLAViolationCloseSchedulingLambdaLogGroup:

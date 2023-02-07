@@ -14,7 +14,6 @@ exports.getActiveSLAViolations = async (type, lastScannedKey) => {
   const lambdaFunctionPayload = {
     type: type,
     active: true,
-    lastScannedKey: lastScannedKey,
   };
   if (lastScannedKey) {
     lambdaFunctionPayload.lastScannedKey = lastScannedKey;
@@ -37,10 +36,16 @@ exports.getActiveSLAViolations = async (type, lastScannedKey) => {
 
     //console.log("lambda invocation response: ", decodedResponse);
 
+    // we could check for decodedResponse.success, but directly pass the response to the caller, who
+    // actually controls the returned data
+
     return decodedResponse;
   } catch (error) {
+    /* istanbul ignore next */
     const message = "error calling lambda function: " + error;
+    /* istanbul ignore next */
     console.error(message);
+    /* istanbul ignore next */
     return { success: false, message: message };
   }
 };

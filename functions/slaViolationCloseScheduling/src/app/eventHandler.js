@@ -1,5 +1,6 @@
 const { getActiveSLAViolations } = require("./lib/lambda");
 const { addActiveSLAToQueue } = require("./lib/sqs");
+const { putMetricDataForType } = require("./lib/metrics");
 
 module.exports.eventHandler = async (event) => {
   //console.log("event: ", event);
@@ -55,6 +56,9 @@ module.exports.eventHandler = async (event) => {
     }
 
     slaViolations = slaViolations.concat(currentTypeSlaViolations); // an array is added to the global array
+
+    // communicate the metric
+    await putMetricDataForType(currentTypeSlaViolations.length, type);
   }
 
   const numberOfActiveSLAViolations = slaViolations.length;
@@ -62,10 +66,6 @@ module.exports.eventHandler = async (event) => {
     "total number of active SLA Violations: ",
     numberOfActiveSLAViolations
   );
-
-  // communicate the metric
-  // ...
-
   // 2. send active queue for checking/processing
   const queueResponse = await addActiveSLAToQueue(slaViolations);
 
