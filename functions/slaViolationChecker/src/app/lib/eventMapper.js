@@ -116,7 +116,7 @@ const mapPayloadFromSQS = async (event) => {
   let endTimeStamp = null;
   try {
     endTimeStamp = await findActivityEnd(
-      event.dynamodb.relatedEntityId, // IUN,
+      event.dynamodb.sla_relatedEntityId, // IUN,
       event.dynamodb.id, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
       event.dynamodb.type
     );
