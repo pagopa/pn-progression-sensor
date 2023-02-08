@@ -5,6 +5,7 @@ const {
   GetCommand,
   UpdateCommand,
 } = require("@aws-sdk/lib-dynamodb");
+const { dateTimeStringToYearAndMonth } = require("./utils");
 
 const client = new DynamoDBClient({
   region: process.env.REGION,
@@ -145,6 +146,7 @@ exports.makeUpdateCommandFromEvent = (event) => {
   // if attribute active_sla_entityName_type exist:
   //  - remove active_sla_entityName_type
   //  - set endTimestamp
+  // - type_endTimestampYearMonth
   const params = {
     TableName: process.env.DYNAMODB_TABLE,
     Key: {
@@ -152,13 +154,16 @@ exports.makeUpdateCommandFromEvent = (event) => {
       id: event.id,
     },
     UpdateExpression:
-      "SET #endTimestamp = :eT REMOVE #active_sla_entityName_type",
+      "SET #endTimestamp = :eT SET #type_endTimestampYearMonth = :eTYM REMOVE #active_sla_entityName_type",
     ExpressionAttributeNames: {
       "#endTimestamp": "endTimestamp",
       "#active_sla_entityName_type": "active_sla_entityName_type",
+      "#type_endTimestampYearMonth": "type_endTimestampYearMonth",
     },
     ExpressionAttributeValues: {
       ":eT": event.endTimestamp,
+      ":eTYM":
+        event.type + "##" + dateTimeStringToYearAndMonth(event.endTimestamp),
     },
     // so it's an update that doesn't fall back to insert and doesn't try to remove a parameter previously removed
     ConditionExpression: "attribute_exists(#active_sla_entityName_type)",

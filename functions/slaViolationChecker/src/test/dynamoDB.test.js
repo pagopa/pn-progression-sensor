@@ -30,6 +30,7 @@ describe("DynamoDB tests", function () {
 
   const updateEvent = {
     ...insertEvent,
+    endTimestamp: "2023-01-25T14:43:58.897Z",
     opType: "UPDATE",
   };
 
@@ -80,7 +81,6 @@ describe("DynamoDB tests", function () {
 
   it("basic persistEvents with a single event of the correct type: UPDATE", async () => {
     ddbMock.on(UpdateCommand).resolves({});
-
     const response = await dynamo.persistEvents([updateEvent]);
 
     expect(response).to.not.be.null;
