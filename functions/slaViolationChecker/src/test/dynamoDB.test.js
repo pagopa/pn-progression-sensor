@@ -30,7 +30,7 @@ describe("DynamoDB tests", function () {
 
   const updateEvent = {
     ...insertEvent,
-    endTimestamp: "2023-01-25T14:43:58.897Z",
+    endTimeStamp: "2023-01-25T14:43:58.897Z",
     opType: "UPDATE",
   };
 
