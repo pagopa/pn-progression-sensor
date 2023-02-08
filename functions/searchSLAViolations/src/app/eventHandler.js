@@ -93,5 +93,5 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
     payload.message = error?.message;
     console.error("error: ", payload.message);
   }
-  return JSON.stringify(payload);
+  return payload;
 };

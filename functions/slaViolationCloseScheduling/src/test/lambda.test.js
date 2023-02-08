@@ -22,7 +22,7 @@ describe("test send metrics", function () {
 
   it("it should send metrics", async () => {
     lambdaMock.on(InvokeCommand).resolves({
-      Payload: Buffer.from(JSON.stringify(JSON.stringify({ success: true }))),
+      Payload: Buffer.from(JSON.stringify({ success: true })),
     });
 
     const knownTypes = [

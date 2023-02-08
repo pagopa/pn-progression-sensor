@@ -30,9 +30,7 @@ exports.getActiveSLAViolations = async (type, lastScannedKey) => {
 
   try {
     const response = await client.send(command);
-    const decodedResponse = JSON.parse(
-      JSON.parse(Buffer.from(response.Payload))
-    ); // the lambda function returns a string containing a JSON, not a plain object
+    const decodedResponse = JSON.parse(Buffer.from(response.Payload)); // the lambda function returns a string containing a JSON, not a plain object
 
     //console.log("lambda invocation response: ", decodedResponse);
 
