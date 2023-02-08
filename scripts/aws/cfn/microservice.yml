@@ -158,38 +158,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${SearchSLAViolationsLambda}"
       RetentionInDays: 14
 
-  # Lambda function CloudWatch Logs Metric Filter
-  SearchSLAViolationsLambdaFatalLogsMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Ref SearchSLAViolationsLambdaLogGroup
-      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
-      MetricTransformations:
-        - MetricValue: 1
-          MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsFatalMetric
-
-  # Lambda function CloudWatch alarm
-  SearchSLAViolationsErrorFatalLogsMetricAlarm:
-    Type: AWS::CloudWatch::Alarm
-    DependsOn: SearchSLAViolationsLambdaFatalLogsMetricFilter
-    Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalLogsMetricAlarm
-      AlarmDescription: "CloudWatch alarm for SearchSLAViolations Lambda logs with ERROR or FATAL line."
-      AlarmActions:
-        - !Ref AlarmSNSTopicArn
-      OKActions:
-        - !Ref AlarmSNSTopicArn
-      DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-SearchSLAViolationsErrorFatalMetric
-      Namespace: ErrorFatalLogs
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 60
-      Period: 60
-      Statistic: Sum
-      Threshold: 1
-      TreatMissingData: notBreaching
-
   SearchSLAViolationsSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
@@ -198,6 +166,16 @@ Resources:
       LogGroupName: !Ref SearchSLAViolationsLambdaLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  SearchSLAViolationsLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SearchSLAViolationsLambdaLogGroup
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SearchSLAViolationsLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   #########################################################
   ###              ActivityStepManagerLambda            ###
@@ -284,38 +262,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${ActivityStepManagerLambda}"
       RetentionInDays: 14
 
-  # Lambda function CloudWatch Logs Metric Filter
-  ActivityStepManagerFatalLogsMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Ref ActivityStepManagerLambdaLogGroup
-      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
-      MetricTransformations:
-        - MetricValue: 1
-          MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerFatalMetric
-
-  # Lambda function CloudWatch alarm
-  ActivityStepManagerErrorFatalLogsMetricAlarm:
-    Type: AWS::CloudWatch::Alarm
-    DependsOn: ActivityStepManagerFatalLogsMetricFilter
-    Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerErrorFatalLogsMetricAlarm
-      AlarmDescription: "CloudWatch alarm for Function 1 Lambda logs with ERROR or FATAL line."
-      AlarmActions:
-        - !Ref AlarmSNSTopicArn
-      OKActions:
-        - !Ref AlarmSNSTopicArn
-      DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-ActivityStepManagerErrorFatalMetric
-      Namespace: ErrorFatalLogs
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 60
-      Period: 60
-      Statistic: Sum
-      Threshold: 1
-      TreatMissingData: notBreaching
-
   ### IAM Role used by Subscription filters to allow read logs from Cloudwatch and send logs to Kinesis Firehose
   SubscriptionFilterServiceRole:
     Condition: SendLogToKinesis
@@ -366,6 +312,16 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
+
+  ActivityStepManagerLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - ActivityStepManagerLambdaLogGroup
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref ActivityStepManagerLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   #########################################################
   ###              SLAViolationCheckerLambda            ###
@@ -490,38 +446,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${SLAViolationCheckerLambda}"
       RetentionInDays: 14
 
-  # Lambda function CloudWatch Logs Metric Filter
-  SLAViolationCheckerFatalLogsMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Ref SLAViolationCheckerLambdaLogGroup
-      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
-      MetricTransformations:
-        - MetricValue: 1
-          MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerFatalMetric
-
-  # Lambda function CloudWatch alarm
-  SLAViolationCheckerErrorFatalLogsMetricAlarm:
-    Type: AWS::CloudWatch::Alarm
-    DependsOn: SLAViolationCheckerFatalLogsMetricFilter
-    Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerErrorFatalLogsMetricAlarm
-      AlarmDescription: "CloudWatch alarm for SLAViolationChecker Lambda logs with ERROR or FATAL line."
-      AlarmActions:
-        - !Ref AlarmSNSTopicArn
-      OKActions:
-        - !Ref AlarmSNSTopicArn
-      DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCheckerErrorFatalMetric
-      Namespace: ErrorFatalLogs
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 60
-      Period: 60
-      Statistic: Sum
-      Threshold: 1
-      TreatMissingData: notBreaching
-
   SLAViolationCheckerSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
@@ -543,6 +467,16 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: LATEST
+
+  SLAViolationCheckerLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SLAViolationCheckerLambdaLogGroup
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SLAViolationCheckerLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
   
   #########################################################
   ###          SLAViolationCloseSchedulingLambda        ###
@@ -677,6 +611,16 @@ Resources:
       Principal: events.amazonaws.com
       SourceArn: !GetAtt LambdaScheduleRule.Arn
 
+  SLAViolationCloseSchedulingLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SLAViolationCloseSchedulingLambdaLogGroup
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SLAViolationCloseSchedulingLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
   # Dashboard
   MicroserviceDashboard:
     Type: AWS::CloudFormation::Stack
@@ -692,7 +636,8 @@ Resources:
             - !GetAtt SLAViolationCloseSchedulingLambda.Arn                      
         AlarmArns: !Join
           - ','
-          - - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${SearchSLAViolationsErrorFatalLogsMetricAlarm}"
-            - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${ActivityStepManagerErrorFatalLogsMetricAlarm}"
-            - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${SLAViolationCheckerErrorFatalLogsMetricAlarm}"
-            - !Sub "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm:${SLAViolationCloseSchedulingErrorFatalLogsMetricAlarm}"
+          - - !GetAtt SearchSLAViolationsLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt ActivityStepManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt SLAViolationCheckerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt SLAViolationCloseSchedulingLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+  
