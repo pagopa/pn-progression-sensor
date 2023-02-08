@@ -84,8 +84,14 @@ Parameters:
   # schedule cron expression:
   SlaViolationCheckRateExpression:
     Default: "rate(5 minutes)"
-    Description: "Rate expression for scheduling the Close Schedule Lambda"
+    Description: "Rate expression for scheduling the Close Schedululing Lambda"
     Type: String
+
+  # schedule cron expression:
+  SlaViolationCloseSchedulingLambdaTimeoutSeconds:
+    Default: 60
+    Description: "Timeout (in seconds) for Close Schedululing Lambda"
+    Type: Number
 
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
@@ -503,7 +509,7 @@ Resources:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
-      Timeout: 20 # longer than other functions, since this one calls the search lambda synchronously
+      Timeout: !Ref SlaViolationCloseSchedulingLambdaTimeoutSeconds # it should be longer than other functions, since this one calls the search lambda synchronously
 
   # Lambda function role
   SLAViolationCloseSchedulingLambdaRole:

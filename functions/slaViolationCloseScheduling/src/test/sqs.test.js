@@ -8,6 +8,7 @@ const sqsMock = mockClient(SQSClient);
 describe("test send violations to queue", function () {
   this.beforeEach(() => {
     sqsMock.reset();
+    process.env.SEARCH_SLA_VIOLATIONS_QUEUE_URL = "testQueueURL";
   });
 
   it("should not process violations", async () => {
