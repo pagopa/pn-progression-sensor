@@ -552,38 +552,6 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${SLAViolationCloseSchedulingLambda}"
       RetentionInDays: 14
 
-  # Lambda function CloudWatch Logs Metric Filter
-  SLAViolationCloseSchedulingFatalLogsMetricFilter:
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      LogGroupName: !Ref SLAViolationCloseSchedulingLambdaLogGroup
-      FilterPattern: "?ERROR ?FATAL ?CRITICAL"
-      MetricTransformations:
-        - MetricValue: 1
-          MetricNamespace: "ErrorFatalLogs"
-          MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCloseSchedulingFatalMetric
-
-  # Lambda function CloudWatch alarm
-  SLAViolationCloseSchedulingErrorFatalLogsMetricAlarm:
-    Type: AWS::CloudWatch::Alarm
-    DependsOn: SLAViolationCloseSchedulingFatalLogsMetricFilter
-    Properties:
-      AlarmName: !Sub ${ProjectName}-progressionSensor-SLAViolationCloseSchedulingErrorFatalLogsMetricAlarm
-      AlarmDescription: "CloudWatch alarm for SLAViolationCloseScheduling Lambda logs with ERROR or FATAL line."
-      AlarmActions:
-        - !Ref AlarmSNSTopicArn
-      OKActions:
-        - !Ref AlarmSNSTopicArn
-      DatapointsToAlarm: 1
-      MetricName: !Sub ${ProjectName}-progressionSensor-SLAViolationCloseSchedulingErrorFatalMetric
-      Namespace: ErrorFatalLogs
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 60
-      Period: 60
-      Statistic: Sum
-      Threshold: 1
-      TreatMissingData: notBreaching
-
   SLAViolationCloseSchedulingSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
