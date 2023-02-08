@@ -294,7 +294,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     );
 
     expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed
-    expect(processedItems[0].endTimestamp).equal(foundTimestamp);
+    expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
   });
 });
 
@@ -337,6 +337,6 @@ describe("test SQS: storicize SLA Violation", function () {
     );
 
     expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed
-    expect(processedItems[0].endTimestamp).equal(foundTimestamp);
+    expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
   });
 });

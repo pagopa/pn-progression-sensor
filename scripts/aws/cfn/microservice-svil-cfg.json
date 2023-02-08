@@ -1,4 +1,6 @@
 {
   "Parameters" : {
+    "SlaViolationCheckRateExpression": "rate(5 minutes)",
+    "SlaViolationCloseSchedulingLambdaTimeoutSeconds": "60"
   }
 }

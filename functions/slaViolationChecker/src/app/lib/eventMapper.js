@@ -83,11 +83,11 @@ exports.mapEvents = async (events) => {
 };
 
 // common
-const makeUpdateOp = (event, endTimestamp, source = "kinesis") => {
+const makeUpdateOp = (event, endTimeStamp, source = "kinesis") => {
   // note: we only need to pass whats's needed for setting the primary key and the field to add (endTimeStamp)
   const op = {
     // what to set
-    endTimestamp: endTimestamp,
+    endTimeStamp: endTimeStamp,
     // end of fields
     opType: "UPDATE",
   };
@@ -116,7 +116,7 @@ const mapPayloadFromSQS = async (event) => {
   let endTimeStamp = null;
   try {
     endTimeStamp = await findActivityEnd(
-      event.dynamodb.relatedEntityId, // IUN,
+      event.dynamodb.sla_relatedEntityId, // IUN, NO relatedEntityId, coming from insert of an active sla violation
       event.dynamodb.id, // ID, containing what's needed for building timelineElementId (contains the starting timeline id, to be used for computing the ending one)
       event.dynamodb.type
     );

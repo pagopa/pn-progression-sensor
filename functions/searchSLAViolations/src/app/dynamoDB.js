@@ -4,10 +4,7 @@ const {
   DynamoDBDocumentClient,
   QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
-const {
-  //dateTimeStringToUNIXTimeStamp,
-  dateTimeStringToYearAndMonth,
-} = require("./utils");
+const { dateTimeStringToYearAndMonth } = require("./utils");
 
 module.exports.searchSLAViolations = async (
   active,

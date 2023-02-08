@@ -54,7 +54,7 @@ Resources:
           AttributeType: "S"
         - AttributeName: "type_endTimestampYearMonth"
           AttributeType: "S"
-        - AttributeName: "endTimeStamp" # bool
+        - AttributeName: "endTimeStamp"
           AttributeType: "S"
         - AttributeName: "alarmTTLYearToMinute"
           AttributeType: "S"

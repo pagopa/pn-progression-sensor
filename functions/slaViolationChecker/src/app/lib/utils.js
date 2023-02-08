@@ -28,6 +28,26 @@ const dateTimeStringToUNIXTimeStamp = (dateString) => {
 };
 
 /**
+ * returns a string in the format "2023-01" from a valid datetime string
+ *
+ * @param {string} dateString a string containing a valid datetime
+ * @returns {string} string in the format "2023-01" from a valid datetime string
+ * @throws {DateTimeParsingException} "Not a valid datetime string"
+ */
+const dateTimeStringToYearAndMonth = (dateString) => {
+  if (isValidDate(dateString)) {
+    const datetimeObject = new Date(dateString);
+    let month = datetimeObject.getUTCMonth() + 1;
+    if (month < 10) {
+      month = "0" + month;
+    }
+    return datetimeObject.getUTCFullYear() + "-" + month;
+  } else {
+    throw new DateTimeParsingException("Not a valid datetime string");
+  }
+};
+
+/**
  * checks if the passed UNIX timestamp (a number) is in the past
  *
  * @param {number} unixTimestamp a number containing a UNIX timestamp (such as the one usable for DynamoDB item TTL)
@@ -47,4 +67,5 @@ module.exports = {
   isValidDate,
   dateTimeStringToUNIXTimeStamp,
   isUNIXTimeStampPast,
+  dateTimeStringToYearAndMonth,
 };

@@ -1,4 +1,3 @@
-const dynamo = require("./lib/dynamoDB.js");
 const { extractKinesisData } = require("./lib/kinesis.js");
 const { mapEvents, mapEventsFromSQS } = require("./lib/eventMapper.js");
 const { persistEvents } = require("./lib/dynamoDB.js");
@@ -35,10 +34,10 @@ module.exports.eventHandler = async (event, bypassINVOCATION_TYPE) => {
     // map to update ops (we're getting active SLA Violations and we check if we can storicize them because they have ended)
     processedItems = await mapEventsFromSQS(sqsEvents);
     if (processedItems.length == 0) {
-      console.log("No SQS events to persist");
+      console.log("No SQS events to storicize");
       return payload;
     }
-    console.log(`SQS items to persist`, processedItems);
+    console.log(`SQS items to storicize`, processedItems);
   } else {
     // "normal" Kinesis path
     console.log("*** Kinesis processing ***");
