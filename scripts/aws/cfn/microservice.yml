@@ -81,6 +81,14 @@ Parameters:
     Description: "SQS queue URL"
     Type: String
 
+  ProgressionSensorQueueAlarmARN:
+    Type: String
+    Description: SQS DLQ Alarm arn 
+  
+  ProgressionSensorQueueAgeAlarmARN:
+    Type: String
+    Description: SQS Age Alarm arn 
+
   # schedule cron expression:
   SlaViolationCheckRateExpression:
     Default: "rate(5 minutes)"
@@ -602,16 +610,23 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
         DashboardName: !Sub "${ProjectName}-progression-sensor"
+        DynamoDBTableNames: !Join 
+          - ',' 
+          - - !Ref ProgressionSensorDataDynamoTableName 
         LambdaArns: !Join 
           - ','
           - - !GetAtt SearchSLAViolationsLambda.Arn
             - !GetAtt ActivityStepManagerLambda.Arn          
             - !GetAtt SLAViolationCheckerLambda.Arn          
             - !GetAtt SLAViolationCloseSchedulingLambda.Arn                      
+        QueueArns: !Join
+          - ','
+          - - !Ref ProgressionSensorQueueARN
         AlarmArns: !Join
           - ','
           - - !GetAtt SearchSLAViolationsLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt ActivityStepManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCheckerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCloseSchedulingLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
-  
+            - !Ref ProgressionSensorQueueAgeAlarmARN
+            - !Ref ProgressionSensorQueueAlarmARN
