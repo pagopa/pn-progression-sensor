@@ -1,5 +1,5 @@
 const moment = require("moment-business-days-it");
-const { getNotification, TABLES } = require('./repository');
+const { getNotification, TABLES } = require("./repository");
 
 const allowedTimelineCategories = [
   "REQUEST_ACCEPTED",
@@ -28,9 +28,12 @@ function calculateNextDate(startTS, days) {
 }
 
 function extractRecIdsFromTimelineId(timelineElementId) {
-  const tokens = timelineElementId.split("_");
-  const lastToken = tokens[tokens.length - 1];
-  return lastToken;
+  // const tokens = timelineElementId.split("_");
+  // const lastToken = tokens[tokens.length - 1];
+  // return lastToken;
+  return timelineElementId.split("IUN_")[1].split("-")[0];
+  // used for REFINEMENT (refinement-IUN_123456789-RECINDEX_1-)
+  // or for NOTIFICATION_VIEWED (notification_viewed-IUN_123456789-RECINDEX_1-)
 }
 
 function makeDeleteOp(id, type, event) {
@@ -110,12 +113,14 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
 
         // read from dynamodb pn-Notifications by IUN -> recipientsCount
-        
+
         // recipient
-        const notification = await getNotification(event.dynamodb.NewImage.iun.S)
-        const recipientsCount = notification.recipients.length
-        if(notification){
-          for (let i=0; i<recipientsCount; i++){
+        const notification = await getNotification(
+          event.dynamodb.NewImage.iun.S
+        );
+        const recipientsCount = notification.recipients.length;
+        if (notification) {
+          for (let i = 0; i < recipientsCount; i++) {
             const op1 = makeInsertOp(
               "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + i,
               "REFINEMENT",
@@ -227,7 +232,7 @@ exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
-      (e.tableName == TABLES.NOTIFICATIONS||
+      (e.tableName == TABLES.NOTIFICATIONS ||
         (e.tableName == TABLES.TIMELINES &&
           e.dynamodb.NewImage.category &&
           allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S) >=
