@@ -154,7 +154,7 @@ exports.makeUpdateCommandFromEvent = (event) => {
       id: event.id,
     },
     UpdateExpression:
-      "SET #endTimeStamp = :eT SET #type_endTimestampYearMonth = :eTYM REMOVE #active_sla_entityName_type",
+      "SET #endTimeStamp = :eT, #type_endTimestampYearMonth = :eTYM REMOVE #active_sla_entityName_type",
     ExpressionAttributeNames: {
       "#endTimeStamp": "endTimeStamp",
       "#active_sla_entityName_type": "active_sla_entityName_type",
