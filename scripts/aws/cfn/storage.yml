@@ -122,6 +122,7 @@ Resources:
       Parameters:
         QueueName: !Sub '${ProjectName}-progression-sensor-queue'
         DelaySeconds: 10
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
 Outputs:
   ProgressionSensorDataDynamoTableName:
