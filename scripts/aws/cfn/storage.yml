@@ -54,7 +54,7 @@ Resources:
           AttributeType: "S"
         - AttributeName: "type_endTimestampYearMonth"
           AttributeType: "S"
-        - AttributeName: "endTimeStamp"
+        - AttributeName: "endTimeStamp" # bool
           AttributeType: "S"
         - AttributeName: "alarmTTLYearToMinute"
           AttributeType: "S"
@@ -112,7 +112,11 @@ Resources:
         StreamArn: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
       StreamSpecification:
         StreamViewType: NEW_IMAGE
-
+      Tags:
+        - Key: pnInfraFeature
+          Value: pnStorage
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-ProgressionSensorData"
 
 # SQS Queue
   ProgressionSensorQueue:
@@ -122,7 +126,6 @@ Resources:
       Parameters:
         QueueName: !Sub '${ProjectName}-progression-sensor-queue'
         DelaySeconds: 10
-        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
 Outputs:
   ProgressionSensorDataDynamoTableName:

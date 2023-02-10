@@ -129,7 +129,11 @@ Resources:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
       Timeout: 10
-
+      Tags: 
+        - Key: pnInfraFeature 
+          Value: pnLambdas
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-searchSLAViolationsLambda"
   # Lambda function role
   SearchSLAViolationsLambdaRole:
     Type: AWS::IAM::Role
@@ -215,7 +219,12 @@ Resources:
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: 10
-
+      Timeout : 10
+      Tags:
+        - Key: pnInfraFeature 
+          Value: pnLambdas
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-activityStepManagerLambda"
   # Lambda function role
   ActivityStepManagerLambdaRole:
     Type: AWS::IAM::Role
@@ -362,7 +371,11 @@ Resources:
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: 10
-
+      Tags:
+        - Key: pnInfraFeature 
+          Value: pnLambdas
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-slaViolationCheckerLambda"
   # Lambda function (from SQS)
   SLAViolationCheckerLambdaSQS:
     Type: AWS::Lambda::Function
@@ -383,7 +396,11 @@ Resources:
         Mode: Active
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
-
+      Tags:
+        - Key: pnInfraFeature 
+          Value: pnLambdas
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS"
   # Lambda function role
   SLAViolationCheckerLambdaRole:
     Type: AWS::IAM::Role
