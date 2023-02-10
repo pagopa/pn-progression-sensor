@@ -1,5 +1,9 @@
 const { expect } = require("chai");
-const dynamo = require("../app/lib/dynamoDB.js");
+const {
+  makeInsertCommandFromEvent,
+  persistEvents,
+  closingElementIdFromIDAndType,
+} = require("../app/lib/dynamoDB.js");
 const { mockClient } = require("aws-sdk-client-mock");
 const {
   DynamoDBDocumentClient,
@@ -40,8 +44,7 @@ describe("DynamoDB tests", function () {
   };
 
   it("should create correct insertion command parameters", () => {
-    const insertionCommandParams =
-      dynamo.makeInsertCommandFromEvent(insertEvent);
+    const insertionCommandParams = makeInsertCommandFromEvent(insertEvent);
 
     expect(insertionCommandParams).to.not.be.null;
     expect(insertionCommandParams).to.not.be.undefined;
@@ -69,7 +72,7 @@ describe("DynamoDB tests", function () {
   it("basic persistEvents with a single event of the correct type: insert", async () => {
     ddbMock.on(PutCommand).resolves({});
 
-    const response = await dynamo.persistEvents([insertEvent]);
+    const response = await persistEvents([insertEvent]);
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
@@ -81,7 +84,7 @@ describe("DynamoDB tests", function () {
 
   it("basic persistEvents with a single event of the correct type: UPDATE", async () => {
     ddbMock.on(UpdateCommand).resolves({});
-    const response = await dynamo.persistEvents([updateEvent]);
+    const response = await persistEvents([updateEvent]);
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
@@ -92,7 +95,7 @@ describe("DynamoDB tests", function () {
   });
 
   it("basic persistEvents with a single event of the wrong type: DELETE", async () => {
-    const response = await dynamo.persistEvents([deleteEvent]);
+    const response = await persistEvents([deleteEvent]);
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
@@ -102,3 +105,18 @@ describe("DynamoDB tests", function () {
     expect(response.errors.length).equal(0);
   });
 });
+
+// describe("Find closingElementId tests by type", function () {
+//   it("should match the VALIDATION type", async () => {
+//     const id = "";
+//     const type = "";
+//     const response = await closingElementIdFromIDAndType(id, type);
+
+//     expect(response).to.not.be.null;
+//     expect(response).to.not.be.undefined;
+//     expect(response.insertions).equal(0);
+//     expect(response.updates).equal(0);
+//     expect(response.skippedInsertions).equal(0);
+//     expect(response.errors.length).equal(0);
+//   });
+// });
