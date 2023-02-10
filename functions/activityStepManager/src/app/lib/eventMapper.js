@@ -175,7 +175,7 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         break;
       case "SEND_ANALOG_DOMICILE":
-      case "SEND_SIMPLE_REGISTERED_LETTER":
+        //case "SEND_SIMPLE_REGISTERED_LETTER": SEND_SIMPLE_REGISTERED_LETTER NON is not correct as start of this activity and doesn't currently have an ending event
         op = makeInsertOp(
           "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S,
           "SEND_PAPER_AR_890",
@@ -207,7 +207,7 @@ async function mapPayload(event) {
 
         dynamoDbOps.push(op);
         break;
-      case "SEND_SIMPLE_REGISTERD_LETTER_PROGRESS":
+      case "SEND_SIMPLE_REGISTERD_LETTER_PROGRESS": // not present, yet (to be checked)
         if (
           event.dynamodb.NewImage.registeredLetterCode &&
           event.dynamodb.NewImage.registeredLetterCode.S

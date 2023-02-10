@@ -20,33 +20,31 @@ exports.closingElementIdFromIDAndType = (id, type) => {
   switch (type) {
     case "VALIDATION":
       // type VALIDATION:
-      // - INSERT in pn-Timelines di un record con category REQUEST_ACCEPTED indica la terminazione di una “attività di validazione”
-      // - INSERT in pn-Timelines di un record con category REQUEST_REFUSED indica la terminazione di una “attività di validazione”:
-      const timelineBaseValidation = id.split("##")[1];
-      const timeLineIdAccepted = timelineBaseValidation + "_request_accepted";
-      const timeLineIdRefused = timelineBaseValidation + "_request_refused";
+      // - INSERT in pn-Timelines of a record with category REQUEST_ACCEPTED: VALIDATION activity end
+      // - INSERT in pn-Timelines of a record with category REQUEST_REFUSED: VALIDATION activity end
+      const timelineBaseValidation = id.split("##")[1]; // IUN remains
+      const timeLineIdAccepted =
+        "request_accepted#IUN_" + timelineBaseValidation;
+      const timeLineIdRefused = "request_refused#IUN_" + timelineBaseValidation;
       returnCouple.mainTimelineElementId = timeLineIdAccepted;
       returnCouple.alternativeTimelineElementId = timeLineIdRefused;
       break;
     case "REFINEMENT":
       // type REFINEMENT:
-      // - INSERT in pn-Timelines di un record con category REFINEMENT indica la fine di una “attività di consegna” per uno dei destinatari della notifica
-      // - INSERT in pn-Timelines di un record con category NOTIFICATION_VIEWED indica la fine di una “attività di consegna” per uno dei destinatari della notifica
-      const timelineBaseRefinement = id.replace("01_REFIN##", "");
-      const timeLineIdRefinement = timelineBaseRefinement.replace(
-        "##",
-        "_refinement_"
-      );
-      const timeLineIdNotificationViewed = timelineBaseRefinement.replace(
-        "##",
-        "_notification_viewed_"
-      );
+      // - INSERT in pn-Timelines of a record with category REFINEMENT: DELIVERY activity end for one of the recipients
+      // - INSERT in pn-Timelines of a record with category NOTIFICATION_VIEWED: DELIVERY activity end for one of the recipients
+      const timelineBaseRefinement = id
+        .replace("01_REFIN##", "IUN_")
+        .replace("##", "#RECINDEX_");
+      const timeLineIdRefinement = "refinement#" + timelineBaseRefinement;
+      const timeLineIdNotificationViewed =
+        "notification_viewed#" + timelineBaseRefinement;
       returnCouple.mainTimelineElementId = timeLineIdRefinement;
       returnCouple.alternativeTimelineElementId = timeLineIdNotificationViewed;
       break;
     case "SEND_PEC":
       // SEND_PEC:
-      // - INSERT in pn-Timelines di un record con category SEND_DIGITAL_FEEDBACK indica la fine di una “attività di invio PEC”
+      // - INSERT in pn-Timelines of a record with category SEND_DIGITAL_FEEDBACK: SEND PEC activity end
       const timeLineIdSendDigitalFeedback = id
         .replace("02_PEC__##", "")
         .replace("send_digital_domicile", "send_digital_feedback");
@@ -55,17 +53,17 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       break;
     case "SEND_PAPER_AR_890":
       // SEND_PAPER_AR_890
-      // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
+      // - INSERT in pn-Timelines of a record with category SEND_ANALOG_FEEDBACK: SEND PAPER AR activity end
       const timelineIdPaperAR890 = id
         .replace("03_PAPER##", "")
-        .replace("send_analog_domicile", "send_analog_feedback"); // SEE: SEND_SIMPLE_REGISTERED_LETTER
+        .replace("send_analog_domicile", "send_analog_feedback");
       returnCouple.mainTimelineElementId = timelineIdPaperAR890;
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */
-    case "SEND_AMR": // NOT IMPLEMENTED YET!!! always returns null
-      // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
-      // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
+    case "SEND_AMR": // NOT CLOSED, at the moment...!
+      // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
+      // ...
       returnCouple.mainTimelineElementId = null;
       returnCouple.alternativeTimelineElementId = null;
       break;
@@ -108,12 +106,19 @@ exports.findActivityEnd = async (iun, id, type) => {
     // we perform a GetItem and, in case we also have an alternative sort key, we perform a second GetItem
     // in case the first one did not produce a result
     let response = await dynamoDB.send(new GetCommand(params));
+
     if (response.Item == null && altSortKey !== null) {
       console.log("GetItem with the alternative sort key");
+
       params.Key.timeLineElementId = altSortKey; // GetItem with the alternative sort key
       response = await dynamoDB.send(new GetCommand(params));
     }
     // 2. extract and return endTimestamp
+    //
+    // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS will be present, we'll also need to check the presence of the
+    // registeredLetterCode attribute, and only in that case return the timestamp instead of null, only
+    // for SEND_AMR type (if (type === "SEND_AMR" && response.Item?.registeredLetterCode != undefined))
+    // ...
     return response.Item?.timestamp || null;
   } catch (error) {
     /* istanbul ignore next */
