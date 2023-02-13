@@ -535,6 +535,11 @@ Resources:
       Layers:
         - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: !Ref SlaViolationCloseSchedulingLambdaTimeoutSeconds # it should be longer than other functions, since this one calls the search lambda synchronously
+      Tags: 
+        - Key: pnInfraFeature 
+          Value: pnLambdas
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-slaViolationCloseSchedulingLambda"
 
   # Lambda function role
   SLAViolationCloseSchedulingLambdaRole:
