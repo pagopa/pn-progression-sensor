@@ -12,7 +12,7 @@ const allowedTimelineCategories = [
   "SEND_ANALOG_FEEDBACK",
   "DIGITAL_FAILURE_WORKFLOW",
   "SEND_SIMPLE_REGISTERED_LETTER",
-  "SEND_SIMPLE_REGISTERD_LETTER_PROGRESS",
+  "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS",
 ];
 
 function calculateNextDate(startTS, days) {
@@ -207,7 +207,7 @@ async function mapPayload(event) {
 
         dynamoDbOps.push(op);
         break;
-      case "SEND_SIMPLE_REGISTERD_LETTER_PROGRESS": // not present, yet (to be checked)
+      case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS": // not present, yet (to be checked)
         if (
           event.dynamodb.NewImage.registeredLetterCode &&
           event.dynamodb.NewImage.registeredLetterCode.S

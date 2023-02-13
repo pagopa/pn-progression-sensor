@@ -188,10 +188,10 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("INSERT");
   });
 
-  it("test SEND_SIMPLE_REGISTERD_LETTER_PROGRESS", async () => {
+  it("test SEND_SIMPLE_REGISTERED_LETTER_PROGRESS", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
-    event = setCategory(event, "SEND_SIMPLE_REGISTERD_LETTER_PROGRESS");
+    event = setCategory(event, "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS");
 
     event.dynamodb.NewImage.registeredLetterCode = {
       S: "abcd",
