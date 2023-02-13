@@ -112,7 +112,11 @@ Resources:
         StreamArn: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
       StreamSpecification:
         StreamViewType: NEW_IMAGE
-
+      Tags:
+        - Key: pnInfraFeature
+          Value: pnStorage
+        - Key: pnMicroservice
+          Value: !Sub "${ProjectName}-ProgressionSensorData"
 
 # SQS Queue
   ProgressionSensorQueue:
