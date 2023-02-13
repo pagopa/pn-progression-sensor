@@ -54,7 +54,7 @@ Resources:
           AttributeType: "S"
         - AttributeName: "type_endTimestampYearMonth"
           AttributeType: "S"
-        - AttributeName: "endTimeStamp" # bool
+        - AttributeName: "endTimeStamp"
           AttributeType: "S"
         - AttributeName: "alarmTTLYearToMinute"
           AttributeType: "S"
@@ -126,6 +126,7 @@ Resources:
       Parameters:
         QueueName: !Sub '${ProjectName}-progression-sensor-queue'
         DelaySeconds: 10
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
 Outputs:
   ProgressionSensorDataDynamoTableName:
