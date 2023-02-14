@@ -18,7 +18,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
   };
 
   switch (type) {
-    case "VALIDATION":
+    case "VALIDATION": // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> request_accepted#IUN_WEUD-XHKG-ZHDN-202301-W-1 and request_refused#IUN_WEUD-XHKG-ZHDN-202301-W-1
       // type VALIDATION:
       // - INSERT in pn-Timelines of a record with category REQUEST_ACCEPTED: VALIDATION activity end
       // - INSERT in pn-Timelines of a record with category REQUEST_REFUSED: VALIDATION activity end
@@ -29,7 +29,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.mainTimelineElementId = timeLineIdAccepted;
       returnCouple.alternativeTimelineElementId = timeLineIdRefused;
       break;
-    case "REFINEMENT":
+    case "REFINEMENT": // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> refinement#IUN_REKD-NZRJ-NWQJ-202302-M-1#RECINDEX_0 and notification_viewed#IUN_REKD-NZRJ-NWQJ-202302-M-1#RECINDEX_0
       // type REFINEMENT:
       // - INSERT in pn-Timelines of a record with category REFINEMENT: DELIVERY activity end for one of the recipients
       // - INSERT in pn-Timelines of a record with category NOTIFICATION_VIEWED: DELIVERY activity end for one of the recipients
@@ -42,7 +42,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.mainTimelineElementId = timeLineIdRefinement;
       returnCouple.alternativeTimelineElementId = timeLineIdNotificationViewed;
       break;
-    case "SEND_PEC":
+    case "SEND_PEC": // id: 02_PEC__##send_digital_domicile#IUN_AWMX-HXYK-YDAH-202302-P-1#RECINDEX_0#SOURCE_SPECIAL#SENTATTEMPTMADE_0 -> send_digital_feedback#IUN_AWMX-HXYK-YDAH-202302-P-1#RECINDEX_0#SOURCE_SPECIAL#SENTATTEMPTMADE_0
       // SEND_PEC:
       // - INSERT in pn-Timelines of a record with category SEND_DIGITAL_FEEDBACK: SEND PEC activity end
       const timeLineIdSendDigitalFeedback = id
@@ -51,7 +51,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.mainTimelineElementId = timeLineIdSendDigitalFeedback;
       returnCouple.alternativeTimelineElementId = null;
       break;
-    case "SEND_PAPER_AR_890":
+    case "SEND_PAPER_AR_890": // id: 03_PAPER##send_analog_domicile#IUN_DNQZ-QUQN-202302-W-1#RECINDEX_1#SENTATTEMPTMADE_1 -> send_analog_feedback#IUN_DNQZ-QUQN-202302-W-1#RECINDEX_1#SENTATTEMPTMADE_1
       // SEND_PAPER_AR_890
       // - INSERT in pn-Timelines of a record with category SEND_ANALOG_FEEDBACK: SEND PAPER AR activity end
       const timelineIdPaperAR890 = id
@@ -61,7 +61,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */
-    case "SEND_AMR":
+    case "SEND_AMR": // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> send_simple_registered_letter_progress#IUN_XLDW-MQYJ-WUKA-202302-A-1#RECINDEX_1
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
       const timelineBaseAMR = id
         .replace("04_AMR##", "IUN_")
