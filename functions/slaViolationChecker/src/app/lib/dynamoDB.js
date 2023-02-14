@@ -61,10 +61,13 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */
-    case "SEND_AMR": // NOT CLOSED, at the moment...!
+    case "SEND_AMR":
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
-      // ...
-      returnCouple.mainTimelineElementId = null;
+      const timelineBaseAMR = id
+        .replace("04_AMR##", "IUN_")
+        .replace("##", "#RECINDEX_");
+      returnCouple.mainTimelineElementId =
+        "send_simple_registered_letter_progress#" + timelineBaseAMR;
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */
@@ -115,11 +118,18 @@ exports.findActivityEnd = async (iun, id, type) => {
     }
     // 2. extract and return endTimestamp
     //
-    // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS will be present, we'll also need to check the presence of the
+    // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS is be present, we also need to check the presence of the
     // registeredLetterCode attribute, and only in that case return the timestamp instead of null, only
     // for SEND_AMR type (if (type === "SEND_AMR" && response.Item?.registeredLetterCode != undefined))
-    // ...
-    return response.Item?.timestamp || null;
+
+    if (type === "SEND_AMR") {
+      return response.Item?.registeredLetterCode != undefined
+        ? response.Item?.timestamp || null
+        : null;
+    } else {
+      // all other cases
+      return response.Item?.timestamp || null;
+    }
   } catch (error) {
     /* istanbul ignore next */
     console.log("ERROR during GetItem: ", error);

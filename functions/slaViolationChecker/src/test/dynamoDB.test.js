@@ -170,7 +170,6 @@ describe("Find closingElementId tests by type", function () {
   });
 
   it("should match the SEND_AMR type", () => {
-    console.warn("missing closing event for AMR, at the moment!!!");
     const id = "04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1";
     const type = "SEND_AMR";
 
@@ -178,7 +177,9 @@ describe("Find closingElementId tests by type", function () {
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
-    expect(response.mainTimelineElementId).to.be.null;
+    expect(response.mainTimelineElementId).equal(
+      "send_simple_registered_letter_progress#IUN_XLDW-MQYJ-WUKA-202302-A-1#RECINDEX_1"
+    );
     expect(response.alternativeTimelineElementId).to.be.null;
   });
 

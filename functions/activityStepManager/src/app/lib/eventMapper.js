@@ -193,8 +193,8 @@ async function mapPayload(event) {
         );
         dynamoDbOps.push(op);
         break;
+      //case "DIGITAL_FAILURE_WORKFLOW": // DIGITAL_FAILURE_WORKFLOW is immediately followed by SEND_SIMPLE_REGISTERED_LETTER, so we ignore the first one as beginning of event
       case "SEND_SIMPLE_REGISTERED_LETTER":
-      case "DIGITAL_FAILURE_WORKFLOW":
         recIdx = event.dynamodb.NewImage.details.M.recIndex.N;
         op = makeInsertOp(
           "04_AMR##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
@@ -207,7 +207,7 @@ async function mapPayload(event) {
 
         dynamoDbOps.push(op);
         break;
-      case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS": // not present, yet (to be checked)
+      case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS":
         if (
           event.dynamodb.NewImage.registeredLetterCode &&
           event.dynamodb.NewImage.registeredLetterCode.S

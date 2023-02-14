@@ -148,25 +148,25 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
-  it("test DIGITAL_FAILURE_WORKFLOW", async () => {
-    const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
-    let event = JSON.parse(eventJSON);
-    event = setCategory(event, "DIGITAL_FAILURE_WORKFLOW");
+  // it("test DIGITAL_FAILURE_WORKFLOW", async () => {
+  //   const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
+  //   let event = JSON.parse(eventJSON);
+  //   event = setCategory(event, "DIGITAL_FAILURE_WORKFLOW");
 
-    event.dynamodb.NewImage.details = {
-      M: {
-        recIndex: {
-          N: 0,
-        },
-      },
-    };
-    const events = [event];
+  //   event.dynamodb.NewImage.details = {
+  //     M: {
+  //       recIndex: {
+  //         N: 0,
+  //       },
+  //     },
+  //   };
+  //   const events = [event];
 
-    const res = await mapEvents(events);
+  //   const res = await mapEvents(events);
 
-    expect(res[0].type).equal("SEND_AMR");
-    expect(res[0].opType).equal("INSERT");
-  });
+  //   expect(res[0].type).equal("SEND_AMR");
+  //   expect(res[0].opType).equal("INSERT");
+  // });
 
   it("test SEND_SIMPLE_REGISTERED_LETTER", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
