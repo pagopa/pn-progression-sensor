@@ -11,6 +11,74 @@ const client = new DynamoDBClient({
   region: process.env.REGION,
 });
 
+exports.closingElementIdFromIDAndType = (id, type) => {
+  const returnCouple = {
+    mainTimelineElementId: null,
+    alternativeTimelineElementId: null,
+  };
+
+  switch (type) {
+    case "VALIDATION": // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> request_accepted#IUN_WEUD-XHKG-ZHDN-202301-W-1 and request_refused#IUN_WEUD-XHKG-ZHDN-202301-W-1
+      // type VALIDATION:
+      // - INSERT in pn-Timelines of a record with category REQUEST_ACCEPTED: VALIDATION activity end
+      // - INSERT in pn-Timelines of a record with category REQUEST_REFUSED: VALIDATION activity end
+      const timelineBaseValidation = id.split("##")[1]; // IUN remains
+      const timeLineIdAccepted =
+        "request_accepted#IUN_" + timelineBaseValidation;
+      const timeLineIdRefused = "request_refused#IUN_" + timelineBaseValidation;
+      returnCouple.mainTimelineElementId = timeLineIdAccepted;
+      returnCouple.alternativeTimelineElementId = timeLineIdRefused;
+      break;
+    case "REFINEMENT": // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> refinement#IUN_REKD-NZRJ-NWQJ-202302-M-1#RECINDEX_0 and notification_viewed#IUN_REKD-NZRJ-NWQJ-202302-M-1#RECINDEX_0
+      // type REFINEMENT:
+      // - INSERT in pn-Timelines of a record with category REFINEMENT: DELIVERY activity end for one of the recipients
+      // - INSERT in pn-Timelines of a record with category NOTIFICATION_VIEWED: DELIVERY activity end for one of the recipients
+      const timelineBaseRefinement = id
+        .replace("01_REFIN##", "IUN_")
+        .replace("##", "#RECINDEX_");
+      const timeLineIdRefinement = "refinement#" + timelineBaseRefinement;
+      const timeLineIdNotificationViewed =
+        "notification_viewed#" + timelineBaseRefinement;
+      returnCouple.mainTimelineElementId = timeLineIdRefinement;
+      returnCouple.alternativeTimelineElementId = timeLineIdNotificationViewed;
+      break;
+    case "SEND_PEC": // id: 02_PEC__##send_digital_domicile#IUN_AWMX-HXYK-YDAH-202302-P-1#RECINDEX_0#SOURCE_SPECIAL#SENTATTEMPTMADE_0 -> send_digital_feedback#IUN_AWMX-HXYK-YDAH-202302-P-1#RECINDEX_0#SOURCE_SPECIAL#SENTATTEMPTMADE_0
+      // SEND_PEC:
+      // - INSERT in pn-Timelines of a record with category SEND_DIGITAL_FEEDBACK: SEND PEC activity end
+      const timeLineIdSendDigitalFeedback = id
+        .replace("02_PEC__##", "")
+        .replace("send_digital_domicile", "send_digital_feedback");
+      returnCouple.mainTimelineElementId = timeLineIdSendDigitalFeedback;
+      returnCouple.alternativeTimelineElementId = null;
+      break;
+    case "SEND_PAPER_AR_890": // id: 03_PAPER##send_analog_domicile#IUN_DNQZ-QUQN-202302-W-1#RECINDEX_1#SENTATTEMPTMADE_1 -> send_analog_feedback#IUN_DNQZ-QUQN-202302-W-1#RECINDEX_1#SENTATTEMPTMADE_1
+      // SEND_PAPER_AR_890
+      // - INSERT in pn-Timelines of a record with category SEND_ANALOG_FEEDBACK: SEND PAPER AR activity end
+      const timelineIdPaperAR890 = id
+        .replace("03_PAPER##", "")
+        .replace("send_analog_domicile", "send_analog_feedback");
+      returnCouple.mainTimelineElementId = timelineIdPaperAR890;
+      returnCouple.alternativeTimelineElementId = null;
+      break;
+    /* istanbul ignore next */
+    case "SEND_AMR": // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> send_simple_registered_letter_progress#IUN_XLDW-MQYJ-WUKA-202302-A-1#RECINDEX_1
+      // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
+      const timelineBaseAMR = id
+        .replace("04_AMR##", "IUN_")
+        .replace("##", "#RECINDEX_");
+      returnCouple.mainTimelineElementId =
+        "send_simple_registered_letter_progress#" + timelineBaseAMR;
+      returnCouple.alternativeTimelineElementId = null;
+      break;
+    /* istanbul ignore next */
+    default:
+      returnCouple.mainTimelineElementId = null;
+      returnCouple.alternativeTimelineElementId = null;
+      break;
+  }
+  return returnCouple;
+};
+
 /**
  * checks wheter the activity is ended or is still running
  * @returns {Promise<string>} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
@@ -21,76 +89,19 @@ exports.findActivityEnd = async (iun, id, type) => {
   // 1. get IUN directly and build timelineElementId from event id
   const params = {
     TableName: tableName,
+    Key: {
+      iun: iun,
+    },
   };
-  let altSortKey = null;
 
   // instead of performing a query with filter, we can construct the partition and the sort key and perform a GetItem (eventually two)
-  switch (type) {
-    case "VALIDATION":
-      // type VALIDATION:
-      // - INSERT in pn-Timelines di un record con category REQUEST_ACCEPTED indica la terminazione di una “attività di validazione”
-      // - INSERT in pn-Timelines di un record con category REQUEST_REFUSED indica la terminazione di una “attività di validazione”:
-      const timelineBaseValidation = id.split("##")[1];
-      const timeLineIdAccepted = timelineBaseValidation + "_request_accepted";
-      const timeLineIdRefused = timelineBaseValidation + "_request_refused";
-      params.Key = {
-        iun: iun,
-        timelineElementId: timeLineIdAccepted,
-      };
-      altSortKey = timeLineIdRefused;
-      break;
-    case "REFINEMENT":
-      // type REFINEMENT:
-      // - INSERT in pn-Timelines di un record con category REFINEMENT indica la fine di una “attività di consegna” per uno dei destinatari della notifica
-      // - INSERT in pn-Timelines di un record con category NOTIFICATION_VIEWED indica la fine di una “attività di consegna” per uno dei destinatari della notifica
-      const timelineBaseRefinement = id.replace("01_REFIN##", "");
-      const timeLineIdRefinement = timelineBaseRefinement.replace(
-        "##",
-        "_refinement_"
-      );
-      const timeLineIdNotificationViewed = timelineBaseRefinement.replace(
-        "##",
-        "_notification_viewed_"
-      );
-      params.Key = {
-        iun: iun,
-        timelineElementId: timeLineIdRefinement,
-      };
-      altSortKey = timeLineIdNotificationViewed;
-      break;
-    case "SEND_PEC":
-      // SEND_PEC:
-      // - INSERT in pn-Timelines di un record con category SEND_DIGITAL_FEEDBACK indica la fine di una “attività di invio PEC”
-      const timeLineIdSendDigitalFeedback = id
-        .replace("02_PEC__##", "")
-        .replace("send_digital_domicile", "send_digital_feedback");
-      params.Key = {
-        iun: iun,
-        timelineElementId: timeLineIdSendDigitalFeedback,
-      };
-      break;
-    case "SEND_PAPER_AR_890":
-      // SEND_PAPER_AR_890
-      // - INSERT in pn-Timelines di un record con category SEND_ANALOG_FEEDBACK indica la fine di un’attività di “invio cartaceo con ritorno”
-      const timelineIdPaperAR890 = id
-        .replace("03_PAPER##", "")
-        .replace("send_analog_domicile", "send_analog_feedback"); // SEE: SEND_SIMPLE_REGISTERED_LETTER
-      params.Key = {
-        iun: iun,
-        timelineElementId: timelineIdPaperAR890,
-      };
-      break;
-    /* istanbul ignore next */
-    case "SEND_AMR": // NOT IMPLEMENTED YET!!! always returns null
-      // SEND_AMR (AL MOMENTO NON VIENE CHIUSA: codice mancante)
-      // - INSERT in pn-Timelines di un record con category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS con attributo “registeredLetterCode“ valorizzato indica la fine di un’attività di “invio cartaceo Avviso Mancato Recapito”
-      return null;
-    //break;
-    /* istanbul ignore next */
-    default:
-      // nothing...
-      return null;
+  const returnCouple = this.closingElementIdFromIDAndType(id, type);
+  if (returnCouple.mainTimelineElementId === null) {
+    // event not computed, directly return null
+    return null;
   }
+  params.Key.timelineElementId = returnCouple.mainTimelineElementId;
+  const altSortKey = returnCouple.alternativeTimelineElementId;
 
   const dynamoDB = DynamoDBDocumentClient.from(client);
 
@@ -98,13 +109,27 @@ exports.findActivityEnd = async (iun, id, type) => {
     // we perform a GetItem and, in case we also have an alternative sort key, we perform a second GetItem
     // in case the first one did not produce a result
     let response = await dynamoDB.send(new GetCommand(params));
+
     if (response.Item == null && altSortKey !== null) {
       console.log("GetItem with the alternative sort key");
+
       params.Key.timeLineElementId = altSortKey; // GetItem with the alternative sort key
       response = await dynamoDB.send(new GetCommand(params));
     }
     // 2. extract and return endTimestamp
-    return response.Item?.timestamp || null;
+    //
+    // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS is be present, we also need to check the presence of the
+    // registeredLetterCode attribute, and only in that case return the timestamp instead of null, only
+    // for SEND_AMR type (if (type === "SEND_AMR" && response.Item?.registeredLetterCode != undefined))
+
+    if (type === "SEND_AMR") {
+      return response.Item?.registeredLetterCode != undefined
+        ? response.Item?.timestamp || null
+        : null;
+    } else {
+      // all other cases
+      return response.Item?.timestamp || null;
+    }
   } catch (error) {
     /* istanbul ignore next */
     console.log("ERROR during GetItem: ", error);

@@ -1,5 +1,9 @@
 const { expect } = require("chai");
-const dynamo = require("../app/lib/dynamoDB.js");
+const {
+  makeInsertCommandFromEvent,
+  persistEvents,
+  closingElementIdFromIDAndType,
+} = require("../app/lib/dynamoDB.js");
 const { mockClient } = require("aws-sdk-client-mock");
 const {
   DynamoDBDocumentClient,
@@ -40,8 +44,7 @@ describe("DynamoDB tests", function () {
   };
 
   it("should create correct insertion command parameters", () => {
-    const insertionCommandParams =
-      dynamo.makeInsertCommandFromEvent(insertEvent);
+    const insertionCommandParams = makeInsertCommandFromEvent(insertEvent);
 
     expect(insertionCommandParams).to.not.be.null;
     expect(insertionCommandParams).to.not.be.undefined;
@@ -69,7 +72,7 @@ describe("DynamoDB tests", function () {
   it("basic persistEvents with a single event of the correct type: insert", async () => {
     ddbMock.on(PutCommand).resolves({});
 
-    const response = await dynamo.persistEvents([insertEvent]);
+    const response = await persistEvents([insertEvent]);
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
@@ -81,7 +84,7 @@ describe("DynamoDB tests", function () {
 
   it("basic persistEvents with a single event of the correct type: UPDATE", async () => {
     ddbMock.on(UpdateCommand).resolves({});
-    const response = await dynamo.persistEvents([updateEvent]);
+    const response = await persistEvents([updateEvent]);
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
@@ -92,7 +95,7 @@ describe("DynamoDB tests", function () {
   });
 
   it("basic persistEvents with a single event of the wrong type: DELETE", async () => {
-    const response = await dynamo.persistEvents([deleteEvent]);
+    const response = await persistEvents([deleteEvent]);
 
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
@@ -100,5 +103,95 @@ describe("DynamoDB tests", function () {
     expect(response.updates).equal(0);
     expect(response.skippedInsertions).equal(0);
     expect(response.errors.length).equal(0);
+  });
+});
+
+describe("Find closingElementId tests by type", function () {
+  it("should match the VALIDATION type", () => {
+    const id = "00_VALID##WEUD-XHKG-ZHDN-202301-W-1";
+    const type = "VALIDATION";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "request_accepted#IUN_WEUD-XHKG-ZHDN-202301-W-1"
+    );
+    expect(response.alternativeTimelineElementId).equal(
+      "request_refused#IUN_WEUD-XHKG-ZHDN-202301-W-1"
+    );
+  });
+
+  it("should match the REFINEMENT type", () => {
+    const id = "01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0";
+    const type = "REFINEMENT";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "refinement#IUN_REKD-NZRJ-NWQJ-202302-M-1#RECINDEX_0"
+    );
+    expect(response.alternativeTimelineElementId).equal(
+      "notification_viewed#IUN_REKD-NZRJ-NWQJ-202302-M-1#RECINDEX_0"
+    );
+  });
+
+  it("should match the SEND_PEC type", () => {
+    const id =
+      "02_PEC__##send_digital_domicile#IUN_AWMX-HXYK-YDAH-202302-P-1#RECINDEX_0#SOURCE_SPECIAL#SENTATTEMPTMADE_0";
+    const type = "SEND_PEC";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "send_digital_feedback#IUN_AWMX-HXYK-YDAH-202302-P-1#RECINDEX_0#SOURCE_SPECIAL#SENTATTEMPTMADE_0"
+    );
+    expect(response.alternativeTimelineElementId).to.be.null;
+  });
+
+  it("should match the SEND_PAPER_AR_890 type", () => {
+    const id =
+      "03_PAPER##send_analog_domicile#IUN_DNQZ-QUQN-202302-W-1#RECINDEX_1#SENTATTEMPTMADE_1";
+    const type = "SEND_PAPER_AR_890";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "send_analog_feedback#IUN_DNQZ-QUQN-202302-W-1#RECINDEX_1#SENTATTEMPTMADE_1"
+    );
+    expect(response.alternativeTimelineElementId).to.be.null;
+  });
+
+  it("should match the SEND_AMR type", () => {
+    const id = "04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1";
+    const type = "SEND_AMR";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "send_simple_registered_letter_progress#IUN_XLDW-MQYJ-WUKA-202302-A-1#RECINDEX_1"
+    );
+    expect(response.alternativeTimelineElementId).to.be.null;
+  });
+
+  it("should match an unknown type", () => {
+    const id = "doesntmatter";
+    const type = "STRANGE_TYPE";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).to.be.null;
+    expect(response.alternativeTimelineElementId).to.be.null;
   });
 });

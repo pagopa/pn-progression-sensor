@@ -7,7 +7,7 @@
                 "S": "abcd"
             },
             "timelineElementId": {
-                "S": "123123123123_IDX1"
+                "S": "notification_viewed_creation_request-IUN_123456789-RECINDEX_1-"
             },
             "notificationSentAt": {
                 "S": "2023-01-20T14:48:00.000Z"

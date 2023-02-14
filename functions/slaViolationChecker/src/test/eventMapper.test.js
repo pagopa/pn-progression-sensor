@@ -217,6 +217,45 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     },
   };
 
+  const kinesisEventAMR = {
+    kinesisSeqNumber:
+      "49637329937448784559035416658086603608349162186672701458",
+    awsRegion: "eu-south-1",
+    eventID: "509b20a7-42f3-47af-b571-bfdb980d68f4",
+    eventName: "REMOVE",
+    userIdentity: {
+      type: "Service",
+      principalId: "dynamodb.amazonaws.com",
+    },
+    recordFormat: "application/json",
+    tableName: "pn-ProgressionSensorData",
+    dynamodb: {
+      ApproximateCreationDateTime: 1674576197043,
+      OldImage: {
+        entityName_type_relatedEntityId: {
+          S: "step##SEND_AMR##XLDW-MQYJ-WUKA-202302-A-1",
+        },
+        type: { S: "SEND_AMR" },
+        id: {
+          S: "04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1",
+        },
+        relatedEntityId: { S: "XLDW-MQYJ-WUKA-202302-A-1" },
+        startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
+        slaExpiration: { S: "2023-07-17T15:06:12.470Z" },
+        step_alarmTTL: { N: 1688396772 },
+        alarmTTL: { S: "2023-07-03T15:06:12.470Z" },
+      },
+      Keys: {
+        id: {
+          S: "04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1",
+        },
+        entityName_type_relatedEntityId: {
+          S: "step##SEND_AMR##XLDW-MQYJ-WUKA-202302-A-1",
+        },
+      },
+    },
+  };
+
   it("should be correct mapping - insert", async () => {
     ddbMock.on(GetCommand).resolves({ Item: undefined }); // important: since we are resetting at each test, this must be inside the test
 
@@ -294,6 +333,28 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     );
 
     expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed
+    expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
+  });
+
+  it("should be correct mapping with SEND_AMR - update", async () => {
+    const foundTimestamp = "2023-07-03T15:06:12.470Z";
+
+    ddbMock.on(GetCommand).resolves({
+      Item: { timestamp: foundTimestamp, registeredLetterCode: "abcd" },
+    });
+
+    const processedItems = await mapEvents([kinesisEventAMR]);
+    console.log("processed items: ", processedItems);
+
+    expect(processedItems.length).equal(1);
+
+    // SEND_AMR
+    expect(processedItems[0].entityName_type_relatedEntityId).equal(
+      "step##SEND_AMR##XLDW-MQYJ-WUKA-202302-A-1"
+    );
+    expect(processedItems[0].id).equal("04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1");
+
+    expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed, because we're updating (it won't be undefined if registeredLetterCode is not present)
     expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
   });
 });
