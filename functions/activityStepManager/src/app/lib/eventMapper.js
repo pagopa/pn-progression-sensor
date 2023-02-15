@@ -28,12 +28,9 @@ function calculateNextDate(startTS, days) {
 }
 
 function extractRecIdsFromTimelineId(timelineElementId) {
-  // const tokens = timelineElementId.split("_");
-  // const lastToken = tokens[tokens.length - 1];
-  // return lastToken;
-  return timelineElementId.split("IUN_")[1].split("-")[0];
-  // used for REFINEMENT (refinement-IUN_123456789-RECINDEX_1-)
-  // or for NOTIFICATION_VIEWED (notification_viewed-IUN_123456789-RECINDEX_1-)
+  return timelineElementId.split("IUN_")[1].split(";")[0];
+  // used for REFINEMENT (refinement;IUN_123456789;RECINDEX_1)
+  // or for NOTIFICATION_VIEWED (notification;viewed-IUN_123456789;RECINDEX_1)
 }
 
 function makeDeleteOp(id, type, event) {

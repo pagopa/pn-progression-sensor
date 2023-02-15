@@ -76,7 +76,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
         },
         type: { S: "REFINEMENT" },
         id: {
-          S: "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted",
+          S: "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##0",
         },
         relatedEntityId: { S: "YZPN-ZTVQ-UTGU-202301-Y-1" },
         startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
@@ -86,7 +86,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       },
       Keys: {
         id: {
-          S: "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted",
+          S: "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##0",
         },
         entityName_type_relatedEntityId: {
           S: "step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1",
@@ -155,11 +155,11 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       ApproximateCreationDateTime: 1674576197043,
       OldImage: {
         entityName_type_relatedEntityId: {
-          S: "step##SEND_PEC##PLDW-UWJP-ATLT-202301-R-1",
+          S: "PLDW-UWJP-ATLT-202301-R-1", // not important for the tests
         },
         type: { S: "SEND_PEC" },
         id: {
-          S: "02_PEC__##PLDW-UWJP-ATLT-202301-R-1_send_digital_domicile_0_source_SPECIAL_attempt_0",
+          S: "02_PEC__##send_digital_domicile;IUN_PLDW-UWJP-ATLT-202301-R-1;RECINDEX_0;SOURCE_SPECIAL;SENTATTEMPTMADE_0", // not important for the tests
         },
         relatedEntityId: { S: "PLDW-UWJP-ATLT-202301-R-1" },
         startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
@@ -169,10 +169,10 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       },
       Keys: {
         id: {
-          S: "02_PEC__##PLDW-UWJP-ATLT-202301-R-1_send_digital_domicile_0_source_SPECIAL_attempt_0",
+          S: "02_PEC__##send_digital_domicile;IUN_PLDW-UWJP-ATLT-202301-R-1;RECINDEX_0;SOURCE_SPECIAL;SENTATTEMPTMADE_0", // not important for the tests
         },
         entityName_type_relatedEntityId: {
-          S: "step##SEND_PEC##PLDW-UWJP-ATLT-202301-R-1",
+          S: "PLDW-UWJP-ATLT-202301-R-1", // not important for the tests
         },
       },
     },
@@ -194,11 +194,11 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       ApproximateCreationDateTime: 1674576197043,
       OldImage: {
         entityName_type_relatedEntityId: {
-          S: "step##SEND_PAPER_AR_890##GEUY-TJTX-NDUA-202301-N-1",
+          S: "GEUY-TJTX-NDUA-202301-N-1", // not important for the tests
         },
         type: { S: "SEND_PAPER_AR_890" },
         id: {
-          S: "03_PAPER##GEUY-TJTX-NDUA-202301-N-1_send_analog_domicile_0_attempt_0",
+          S: "03_PAPER##send_analog_domicile;IUN_GEUY-TJTX-NDUA-202301-N-1;RECINDEX_0;SENTATTEMPTMADE_0", // not important for the tests
         },
         relatedEntityId: { S: "GEUY-TJTX-NDUA-202301-N-1" },
         startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
@@ -208,10 +208,10 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       },
       Keys: {
         id: {
-          S: "03_PAPER##GEUY-TJTX-NDUA-202301-N-1_send_analog_domicile_0_attempt_0",
+          S: "03_PAPER##send_analog_domicile;IUN_GEUY-TJTX-NDUA-202301-N-1;RECINDEX_0;SENTATTEMPTMADE_0", // not important for the tests
         },
         entityName_type_relatedEntityId: {
-          S: "step##SEND_PAPER_AR_890##GEUY-TJTX-NDUA-202301-N-1",
+          S: "GEUY-TJTX-NDUA-202301-N-1", // not important for the tests
         },
       },
     },
@@ -278,7 +278,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     );
     expect(processedItems[0].type).equal("REFINEMENT");
     expect(processedItems[0].id).equal(
-      "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted"
+      "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##0"
     );
     expect(processedItems[0].sla_relatedEntityId).equal(
       // note: sla_relatedEntityId, not relatedEntityId
@@ -329,7 +329,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       "step##REFINEMENT##YZPN-ZTVQ-UTGU-202301-Y-1"
     );
     expect(processedItems[0].id).equal(
-      "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##accepted"
+      "01_REFIN##YZPN-ZTVQ-UTGU-202301-Y-1##0"
     );
 
     expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed
