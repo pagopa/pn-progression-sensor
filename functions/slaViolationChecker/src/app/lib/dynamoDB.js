@@ -11,7 +11,7 @@ const client = new DynamoDBClient({
   region: process.env.REGION,
 });
 
-const sepChar = ";";
+const sepChar = ".";
 
 exports.closingElementIdFromIDAndType = (id, type) => {
   const returnCouple = {
@@ -26,9 +26,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       // - INSERT in pn-Timelines of a record with category REQUEST_REFUSED: VALIDATION activity end
       const timelineBaseValidation = id.split("##")[1]; // IUN remains
       const timeLineIdAccepted =
-        "request_accepted" + sepChar + "IUN_" + timelineBaseValidation;
+        "REQUEST_ACCEPTED" + sepChar + "IUN_" + timelineBaseValidation;
       const timeLineIdRefused =
-        "request_refused" + sepChar + "IUN_" + timelineBaseValidation;
+        "REQUEST_REFUSED" + sepChar + "IUN_" + timelineBaseValidation;
       returnCouple.mainTimelineElementId = timeLineIdAccepted;
       returnCouple.alternativeTimelineElementId = timeLineIdRefused;
       break;
@@ -40,9 +40,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("01_REFIN##", "IUN_")
         .replace("##", sepChar + "RECINDEX_");
       const timeLineIdRefinement =
-        "refinement" + sepChar + timelineBaseRefinement;
+        "REFINEMENT" + sepChar + timelineBaseRefinement;
       const timeLineIdNotificationViewed =
-        "notification_viewed" + sepChar + timelineBaseRefinement;
+        "NOTIFICATION_VIEWED" + sepChar + timelineBaseRefinement;
       returnCouple.mainTimelineElementId = timeLineIdRefinement;
       returnCouple.alternativeTimelineElementId = timeLineIdNotificationViewed;
       break;
@@ -51,7 +51,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       // - INSERT in pn-Timelines of a record with category SEND_DIGITAL_FEEDBACK: SEND PEC activity end
       const timeLineIdSendDigitalFeedback = id
         .replace("02_PEC__##", "")
-        .replace("send_digital_domicile", "send_digital_feedback");
+        .replace("SEND_DIGITAL_DOMICILE", "SEND_DIGITAL_FEEDBACK");
       returnCouple.mainTimelineElementId = timeLineIdSendDigitalFeedback;
       returnCouple.alternativeTimelineElementId = null;
       break;
@@ -60,7 +60,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       // - INSERT in pn-Timelines of a record with category SEND_ANALOG_FEEDBACK: SEND PAPER AR activity end
       const timelineIdPaperAR890 = id
         .replace("03_PAPER##", "")
-        .replace("send_analog_domicile", "send_analog_feedback");
+        .replace("SEND_ANALOG_DOMICILE", "SEND_ANALOG_FEEDBACK");
       returnCouple.mainTimelineElementId = timelineIdPaperAR890;
       returnCouple.alternativeTimelineElementId = null;
       break;
@@ -71,7 +71,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("04_AMR##", "IUN_")
         .replace("##", sepChar + "RECINDEX_");
       returnCouple.mainTimelineElementId =
-        "send_simple_registered_letter_progress" + sepChar + timelineBaseAMR;
+        "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS" + sepChar + timelineBaseAMR;
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */

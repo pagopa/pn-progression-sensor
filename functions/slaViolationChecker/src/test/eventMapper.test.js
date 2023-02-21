@@ -155,11 +155,11 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       ApproximateCreationDateTime: 1674576197043,
       OldImage: {
         entityName_type_relatedEntityId: {
-          S: "PLDW-UWJP-ATLT-202301-R-1", // not important for the tests
+          S: "NOT_CHECKED_IUN", // not important for the tests
         },
         type: { S: "SEND_PEC" },
         id: {
-          S: "02_PEC__##send_digital_domicile;IUN_PLDW-UWJP-ATLT-202301-R-1;RECINDEX_0;SOURCE_SPECIAL;SENTATTEMPTMADE_0", // not important for the tests
+          S: "NOT_CHECKED_ID", // not important for the tests
         },
         relatedEntityId: { S: "PLDW-UWJP-ATLT-202301-R-1" },
         startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
@@ -169,10 +169,10 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       },
       Keys: {
         id: {
-          S: "02_PEC__##send_digital_domicile;IUN_PLDW-UWJP-ATLT-202301-R-1;RECINDEX_0;SOURCE_SPECIAL;SENTATTEMPTMADE_0", // not important for the tests
+          S: "NOT_CHECKED_ID", // not important for the tests
         },
         entityName_type_relatedEntityId: {
-          S: "PLDW-UWJP-ATLT-202301-R-1", // not important for the tests
+          S: "NOT_CHECKED_IUN", // not important for the tests
         },
       },
     },
@@ -194,11 +194,11 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       ApproximateCreationDateTime: 1674576197043,
       OldImage: {
         entityName_type_relatedEntityId: {
-          S: "GEUY-TJTX-NDUA-202301-N-1", // not important for the tests
+          S: "NOT_CHECKED_IUN", // not important for the tests
         },
         type: { S: "SEND_PAPER_AR_890" },
         id: {
-          S: "03_PAPER##send_analog_domicile;IUN_GEUY-TJTX-NDUA-202301-N-1;RECINDEX_0;SENTATTEMPTMADE_0", // not important for the tests
+          S: "NOT_CHECKED_ID", // not important for the tests
         },
         relatedEntityId: { S: "GEUY-TJTX-NDUA-202301-N-1" },
         startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
@@ -208,10 +208,10 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       },
       Keys: {
         id: {
-          S: "03_PAPER##send_analog_domicile;IUN_GEUY-TJTX-NDUA-202301-N-1;RECINDEX_0;SENTATTEMPTMADE_0", // not important for the tests
+          S: "NOT_CHECKED_ID", // not important for the tests
         },
         entityName_type_relatedEntityId: {
-          S: "GEUY-TJTX-NDUA-202301-N-1", // not important for the tests
+          S: "NOT_CHECKED_IUN", // not important for the tests
         },
       },
     },
@@ -233,7 +233,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       ApproximateCreationDateTime: 1674576197043,
       OldImage: {
         entityName_type_relatedEntityId: {
-          S: "step##SEND_AMR##XLDW-MQYJ-WUKA-202302-A-1",
+          S: "XLDW-MQYJ-WUKA-202302-A-1",
         },
         type: { S: "SEND_AMR" },
         id: {
@@ -250,7 +250,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
           S: "04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1",
         },
         entityName_type_relatedEntityId: {
-          S: "step##SEND_AMR##XLDW-MQYJ-WUKA-202302-A-1",
+          S: "XLDW-MQYJ-WUKA-202302-A-1",
         },
       },
     },
@@ -350,7 +350,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
 
     // SEND_AMR
     expect(processedItems[0].entityName_type_relatedEntityId).equal(
-      "step##SEND_AMR##XLDW-MQYJ-WUKA-202302-A-1"
+      "XLDW-MQYJ-WUKA-202302-A-1"
     );
     expect(processedItems[0].id).equal("04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1");
 
