@@ -630,3 +630,9 @@ Resources:
             - !GetAtt SLAViolationCloseSchedulingLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !Ref ProgressionSensorQueueAgeAlarmARN
             - !Ref ProgressionSensorQueueAlarmARN
+        LogGroupsNames: !Join
+          - ','
+          - - !Ref SearchSLAViolationsLambdaLogGroup
+            - !Ref ActivityStepManagerLambdaLogGroup
+            - !Ref SLAViolationCheckerLambdaLogGroup
+            - !Ref SLAViolationCloseSchedulingLambdaLogGroup 
