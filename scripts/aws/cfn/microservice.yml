@@ -367,7 +367,7 @@ Resources:
   SLAViolationCheckerLambdaSQS:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambdaSQS"
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambda-SQS"
       Runtime: nodejs18.x
       Handler: "index.handler"
       Code:
@@ -460,12 +460,27 @@ Resources:
       LogGroupName: !Sub "/aws/lambda/${SLAViolationCheckerLambda}"
       RetentionInDays: 14
 
+  SLAViolationCheckerLambdaSQSLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${SLAViolationCheckerLambdaSQS}"
+      RetentionInDays: 14
+
   SLAViolationCheckerSubscriptionFilter:
     Condition: SendLogToKinesis
     Type: AWS::Logs::SubscriptionFilter
     Properties:
       RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
       LogGroupName: !Ref SLAViolationCheckerLambdaLogGroup
+      FilterPattern: !Ref CloudwatchFilterPattern
+      DestinationArn: !Ref LogsKinesisSourceStreamArn
+
+  SLAViolationCheckerSQSSubscriptionFilter:
+    Condition: SendLogToKinesis
+    Type: AWS::Logs::SubscriptionFilter
+    Properties:
+      RoleArn: !GetAtt SubscriptionFilterServiceRole.Arn
+      LogGroupName: !Ref SLAViolationCheckerLambdaSQSLogGroup
       FilterPattern: !Ref CloudwatchFilterPattern
       DestinationArn: !Ref LogsKinesisSourceStreamArn
 
@@ -490,6 +505,16 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref SLAViolationCheckerLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  SLAViolationCheckerLambdaSQSAlarms:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - SLAViolationCheckerLambdaLogGroup
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SLAViolationCheckerLambdaSQS
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
   
   #########################################################
@@ -635,4 +660,5 @@ Resources:
           - - !Ref SearchSLAViolationsLambdaLogGroup
             - !Ref ActivityStepManagerLambdaLogGroup
             - !Ref SLAViolationCheckerLambdaLogGroup
+            - !Ref SLAViolationCheckerLambdaSQSLogGroup
             - !Ref SLAViolationCloseSchedulingLambdaLogGroup 
