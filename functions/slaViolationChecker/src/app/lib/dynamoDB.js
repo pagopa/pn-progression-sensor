@@ -114,12 +114,26 @@ exports.findActivityEnd = async (iun, id, type) => {
     // in case the first one did not produce a result
     let response = await dynamoDB.send(new GetCommand(params));
 
-    if (response.Item == null && altSortKey !== null) {
-      console.log("GetItem with the alternative sort key");
+    if (response.Item == null) {
+      console.log(
+        "Nothing found on GetItem with the sort key: " +
+          params.Key.timelineElementId
+      );
+      if (altSortKey !== null) {
+        console.log("GetItem with alternative sort key: " + altSortKey);
 
-      params.Key.timeLineElementId = altSortKey; // GetItem with the alternative sort key
-      response = await dynamoDB.send(new GetCommand(params));
+        params.Key.timelineElementId = altSortKey; // GetItem with the alternative sort key
+        response = await dynamoDB.send(new GetCommand(params));
+
+        if (response.Item == null) {
+          console.log(
+            "Nothing found on GetItem with the alternative sort key: " +
+              params.Key.timelineElementId
+          );
+        }
+      }
     }
+
     // 2. extract and return endTimestamp
     //
     // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS is be present, we also need to check the presence of the
@@ -136,7 +150,12 @@ exports.findActivityEnd = async (iun, id, type) => {
     }
   } catch (error) {
     /* istanbul ignore next */
-    console.log("ERROR during GetItem: ", error);
+    console.log(
+      "ERROR during GetItem: ",
+      error,
+      ", params: ",
+      JSON.stringify(params)
+    );
     /* istanbul ignore next */
     throw error; // after logging, we rethrow the error, for the caller to catch it
   }
