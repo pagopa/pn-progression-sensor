@@ -510,7 +510,7 @@ Resources:
   SLAViolationCheckerLambdaSQSAlarms:
     Type: AWS::CloudFormation::Stack
     DependsOn:
-      - SLAViolationCheckerLambdaLogGroup
+      - SLAViolationCheckerLambdaSQSLogGroup
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
