@@ -83,11 +83,11 @@ Parameters:
 
   ProgressionSensorQueueAlarmARN:
     Type: String
-    Description: SQS DLQ Alarm arn 
-  
+    Description: SQS DLQ Alarm arn
+
   ProgressionSensorQueueAgeAlarmARN:
     Type: String
-    Description: SQS Age Alarm arn 
+    Description: SQS Age Alarm arn
 
   # schedule cron expression:
   SlaViolationCheckRateExpression:
@@ -210,6 +210,7 @@ Resources:
         Variables:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOICING_DYNAMODB_TABLE: !Ref TimelinesForInvoicingDynamoTableName
       TracingConfig:
         Mode: Active
       Layers:
@@ -249,12 +250,20 @@ Resources:
             Resource:
               - !Ref ProgressionSensorDataDynamoTableArn
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+              - !Ref TimelinesForInvoicingDynamoTableArn
+              - !Sub "${TimelinesForInvoicingDynamoTableArn}/*"
           - Effect: Allow
             Action:
               - "dynamodb:GetItem"
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Notifications
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Notifications/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:BatchGetItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
           - Effect: Allow
             Action:
               - kinesis:DescribeStream
@@ -516,7 +525,7 @@ Resources:
       Parameters:
         FunctionName: !Ref SLAViolationCheckerLambdaSQS
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-  
+
   #########################################################
   ###          SLAViolationCloseSchedulingLambda        ###
   #########################################################
@@ -536,7 +545,7 @@ Resources:
         Variables:
           REGION: !Sub ${AWS::Region}
           #SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
-          SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt  SearchSLAViolationsLambda.Arn
+          SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt SearchSLAViolationsLambda.Arn
           SEARCH_SLA_VIOLATIONS_QUEUE_URL: !Ref ProgressionSensorQueueURL
       TracingConfig:
         Mode: Active
@@ -602,17 +611,17 @@ Resources:
 
   LambdaScheduleRule:
     Type: AWS::Events::Rule
-    Properties: 
+    Properties:
       Name: !Sub "${ProjectName}-LambdaScheduleRule"
       ScheduleExpression: !Ref SlaViolationCheckRateExpression
       State: ENABLED
-      Targets: 
+      Targets:
         - Arn: !GetAtt SLAViolationCloseSchedulingLambda.Arn
           Id: !Ref SLAViolationCloseSchedulingLambda
-          
-  LambdaSchedulePermission: 
+
+  LambdaSchedulePermission:
     Type: AWS::Lambda::Permission
-    Properties: 
+    Properties:
       FunctionName: !Ref SLAViolationCloseSchedulingLambda
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
@@ -635,20 +644,20 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
       Parameters:
         DashboardName: !Sub "${ProjectName}-progression-sensor"
-        DynamoDBTableNames: !Join 
-          - ',' 
-          - - !Ref ProgressionSensorDataDynamoTableName 
-        LambdaArns: !Join 
-          - ','
+        DynamoDBTableNames: !Join
+          - ","
+          - - !Ref ProgressionSensorDataDynamoTableName
+        LambdaArns: !Join
+          - ","
           - - !GetAtt SearchSLAViolationsLambda.Arn
-            - !GetAtt ActivityStepManagerLambda.Arn          
-            - !GetAtt SLAViolationCheckerLambda.Arn          
-            - !GetAtt SLAViolationCloseSchedulingLambda.Arn                      
+            - !GetAtt ActivityStepManagerLambda.Arn
+            - !GetAtt SLAViolationCheckerLambda.Arn
+            - !GetAtt SLAViolationCloseSchedulingLambda.Arn
         QueueArns: !Join
-          - ','
+          - ","
           - - !Ref ProgressionSensorQueueARN
         AlarmArns: !Join
-          - ','
+          - ","
           - - !GetAtt SearchSLAViolationsLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt ActivityStepManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCheckerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
@@ -656,9 +665,9 @@ Resources:
             - !Ref ProgressionSensorQueueAgeAlarmARN
             - !Ref ProgressionSensorQueueAlarmARN
         LogGroupsNames: !Join
-          - ','
+          - ","
           - - !Ref SearchSLAViolationsLambdaLogGroup
             - !Ref ActivityStepManagerLambdaLogGroup
             - !Ref SLAViolationCheckerLambdaLogGroup
             - !Ref SLAViolationCheckerLambdaSQSLogGroup
-            - !Ref SLAViolationCloseSchedulingLambdaLogGroup 
+            - !Ref SLAViolationCloseSchedulingLambdaLogGroup
