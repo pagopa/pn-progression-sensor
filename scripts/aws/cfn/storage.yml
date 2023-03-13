@@ -113,14 +113,32 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
+  TimelinesForInvoicingDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${ProjectName}-TimelinesForInvoicing"
+      AttributeDefinitions:
+        # primary key
+        - AttributeName: "paId_invoicingDay" # paId concatenated to invoicingDay
+          AttributeType: "S"
+        - AttributeName: "invoincingTimestamp_timelineElementId" # invoincingTimestamp concatenated to timelineElementId
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "paId_invoicingDay"
+          KeyType: "HASH"
+        - AttributeName: "invoincingTimestamp_timelineElementId"
+          KeyType: "RANGE"
+      TimeToLiveSpecification:
+        AttributeName: "ttl"
+        Enabled: true
 
-# SQS Queue
+  # SQS Queue
   ProgressionSensorQueue:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
       Parameters:
-        QueueName: !Sub '${ProjectName}-progression-sensor-queue'
+        QueueName: !Sub "${ProjectName}-progression-sensor-queue"
         DelaySeconds: 10
         AlarmSNSTopicName: !Ref AlarmSNSTopicName
 
@@ -131,6 +149,12 @@ Outputs:
   ProgressionSensorDataDynamoTableArn:
     Description: ARN of dynamodb table containing notifications metadata
     Value: !Sub "${ProgressionSensorDataTable.Arn}"
+  TimelinesForInvoicingDynamoTableName:
+    Description: Name of dynamodb table containing timelines invoicing metadata
+    Value: !Ref TimelinesForInvoicingDataTable
+  TimelinesForInvoicingDynamoTableArn:
+    Description: ARN of dynamodb table containing timelines invoicing metadata
+    Value: !Sub "${TimelinesForInvoicingDataTable.Arn}"
 
   # Kinesis Source Stream containing the DynamoDB Change Data Capture events
   CdcProgressionSensorKinesisSourceStreamName:
@@ -155,7 +179,7 @@ Outputs:
     Description: pn-delivery-push actions queue ARN
   ProgressionSensorQueueAlarmARN:
     Value: !GetAtt ProgressionSensorQueue.Outputs.SqsDLQAlarmArn
-    Description: pn-delivery-push actions queue dlq alarm queue 
+    Description: pn-delivery-push actions queue dlq alarm queue
   ProgressionSensorQueueAgeAlarmARN:
     Value: !GetAtt ProgressionSensorQueue.Outputs.SqsAgeAlarmArn
     Description: pn-delivery-push actions queue age alarm ARN
