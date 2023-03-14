@@ -1,0 +1,44 @@
+{
+    "Responses": {
+        "pn-Timelines": [
+            {
+                "iun": "abcd",
+                "timelineElementId": "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.SENTATTEMPTMADE_0",
+                "legalFactId": [],
+                "timestamp": "2023-02-16T09:12:05.283425635Z",
+                "category": "AAR_GENERATION",
+                "statusInfo": {
+                    "statusChangeTimestamp": "2023-02-16T09:11:10.452932995Z",
+                    "actual": "ACCEPTED",
+                    "statusChanged": false
+                },
+                "notificationSentAt": "2023-02-16T09:10:02.487762146Z",
+                "details": {
+                    "numberOfPages": 1,
+                    "recIndex": 0,
+                    "generatedAarUrl": "safestorage://PN_AAR-0002-V5LA-H07D-Q4H7-BJBX"
+                },
+                "paId": "026e8c72-7944-4dcd-8668-f596447fec6d"
+            },
+            {
+                "iun": "abcd",
+                "timelineElementId": "SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_0",
+                "legalFactId": [],
+                "timestamp": "2023-02-16T09:11:38.619808042Z",
+                "category": "AAR_CREATION_REQUEST",
+                "statusInfo": {
+                    "statusChangeTimestamp": "2023-02-16T09:11:10.452932995Z",
+                    "actual": "ACCEPTED",
+                    "statusChanged": false
+                },
+                "notificationSentAt": "2023-02-16T09:10:02.487762146Z",
+                "details": {
+                    "numberOfPages": 1,
+                    "aarKey": "safestorage://PN_AAR-0002-V5LA-H07D-Q4H7-BJBX",
+                    "recIndex": 0
+                },
+                "paId": "026e8c72-7944-4dcd-8668-f596447fec6d"
+            }
+        ]
+    }
+}

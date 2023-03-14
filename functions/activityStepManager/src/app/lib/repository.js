@@ -4,6 +4,7 @@ const {
   PutCommand,
   GetCommand,
   BatchGetCommand,
+  BatchWriteCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { twoNumbersFromIUN } = require("./utils");
 
@@ -62,6 +63,22 @@ function makeInsertCommandFromEvent(event) {
   return params;
 }
 
+function makeBulkInsertInvoicesCommandFromEvent(event) {
+  const params = {
+    RequestItems: {
+      [process.env.INVOICING_DYNAMODB_TABLE]: event.payload.map((p) => ({
+        PutRequest: {
+          Item: p,
+        },
+      })),
+    },
+  };
+
+  console.log(params);
+
+  return params;
+}
+
 exports.persistEvents = async (events) => {
   const summary = {
     deletions: 0,
@@ -103,6 +120,17 @@ exports.persistEvents = async (events) => {
           summary.errors.push(events[i]);
         }
       }
+    } else if (events[i].opType == "BULK_INSERT_INVOICES") {
+      const params = makeBulkInsertInvoicesCommandFromEvent(events[i]);
+      try {
+        await ddbDocClient.send(new BatchWriteCommand(params));
+        summary.insertions++;
+      } catch (e) {
+        console.error("Error on batch insert", events[i]);
+        console.error("Error details", e);
+        events[i].exception = e;
+        summary.errors.push(events[i]);
+      }
     }
   }
 
@@ -135,12 +163,8 @@ exports.getTimelineElements = async function (iun, timelineElementIds) {
       RequestItems: {
         [TABLES.TIMELINES]: {
           Keys: timelineElementIds.map((t) => ({
-            iun: {
-              S: iun,
-            },
-            timelineElementId: {
-              S: t,
-            },
+            iun,
+            timelineElementId: t,
           })),
         },
       },

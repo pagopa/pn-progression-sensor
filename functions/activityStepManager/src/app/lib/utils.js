@@ -26,7 +26,6 @@ exports.controlLetterFromIUN = (iun_string) => {
  * @returns {obj} json obkject
  */
 exports.parseKinesisObjToJsonObj = (elToParse) => {
-  const jsonObj = {};
   const keysToBypass = [
     "N",
     "M",
@@ -39,7 +38,9 @@ exports.parseKinesisObjToJsonObj = (elToParse) => {
     "NULL",
     "B",
   ];
-  if (Array.isArray(elToParse)) {
+  if (elToParse === null || elToParse === undefined) {
+    return elToParse;
+  } else if (Array.isArray(elToParse)) {
     const elParsed = [];
     for (const el of elToParse) {
       elParsed.push(this.parseKinesisObjToJsonObj(el));
