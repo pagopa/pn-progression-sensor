@@ -266,6 +266,12 @@ Resources:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
           - Effect: Allow
             Action:
+              - "dynamodb:BatchPutItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing/*"
+          - Effect: Allow
+            Action:
               - kinesis:DescribeStream
               - kinesis:DescribeStreamSummary
               - kinesis:GetShardIterator

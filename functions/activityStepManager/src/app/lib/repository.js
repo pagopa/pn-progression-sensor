@@ -1,5 +1,10 @@
 const { ddbDocClient } = require("./ddbClient.js");
-const { DeleteCommand, PutCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
+const {
+  DeleteCommand,
+  PutCommand,
+  GetCommand,
+  BatchGetCommand,
+} = require("@aws-sdk/lib-dynamodb");
 const { twoNumbersFromIUN } = require("./utils");
 
 function makePartitionKey(event) {
@@ -104,29 +109,56 @@ exports.persistEvents = async (events) => {
   return summary;
 };
 
-exports.getNotification = async function(iun){
+exports.getNotification = async function (iun) {
   try {
     const params = {
       TableName: TABLES.NOTIFICATIONS,
       Key: {
-        iun: iun
+        iun: iun,
       },
     };
     const response = await ddbDocClient.send(new GetCommand(params));
-    if(response.Item){
-      return response.Item
-    } 
+    if (response.Item) {
+      return response.Item;
+    }
 
     return null;
   } catch (e) {
-    console.log('Get Notification error '+iun, e)
+    console.log("Get Notification error " + iun, e);
   }
-  return null
-}
+  return null;
+};
+
+exports.getTimelineElements = async function (iun, timelineElementIds) {
+  try {
+    const params = {
+      RequestItems: {
+        [TABLES.TIMELINES]: {
+          Keys: timelineElementIds.map((t) => ({
+            iun: {
+              S: iun,
+            },
+            timelineElementId: {
+              S: t,
+            },
+          })),
+        },
+      },
+    };
+    const response = await ddbDocClient.send(new BatchGetCommand(params));
+    if (response.Responses) {
+      return response.Responses[TABLES.TIMELINES];
+    }
+    return null;
+  } catch (e) {
+    console.log("Get Timeline elements error " + iun, e);
+  }
+  return null;
+};
 
 const TABLES = {
-  NOTIFICATIONS: 'pn-Notifications',
-  TIMELINES: 'pn-Timelines'
-}
+  NOTIFICATIONS: "pn-Notifications",
+  TIMELINES: "pn-Timelines",
+};
 
-exports.TABLES = TABLES
+exports.TABLES = TABLES;

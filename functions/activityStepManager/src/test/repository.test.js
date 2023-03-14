@@ -7,9 +7,15 @@ const {
   DeleteCommand,
   PutCommand,
   GetCommand,
+  BatchGetCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { expect } = require("chai");
-const { persistEvents, getNotification } = require("../app/lib/repository");
+const {
+  persistEvents,
+  getNotification,
+  getTimelineElements,
+  TABLES,
+} = require("../app/lib/repository");
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const { ConditionalCheckFailedException } = require("./testException");
 
@@ -36,26 +42,23 @@ describe("repository tests", function () {
   it("test GET ITEM FOUND", async () => {
     ddbMock.on(GetCommand).resolves({
       Item: {
-        recipients: []
-      }
+        recipients: [],
+      },
     });
 
-    const res = await getNotification('abc');
+    const res = await getNotification("abc");
 
-    expect(res).deep.equals( {
-      recipients: []
+    expect(res).deep.equals({
+      recipients: [],
     });
   });
 
   it("test GET ITEM Not FOUND", async () => {
-    ddbMock.on(GetCommand).resolves({
-      
-    });
+    ddbMock.on(GetCommand).resolves({});
 
-    const res = await getNotification('abc');
+    const res = await getNotification("abc");
 
     expect(res).equal(null);
-
   });
 
   it("test INSERT / DELETE", async () => {
@@ -126,5 +129,25 @@ describe("repository tests", function () {
     expect(res.deletions).equal(1);
     expect(res.skippedInsertions).equal(1);
     expect(res.errors.length).equal(0);
+  });
+
+  it("test GET TIMELINE ITEMS FOUND", async () => {
+    ddbMock.on(BatchGetCommand).resolves({
+      Responses: {
+        [TABLES.TIMELINES]: [],
+      },
+    });
+
+    const res = await getTimelineElements("abc", ["id1", "id2"]);
+
+    expect(res).deep.equals([]);
+  });
+
+  it("test GET IMELINE ITEMS Not FOUND", async () => {
+    ddbMock.on(BatchGetCommand).resolves({});
+
+    const res = await getTimelineElements("abc", ["id1", "id2"]);
+
+    expect(res).equal(null);
   });
 });
