@@ -266,7 +266,7 @@ Resources:
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
           - Effect: Allow
             Action:
-              - "dynamodb:BatchPutItem"
+              - "dynamodb:BatchWriteItem"
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing/*"
