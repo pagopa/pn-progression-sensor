@@ -1,5 +1,11 @@
 const { ddbDocClient } = require("./ddbClient.js");
-const { DeleteCommand, PutCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
+const {
+  DeleteCommand,
+  PutCommand,
+  GetCommand,
+  BatchGetCommand,
+  BatchWriteCommand,
+} = require("@aws-sdk/lib-dynamodb");
 const { twoNumbersFromIUN } = require("./utils");
 
 function makePartitionKey(event) {
@@ -57,6 +63,22 @@ function makeInsertCommandFromEvent(event) {
   return params;
 }
 
+function makeBulkInsertInvoicesCommandFromEvent(event) {
+  const params = {
+    RequestItems: {
+      [process.env.INVOICING_DYNAMODB_TABLE]: event.payload.map((p) => ({
+        PutRequest: {
+          Item: p,
+        },
+      })),
+    },
+  };
+
+  console.log(params);
+
+  return params;
+}
+
 exports.persistEvents = async (events) => {
   const summary = {
     deletions: 0,
@@ -98,35 +120,69 @@ exports.persistEvents = async (events) => {
           summary.errors.push(events[i]);
         }
       }
+    } else if (events[i].opType == "BULK_INSERT_INVOICES") {
+      const params = makeBulkInsertInvoicesCommandFromEvent(events[i]);
+      try {
+        await ddbDocClient.send(new BatchWriteCommand(params));
+        summary.insertions++;
+      } catch (e) {
+        console.error("Error on batch insert", events[i]);
+        console.error("Error details", e);
+        events[i].exception = e;
+        summary.errors.push(events[i]);
+      }
     }
   }
 
   return summary;
 };
 
-exports.getNotification = async function(iun){
+exports.getNotification = async function (iun) {
   try {
     const params = {
       TableName: TABLES.NOTIFICATIONS,
       Key: {
-        iun: iun
+        iun: iun,
       },
     };
     const response = await ddbDocClient.send(new GetCommand(params));
-    if(response.Item){
-      return response.Item
-    } 
+    if (response.Item) {
+      return response.Item;
+    }
 
     return null;
   } catch (e) {
-    console.log('Get Notification error '+iun, e)
+    console.log("Get Notification error " + iun, e);
   }
-  return null
-}
+  return null;
+};
+
+exports.getTimelineElements = async function (iun, timelineElementIds) {
+  try {
+    const params = {
+      RequestItems: {
+        [TABLES.TIMELINES]: {
+          Keys: timelineElementIds.map((t) => ({
+            iun,
+            timelineElementId: t,
+          })),
+        },
+      },
+    };
+    const response = await ddbDocClient.send(new BatchGetCommand(params));
+    if (response.Responses) {
+      return response.Responses[TABLES.TIMELINES];
+    }
+    return null;
+  } catch (e) {
+    console.log("Get Timeline elements error " + iun, e);
+  }
+  return null;
+};
 
 const TABLES = {
-  NOTIFICATIONS: 'pn-Notifications',
-  TIMELINES: 'pn-Timelines'
-}
+  NOTIFICATIONS: "pn-Notifications",
+  TIMELINES: "pn-Timelines",
+};
 
-exports.TABLES = TABLES
+exports.TABLES = TABLES;

@@ -1,5 +1,11 @@
-const moment = require("moment-business-days-it");
-const { getNotification, TABLES } = require("./repository");
+let moment = require("moment-business-days-it");
+moment = require("moment-timezone");
+const {
+  getNotification,
+  TABLES,
+  getTimelineElements,
+} = require("./repository");
+const { parseKinesisObjToJsonObj } = require("./utils");
 
 const allowedTimelineCategories = [
   "REQUEST_ACCEPTED",
@@ -84,6 +90,73 @@ function makeInsertOp(
   return op;
 }
 
+function makeBulkInsertOp(event, payload) {
+  if (!payload || payload.length === 0) {
+    console.log("Missing payload", {
+      event: JSON.stringify(event),
+    });
+    return null;
+  }
+  const op = {
+    payload,
+    opType: "BULK_INSERT_INVOICES",
+  };
+  return op;
+}
+
+function processInvoicedElement(timelineObj) {
+  // timestamp format 2023-02-16T09:16:07.712247798Z
+  const timestamp = timelineObj.timestamp;
+  const invoincingTimestampMs = moment(timestamp).valueOf(); // milliseconds
+  const invoincingTimestamp = moment(invoincingTimestampMs).toISOString(); // ISO string 8601
+  const invoicingDay = moment(invoincingTimestamp)
+    .tz("Europe/Rome")
+    .format("YYYY-MM-DD");
+  const paId = timelineObj.paId;
+  // ttl = invoicingTimestamp + 1 year (in seconds)
+  const ttl = Math.floor(
+    moment(invoincingTimestamp).add(1, "year").valueOf() / 1000
+  );
+  return {
+    paId_invoicingDay: `${paId}_${invoicingDay}`,
+    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`,
+    ttl,
+    paId,
+    invoicingDay,
+    invoincingTimestamp,
+    ...timelineObj,
+  };
+}
+
+async function processInvoice(event, recIdx) {
+  const invoicedElements = [];
+  const timelineObj = parseKinesisObjToJsonObj(event.dynamodb.NewImage);
+  // get notificationCost from event
+  // if notificationCost is defined go to the next step
+  const notificationCost = timelineObj.details
+    ? timelineObj.details.notificationCost
+    : null;
+  if (notificationCost !== undefined && notificationCost !== null) {
+    const invoicedElement = processInvoicedElement(timelineObj);
+    if (invoicedElement) {
+      invoicedElements.push(invoicedElement);
+      // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
+      const iun = timelineObj.iun;
+      const timelineElements = await getTimelineElements(iun, [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_0`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_1`,
+        `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
+      ]);
+      if (timelineElements && timelineElements.length > 0) {
+        for (const timelineElem of timelineElements) {
+          invoicedElements.push(processInvoicedElement(timelineElem));
+        }
+      }
+    }
+  }
+  return invoicedElements;
+}
+
 async function mapPayload(event) {
   const dynamoDbOps = [];
   /* istanbul ignore else */
@@ -151,6 +224,12 @@ async function mapPayload(event) {
           event
         );
         dynamoDbOps.push(op);
+        // PN-4564 - process invoice data
+        const invoicedElements = await processInvoice(event, recIdx);
+        const bulkOp = makeBulkInsertOp(event, invoicedElements);
+        if (bulkOp) {
+          dynamoDbOps.push(bulkOp);
+        }
         break;
       case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
