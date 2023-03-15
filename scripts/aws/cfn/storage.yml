@@ -25,6 +25,10 @@ Parameters:
     Description: "Change Data Capture Kinesis Data Stream retention period in hours"
     Default: "72"
 
+  CdcKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
   AlarmSNSTopicName:
     Type: String
     Description: "Topic alarm"
@@ -131,6 +135,12 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: "ttl"
         Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      KinesisStreamSpecification:
+        StreamArn: !Ref CdcKinesisSourceStreamArn
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
 
   # SQS Queue
   ProgressionSensorQueue:
