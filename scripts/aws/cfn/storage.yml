@@ -132,6 +132,7 @@ Resources:
           KeyType: "HASH"
         - AttributeName: "invoincingTimestamp_timelineElementId"
           KeyType: "RANGE"
+      BillingMode: "PAY_PER_REQUEST"
       TimeToLiveSpecification:
         AttributeName: "ttl"
         Enabled: true
