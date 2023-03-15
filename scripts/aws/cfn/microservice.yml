@@ -56,6 +56,14 @@ Parameters:
     Type: String
     Description: Name of dynamodb table containing notifications metadata
 
+  TimelinesForInvoicingDynamoTableArn:
+    Type: String
+    Description: ARN of dynamodb table containing timelines invoicing metadata
+
+  TimelinesForInvoicingDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing timelines invoicing metadata
+
   CdcKinesisSourceStreamArn:
     Type: String
     Description: "Where to send CDC"
