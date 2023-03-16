@@ -74,7 +74,7 @@ function makeBulkInsertInvoicesCommandFromEvent(event) {
     },
   };
 
-  console.log(params);
+  console.log(JSON.stringify(params));
 
   return params;
 }
@@ -123,7 +123,6 @@ exports.persistEvents = async (events) => {
     } else if (evt.opType == "BULK_INSERT_INVOICES") {
       console.log("Save elements to invoicing table");
       const params = makeBulkInsertInvoicesCommandFromEvent(evt);
-      console.log(params);
       try {
         await ddbDocClient.send(new BatchWriteCommand(params));
         summary.insertions++;
@@ -172,7 +171,7 @@ exports.getTimelineElements = async function (iun, timelineElementIds) {
         },
       },
     };
-    console.log(params);
+    console.log(JSON.stringify(params));
     const response = await ddbDocClient.send(new BatchGetCommand(params));
     if (response.Responses) {
       return response.Responses[TABLES.TIMELINES];
