@@ -129,6 +129,7 @@ function processInvoicedElement(timelineObj) {
 }
 
 async function processInvoice(event, recIdx) {
+  console.log("Processing data for invoice...");
   const invoicedElements = [];
   const timelineObj = parseKinesisObjToJsonObj(event.dynamodb.NewImage);
   // get notificationCost from event

@@ -88,10 +88,10 @@ exports.persistEvents = async (events) => {
     errors: [],
   };
 
-  for (let i = 0; i < events.length; i++) {
+  for (const evt of events) {
     /* istanbul ignore else */
-    if (events[i].opType == "DELETE") {
-      const params = makeDeleteCommandFromEvent(events[i]);
+    if (evt.opType == "DELETE") {
+      const params = makeDeleteCommandFromEvent(evt);
       try {
         await ddbDocClient.send(new DeleteCommand(params));
         summary.deletions++;
@@ -99,14 +99,14 @@ exports.persistEvents = async (events) => {
         if (e.name == "ConditionalCheckFailedException") {
           summary.skippedDeletions++;
         } else {
-          console.error("Error on delete", events[i]);
+          console.error("Error on delete", evt);
           console.error("Error details", e);
-          events[i].exception = e;
-          summary.errors.push(events[i]);
+          evt.exception = e;
+          summary.errors.push(evt);
         }
       }
-    } else if (events[i].opType == "INSERT") {
-      const params = makeInsertCommandFromEvent(events[i]);
+    } else if (evt.opType == "INSERT") {
+      const params = makeInsertCommandFromEvent(evt);
       try {
         await ddbDocClient.send(new PutCommand(params));
         summary.insertions++;
@@ -114,22 +114,24 @@ exports.persistEvents = async (events) => {
         if (e.name == "ConditionalCheckFailedException") {
           summary.skippedInsertions++;
         } else {
-          console.error("Error on insert", events[i]);
+          console.error("Error on insert", evt);
           console.error("Error details", e);
-          events[i].exception = e;
-          summary.errors.push(events[i]);
+          evt.exception = e;
+          summary.errors.push(evt);
         }
       }
-    } else if (events[i].opType == "BULK_INSERT_INVOICES") {
-      const params = makeBulkInsertInvoicesCommandFromEvent(events[i]);
+    } else if (evt.opType == "BULK_INSERT_INVOICES") {
+      console.log("Save elements to invoicing table");
+      const params = makeBulkInsertInvoicesCommandFromEvent(evt);
+      console.log(params);
       try {
         await ddbDocClient.send(new BatchWriteCommand(params));
         summary.insertions++;
       } catch (e) {
-        console.error("Error on batch insert", events[i]);
+        console.error("Error on batch insert", evt);
         console.error("Error details", e);
-        events[i].exception = e;
-        summary.errors.push(events[i]);
+        evt.exception = e;
+        summary.errors.push(evt);
       }
     }
   }
@@ -158,6 +160,7 @@ exports.getNotification = async function (iun) {
 };
 
 exports.getTimelineElements = async function (iun, timelineElementIds) {
+  console.log("Getting timeline elments ", iun, timelineElementIds);
   try {
     const params = {
       RequestItems: {
@@ -169,6 +172,7 @@ exports.getTimelineElements = async function (iun, timelineElementIds) {
         },
       },
     };
+    console.log(params);
     const response = await ddbDocClient.send(new BatchGetCommand(params));
     if (response.Responses) {
       return response.Responses[TABLES.TIMELINES];
