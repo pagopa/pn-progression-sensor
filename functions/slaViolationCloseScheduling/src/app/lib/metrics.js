@@ -25,8 +25,8 @@ exports.putMetricDataForType = async (value, type) => {
         MetricName: metricName,
         Dimensions: [
           {
-            Name: type,
-            Value: value,
+            Name: 'type',
+            Value: type
           },
         ],
         //Unit: "None",
