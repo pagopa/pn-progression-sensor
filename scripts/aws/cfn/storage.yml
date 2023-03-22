@@ -25,6 +25,16 @@ Parameters:
     Description: "Change Data Capture Kinesis Data Stream retention period in hours"
     Default: "72"
 
+  CdcProgressionSensorStreamShardCount:
+    Type: Number
+    Default: "0"
+
+  CdcProgressionSensorStreamMode:
+    Description: Stream Mode.
+    Default: ON_DEMAND
+    Type: String
+    AllowedValues: [ON_DEMAND, PROVISIONED]
+
   CdcKinesisSourceStreamArn:
     Type: String
     Description: "Where to send CDC"
@@ -33,15 +43,50 @@ Parameters:
     Type: String
     Description: "Topic alarm"
 
+Conditions:
+  CdcProgressionSensorOnDemandDisabled: !Not [!Equals [!Ref CdcProgressionSensorStreamMode, ON_DEMAND]]
+
 Resources:
   ## KINESIS SOURCE STREAM FOR Change Data Capture
-  CdcProgressionSensorKinesisSourceStream:
-    Type: AWS::CloudFormation::Stack
+  ### AWS KMS / Server-side encryption for Kinesis Stream 
+  CdcProgressionSensorKinesisServerSideEncryptionKey:
+    Type: AWS::KMS::Key
     Properties:
-      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/kinesis-stream.yaml"
-      Parameters:
-        StreamName: !Sub "${ProjectName}-cdc-progression-sensor-stream"
-        StreamRetentionPeriodHours: !Ref CdcProgressionSensorStreamRetentionHours
+      KeyPolicy:
+        Statement:
+          - Action: kms:*
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  - - "arn:"
+                    - Ref: AWS::Partition
+                    - ":iam::"
+                    - Ref: AWS::AccountId
+                    - :root
+            Resource: "*"
+        Version: "2012-10-17"
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+  ### Kinesis Data Stream 
+  CdcProgressionSensorKinesisStream:
+    Type: AWS::Kinesis::Stream
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "${ProjectName}-cdc-progression-sensor-stream-001"
+      RetentionPeriodHours: !Ref CdcProgressionSensorStreamRetentionHours
+      ShardCount: !If [CdcProgressionSensorOnDemandDisabled, !Ref CdcProgressionSensorStreamShardCount, !Ref "AWS::NoValue"]
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId:
+          Fn::GetAtt:
+            - CdcProgressionSensorKinesisServerSideEncryptionKey
+            - Arn
+      StreamModeDetails:
+        StreamMode: !Ref CdcProgressionSensorStreamMode   
 
   ProgressionSensorDataTable:
     Type: AWS::DynamoDB::Table
@@ -113,7 +158,7 @@ Resources:
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
       KinesisStreamSpecification:
-        StreamArn: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
+        StreamArn: !GetAtt CdcProgressionSensorKinesisStream.Arn
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
@@ -170,13 +215,13 @@ Outputs:
   # Kinesis Source Stream containing the DynamoDB Change Data Capture events
   CdcProgressionSensorKinesisSourceStreamName:
     Description: "Kinesis source CDC stream name"
-    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamName
+    Value: !Sub "${ProjectName}-cdc-progression-sensor-stream-001"
   CdcProgressionSensorKinesisSourceStreamArn:
     Description: "Kinesis source CDC stream ARN"
-    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamArn
+    Value: !GetAtt CdcProgressionSensorKinesisStream.Arn
   CdcProgressionSensorKinesisSourceStreamKeyArn:
     Description: "Kinesis source CDC stream crypto key ARN"
-    Value: !GetAtt CdcProgressionSensorKinesisSourceStream.Outputs.KinesisStreamKeyArn
+    Value: !GetAtt CdcProgressionSensorKinesisServerSideEncryptionKey.Arn
 
   # Scheduled Actions
   ProgressionSensorQueueName:
