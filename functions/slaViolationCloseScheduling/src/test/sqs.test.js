@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { addActiveSLAToQueue } = require("../app/lib/sqs");
 const { mockClient } = require("aws-sdk-client-mock");
-const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+const { SQSClient, SendMessageBatchCommand } = require("@aws-sdk/client-sqs");
 
 const sqsMock = mockClient(SQSClient);
 
@@ -50,7 +50,7 @@ describe("test send violations to queue", function () {
   });
 
   it("should add a violation", async () => {
-    sqsMock.on(SendMessageCommand).resolves({ MessageId: "example_id" });
+    sqsMock.on(SendMessageBatchCommand).resolves({ MessageId: "example_id" });
 
     const violations = [
       {
@@ -71,7 +71,7 @@ describe("test send violations to queue", function () {
   });
 
   it("should have a problem adding violation", async () => {
-    sqsMock.on(SendMessageCommand).resolves({});
+    sqsMock.on(SendMessageBatchCommand).resolves({});
 
     const violations = [
       {
