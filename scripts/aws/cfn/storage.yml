@@ -213,9 +213,6 @@ Outputs:
     Value: !Sub "${TimelinesForInvoicingDataTable.Arn}"
 
   # Kinesis Source Stream containing the DynamoDB Change Data Capture events
-  CdcProgressionSensorKinesisSourceStreamName:
-    Description: "Kinesis source CDC stream name"
-    Value: !Sub "${ProjectName}-cdc-progression-sensor-stream-001"
   CdcProgressionSensorKinesisSourceStreamArn:
     Description: "Kinesis source CDC stream ARN"
     Value: !GetAtt CdcProgressionSensorKinesisStream.Arn
