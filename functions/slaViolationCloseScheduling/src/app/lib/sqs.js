@@ -1,4 +1,4 @@
-const { SQSClient, SendMessageCommand } = require("@aws-sdk/client-sqs");
+const { SQSClient, SendMessageBatchCommand } = require("@aws-sdk/client-sqs");
 
 const client = new SQSClient({ region: process.env.REGION });
 
@@ -15,6 +15,7 @@ exports.addActiveSLAToQueue = async (violations) => {
   }
 
   response.receivedViolations = violations.length;
+  let allEntries = [];
 
   for (const singleViolation of violations) {
     if (
@@ -40,10 +41,10 @@ exports.addActiveSLAToQueue = async (violations) => {
       /* istanbul ignore next */
       throw "missing SQS Queue URL";
     }
-    const params = {
-      DelaySeconds: 10,
+
+    const entry = {
       MessageBody: body,
-      QueueUrl: process.env.SEARCH_SLA_VIOLATIONS_QUEUE_URL,
+      Id: singleViolation.id,
       MessageAttributes: {
         entityName_type_relatedEntityId: {
           DataType: "String",
@@ -53,25 +54,35 @@ exports.addActiveSLAToQueue = async (violations) => {
           DataType: "String",
           StringValue: singleViolation.id,
         },
-      },
-    };
+      }
+    }
+    allEntries.push(entry);
+
+  } // for end
+
+  for (let i = 0; i < allEntries.length; i += 10) {
+    const batchEntries = allEntries.slice(i, i + 10);
+    const params = {
+      Entries: batchEntries,
+      QueueUrl: process.env.SEARCH_SLA_VIOLATIONS_QUEUE_URL
+    }
+    
     //console.log("send message params: ", params);
-    const command = new SendMessageCommand(params);
+    const command = new SendMessageBatchCommand(params);
 
     try {
       const data = await client.send(command);
       if (data && data.MessageId) {
-        response.correctlySentViolations++;
+        response.correctlySentViolations += batchEntries.length;
       } else {
-        response.problemsSendingViolations++;
+        response.problemsSendingViolations += batchEntries.length;
       }
     } catch (error) {
       /* istanbul ignore next */
-      response.problemsSendingViolations++;
+      response.problemsSendingViolations += batchEntries.length;
       /* istanbul ignore next */
       console.error("problem sending violations to queue: ", error);
     }
   } // for end
-
   return response;
 };
