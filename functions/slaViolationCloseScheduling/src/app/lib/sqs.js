@@ -1,4 +1,5 @@
 const { SQSClient, SendMessageBatchCommand } = require("@aws-sdk/client-sqs");
+const crypto = require("crypto");
 
 const client = new SQSClient({ region: process.env.REGION });
 
@@ -44,7 +45,7 @@ exports.addActiveSLAToQueue = async (violations) => {
 
     const entry = {
       MessageBody: body,
-      Id: singleViolation.id,
+      Id: crypto.randomUUID(),
       MessageAttributes: {
         entityName_type_relatedEntityId: {
           DataType: "String",
@@ -72,8 +73,8 @@ exports.addActiveSLAToQueue = async (violations) => {
 
     try {
       const data = await client.send(command);
-      if (data && data.MessageId) {
-        response.correctlySentViolations += batchEntries.length;
+      if (data && data.Successful) {
+        response.correctlySentViolations += data.Successful.length;
       } else {
         response.problemsSendingViolations += batchEntries.length;
       }
