@@ -1,6 +1,16 @@
 {
   "Parameters" : {
     "SlaViolationCheckRateExpression": "rate(5 minutes)",
-    "SlaViolationCloseSchedulingLambdaTimeoutSeconds": "60"
+    "SlaViolationCloseSchedulingLambdaTimeoutSeconds": "60",
+    "AlarmTtlValidation" : "0.5",
+    "AlarmTtlRefinement" : "110",
+    "AlarmTtlSendPec" : "2",
+    "AlarmTtlSendPaperAr890" : "100",
+    "AlarmTtlSendAmr" : "2",
+    "SlaExpirationValidation" : "1",
+    "SlaExpirationRefinement" : "120",
+    "SlaExpirationSendPec" : "2",
+    "SlaExpirationSendPaperAr890" : "100",
+    "SlaExpirationSendAmr" : "2"
   }
 }

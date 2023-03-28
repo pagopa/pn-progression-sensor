@@ -23,8 +23,8 @@ const allowedTimelineCategories = [
 
 function calculateNextDate(startTS, days) {
   if (days < 1) {
-    const hours = 24 * days;
-    const date = moment(startTS).add(hours, "hours");
+    const minutes = 24 * 60 * days;
+    const date = moment(startTS).add(minutes, "minutes");
     if (date.isBusinessDay()) return date.toISOString();
     return date.nextBusinessDay().toISOString();
   } else {
@@ -158,7 +158,7 @@ async function processInvoice(event, recIdx) {
   return invoicedElements;
 }
 
-async function mapPayload(event) {
+async function mapPayload(event, ttlSlaTimes) {
   const dynamoDbOps = [];
   /* istanbul ignore else */
   if (event.tableName == TABLES.NOTIFICATIONS) {
@@ -167,8 +167,8 @@ async function mapPayload(event) {
       "VALIDATION",
       event,
       "sentAt",
-      0.5,
-      1
+      ttlSlaTimes.ALARM_TTL_VALIDATION, // default 0.5 
+      ttlSlaTimes.SLA_EXPIRATION_VALIDATION // default 1  
     );
     if (op) dynamoDbOps.push(op);
   } else if (event.tableName == TABLES.TIMELINES) {
@@ -197,8 +197,8 @@ async function mapPayload(event) {
               "REFINEMENT",
               event,
               "notificationSentAt",
-              110,
-              120
+              ttlSlaTimes.ALARM_TTL_REFINEMENT, // default 110 
+              ttlSlaTimes.SLA_EXPIRATION_REFINEMENT // default 120
             );
             dynamoDbOps.push(op1);
           }
@@ -238,8 +238,8 @@ async function mapPayload(event) {
           "SEND_PEC",
           event,
           "timestamp",
-          2,
-          2
+          ttlSlaTimes.ALARM_TTL_SEND_PEC, // default 2
+          ttlSlaTimes.SLA_EXPIRATION_SEND_PEC // default 2
         );
         dynamoDbOps.push(op);
         break;
@@ -257,8 +257,8 @@ async function mapPayload(event) {
           "SEND_PAPER_AR_890",
           event,
           "timestamp",
-          100,
-          100
+          ttlSlaTimes.ALARM_TTL_SEND_PAPER_AR_890, // default 100
+          ttlSlaTimes.SLA_EXPIRATION_SEND_PAPER_AR_890 // default 100
         );
         dynamoDbOps.push(op);
         break;
@@ -278,8 +278,8 @@ async function mapPayload(event) {
           "SEND_AMR",
           event,
           "timestamp",
-          2,
-          2
+          ttlSlaTimes.ALARM_TTL_SEND_AMR, // default 2
+          ttlSlaTimes.SLA_EXPIRATION_SEND_AMR // default 2 
         );
 
         dynamoDbOps.push(op);
@@ -305,7 +305,7 @@ async function mapPayload(event) {
   return dynamoDbOps;
 }
 
-exports.mapEvents = async (events) => {
+exports.mapEvents = async (events, ttlSlaTimes) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
@@ -319,7 +319,7 @@ exports.mapEvents = async (events) => {
 
   let ops = [];
   for (let i = 0; i < filteredEvents.length; i++) {
-    const dynamoDbOps = await mapPayload(filteredEvents[i]);
+    const dynamoDbOps = await mapPayload(filteredEvents[i], ttlSlaTimes);
     ops = ops.concat(dynamoDbOps);
   }
   return ops;

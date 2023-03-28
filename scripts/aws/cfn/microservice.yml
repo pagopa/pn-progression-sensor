@@ -108,6 +108,56 @@ Parameters:
     Default: 60
     Description: "Timeout (in seconds) for Close Schedululing Lambda"
     Type: Number
+  
+  AlarmTtlValidation:
+    Default: 0.5
+    Description: "Alarm TTL for activity VALIDATION (in days)"
+    Type: Number
+  
+  AlarmTtlRefinement:
+    Default: 110
+    Description: "Alarm TTL for activity REFINEMENT (in days)"
+    Type: Number
+  
+  AlarmTtlSendPec:
+    Default: 2
+    Description: "Alarm TTL for activity SEND PEC (in days)"
+    Type: Number
+
+  AlarmTtlSendPaperAr890:
+    Default: 100
+    Description: "Alarm TTL for activity SEND PAPER AR 890 (in days)"
+    Type: Number
+
+  AlarmTtlSendAmr:
+    Default: 2
+    Description: "Alarm TTL for activity SEND AMR (in days)"
+    Type: Number
+
+  SlaExpirationValidation:
+    Default: 1
+    Description: "SLA expiration for activity VALIDATION (in days)"
+    Type: Number
+
+  SlaExpirationRefinement:
+    Default: 120
+    Description: "SLA expiration for activity REFINEMENT (in days)"
+    Type: Number
+
+  SlaExpirationSendPec:
+    Default: 2
+    Description: "SLA expiration for activity SEND PEC (in days)"
+    Type: Number
+
+  SlaExpirationSendPaperAr890:
+    Default: 100
+    Description: "SLA expiration for activity SEND PAPER AR 890 (in days)"
+    Type: Number
+  
+  SlaExpirationSendAmr:
+    Default: 2
+    Description: "SLA expiration for activity SEND AMR (in days)"
+    Type: Number
 
 Conditions:
   SendLogToKinesis: !Not [!Equals [!Ref LogsKinesisSourceStreamArn, ""]]
@@ -219,6 +269,16 @@ Resources:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
           INVOICING_DYNAMODB_TABLE: !Ref TimelinesForInvoicingDynamoTableName
+          ALARM_TTL_VALIDATION: !Ref AlarmTtlValidation
+          ALARM_TTL_REFINEMENT: !Ref AlarmTtlRefinement
+          ALARM_TTL_SEND_PEC: !Ref AlarmTtlSendPec
+          ALARM_TTL_SEND_PAPER_AR_890: !Ref AlarmTtlSendPaperAr890
+          ALARM_TTL_SEND_AMR: !Ref AlarmTtlSendAmr
+          SLA_EXPIRATION_VALIDATION: !Ref SlaExpirationValidation
+          SLA_EXPIRATION_REFINEMENT: !Ref SlaExpirationRefinement
+          SLA_EXPIRATION_SEND_PEC: !Ref SlaExpirationSendPec
+          SLA_EXPIRATION_SEND_PAPER_AR_890: !Ref SlaExpirationSendPaperAr890
+          SLA_EXPIRATION_SEND_AMR: !Ref SlaExpirationSendAmr
       TracingConfig:
         Mode: Active
       Layers:
