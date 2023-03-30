@@ -5,7 +5,7 @@ const {
   TABLES,
   getTimelineElements,
 } = require("./repository");
-const { parseKinesisObjToJsonObj } = require("./utils");
+const { parseKinesisObjToJsonObj, initTtlSlaTimes } = require("./utils");
 
 const allowedTimelineCategories = [
   "REQUEST_ACCEPTED",
@@ -158,7 +158,9 @@ async function processInvoice(event, recIdx) {
   return invoicedElements;
 }
 
-async function mapPayload(event, ttlSlaTimes) {
+async function mapPayload(event) {
+  const ttlSlaTimes = initTtlSlaTimes();
+
   const dynamoDbOps = [];
   /* istanbul ignore else */
   if (event.tableName == TABLES.NOTIFICATIONS) {
@@ -167,8 +169,8 @@ async function mapPayload(event, ttlSlaTimes) {
       "VALIDATION",
       event,
       "sentAt",
-      ttlSlaTimes.ALARM_TTL_VALIDATION, // default 0.5 
-      ttlSlaTimes.SLA_EXPIRATION_VALIDATION // default 1  
+      ttlSlaTimes.ALARM_TTL_VALIDATION, // default 0.5
+      ttlSlaTimes.SLA_EXPIRATION_VALIDATION // default 1
     );
     if (op) dynamoDbOps.push(op);
   } else if (event.tableName == TABLES.TIMELINES) {
@@ -197,7 +199,7 @@ async function mapPayload(event, ttlSlaTimes) {
               "REFINEMENT",
               event,
               "notificationSentAt",
-              ttlSlaTimes.ALARM_TTL_REFINEMENT, // default 110 
+              ttlSlaTimes.ALARM_TTL_REFINEMENT, // default 110
               ttlSlaTimes.SLA_EXPIRATION_REFINEMENT // default 120
             );
             dynamoDbOps.push(op1);
@@ -279,7 +281,7 @@ async function mapPayload(event, ttlSlaTimes) {
           event,
           "timestamp",
           ttlSlaTimes.ALARM_TTL_SEND_AMR, // default 2
-          ttlSlaTimes.SLA_EXPIRATION_SEND_AMR // default 2 
+          ttlSlaTimes.SLA_EXPIRATION_SEND_AMR // default 2
         );
 
         dynamoDbOps.push(op);
@@ -305,7 +307,7 @@ async function mapPayload(event, ttlSlaTimes) {
   return dynamoDbOps;
 }
 
-exports.mapEvents = async (events, ttlSlaTimes) => {
+exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
@@ -319,7 +321,7 @@ exports.mapEvents = async (events, ttlSlaTimes) => {
 
   let ops = [];
   for (let i = 0; i < filteredEvents.length; i++) {
-    const dynamoDbOps = await mapPayload(filteredEvents[i], ttlSlaTimes);
+    const dynamoDbOps = await mapPayload(filteredEvents[i]);
     ops = ops.concat(dynamoDbOps);
   }
   return ops;
