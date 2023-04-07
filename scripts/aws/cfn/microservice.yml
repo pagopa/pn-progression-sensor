@@ -240,13 +240,6 @@ Resources:
             Resource:
               - !Sub "${ProgressionSensorDataDynamoTableArn}"
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
-          - Effect: Allow
-            Action:
-              - sqs:ChangeMessageVisibility
-              - sqs:GetQueueAttributes
-              - sqs:GetQueueUrl
-              - sqs:SendMessage
-            Resource: !Ref SLAViolationCheckerDLQARN
 
   SearchSLAViolationsLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -494,7 +487,10 @@ Resources:
               - sqs:ReceiveMessage
               - sqs:DeleteMessage
               - sqs:GetQueueAttributes
-            Resource: !Ref ProgressionSensorQueueARN
+              - sqs:SendMessage
+            Resource:
+              - !Ref ProgressionSensorQueueARN
+              - !Ref SLAViolationCheckerDLQARN
 
   SLAViolationCheckerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
