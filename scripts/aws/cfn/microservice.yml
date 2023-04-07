@@ -166,6 +166,14 @@ Parameters:
   SLAViolationCheckerLambdaName:
     Type: String
 
+  SLAViolationCheckerDLQARN:
+    Type: String
+    Description: 'DLQ ARN for SLAViolationCheckerLambda'
+
+  SLAViolationCheckerDLQAlarmARN:
+    Type: String
+    Description: 'DLQ Alarm ARN for SLAViolationCheckerLambda'
+
   SLAViolationCheckerLambdaSQSName:
     Type: String
 
@@ -232,6 +240,13 @@ Resources:
             Resource:
               - !Sub "${ProgressionSensorDataDynamoTableArn}"
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+          - Effect: Allow
+            Action:
+              - sqs:ChangeMessageVisibility
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SendMessage
+            Resource: !Ref SLAViolationCheckerDLQARN
 
   SearchSLAViolationsLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -503,6 +518,9 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
       StartingPosition: TRIM_HORIZON
+      DestinationConfig:
+        OnFailure:
+          Destination: !Ref SLAViolationCheckerDLQARN
 
   SLAViolationCheckerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -641,6 +659,7 @@ Resources:
             - !Ref ProgressionSensorQueueAgeAlarmARN
             - !Ref ProgressionSensorQueueAlarmARN
             - !Ref ActivityStepManagerDLQAlarmARN
+            - !Ref SLAViolationCheckerDLQAlarmARN
         LogGroupsNames: !Join
           - ","
           - - !Sub /aws/lambda/${SearchSLAViolationsLambdaName}

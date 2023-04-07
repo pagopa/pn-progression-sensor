@@ -217,6 +217,19 @@ Resources:
         HasDLQ: "false"
         QueueHasAlarm: "true"
 
+  SLAViolationCheckerDLQ:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
+      Parameters:
+        QueueName: !Sub '${ProjectName}-progression-sensor_sla_violation_checker_DLQ'
+        DelaySeconds: 1
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        HasDLQ: "false"
+        QueueHasAlarm: "true"
+
   SearchSLAViolationsLambdaLogGroup:
     Type: AWS::CloudFormation::Stack
     UpdateReplacePolicy: Retain
@@ -322,7 +335,7 @@ Outputs:
   SLAViolationCloseSchedulingLambdaName:
     Value: !Sub "${ProjectName}-slaViolationCloseSchedulingLambda"
 
-  # Delivery Insert Trigger DLQ
+  # Activity Step Manager DLQ
   ActivityStepManagerDLQName:
     Value: !GetAtt ActivityStepManagerDLQ.Outputs.QueueName
     Description: pn-progression-sensor_activity_step_manager_DLQ queue name
@@ -335,3 +348,17 @@ Outputs:
   ActivityStepManagerDLQAlarmARN:
     Value: !GetAtt ActivityStepManagerDLQ.Outputs.SqsDLQAlarmArn
     Description: pn-progression-sensor_activity_step_manager_DLQ alarm ARN
+
+  # SLA Violation Checker DLQ
+  SLAViolationCheckerDLQName:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.QueueName
+    Description: pn-progression-sensor_sla_violation_checker_DLQ queue name
+  SLAViolationCheckerDLQURL:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.QueueURL
+    Description: pn-progression-sensor_sla_violation_checker_DLQ queue URL
+  SLAViolationCheckerDLQARN:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.QueueARN
+    Description: pn-progression-sensor_sla_violation_checker_DLQ queue ARN
+  SLAViolationCheckerDLQAlarmARN:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.SqsDLQAlarmArn
+    Description: pn-progression-sensor_sla_violation_checker_DLQ alarm ARN
