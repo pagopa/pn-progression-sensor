@@ -139,7 +139,7 @@ async function processInvoice(event, recIdx) {
     : null;
   if (notificationCost !== undefined && notificationCost !== null) {
     const invoicedElement = processInvoicedElement(timelineObj);
-    if (invoicedElement) {
+    if (invoicedElement && recIdx !== null) {
       invoicedElements.push(invoicedElement);
       // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
       const iun = timelineObj.iun;
@@ -215,7 +215,7 @@ async function mapPayload(event) {
         );
         dynamoDbOps.push(op);
         // PN-4564 - process invoice data
-        const invoicedElementsRefused = await processInvoice(event, recIdx);
+        const invoicedElementsRefused = await processInvoice(event, null);
         const bulkOpRefused = makeBulkInsertOp(event, invoicedElementsRefused);
         if (bulkOpRefused) {
           dynamoDbOps.push(bulkOpRefused);
