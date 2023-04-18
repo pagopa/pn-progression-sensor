@@ -139,18 +139,21 @@ async function processInvoice(event, recIdx) {
     : null;
   if (notificationCost !== undefined && notificationCost !== null) {
     const invoicedElement = processInvoicedElement(timelineObj);
-    if (invoicedElement && recIdx !== null) {
+    if (invoicedElement) {
       invoicedElements.push(invoicedElement);
-      // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
-      const iun = timelineObj.iun;
-      const timelineElements = await getTimelineElements(iun, [
-        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_0`,
-        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_1`,
-        `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
-      ]);
-      if (timelineElements && timelineElements.length > 0) {
-        for (const timelineElem of timelineElements) {
-          invoicedElements.push(processInvoicedElement(timelineElem));
+
+      if( recIdx !== null ) {
+        // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
+        const iun = timelineObj.iun;
+        const timelineElements = await getTimelineElements(iun, [
+          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_0`,
+          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_1`,
+          `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
+        ]);
+        if (timelineElements && timelineElements.length > 0) {
+          for (const timelineElem of timelineElements) {
+            invoicedElements.push(processInvoicedElement(timelineElem));
+          }
         }
       }
     }
