@@ -139,9 +139,24 @@ describe("Find closingElementId tests by type", function () {
     );
   });
 
-  it("should match the SEND_PEC type", () => {
+  it("should match the SEND_PEC type, REPEAT false", () => {
     const id =
-      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0";
+      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0";
+    const type = "SEND_PEC";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0"
+    );
+    expect(response.alternativeTimelineElementId).to.be.null;
+  });
+
+  it("should match the SEND_PEC type, REPEAT true", () => {
+    const id =
+      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0";
     const type = "SEND_PEC";
 
     const response = closingElementIdFromIDAndType(id, type);
