@@ -214,7 +214,12 @@ async function mapPayload(event) {
           event
         );
         dynamoDbOps.push(op);
-
+        // PN-4564 - process invoice data
+        const invoicedElementsRefused = await processInvoice(event, recIdx);
+        const bulkOpRefused = makeBulkInsertOp(event, invoicedElementsRefused);
+        if (bulkOpRefused) {
+          dynamoDbOps.push(bulkOpRefused);
+        }
         break;
       case "REFINEMENT":
       case "NOTIFICATION_VIEWED":
