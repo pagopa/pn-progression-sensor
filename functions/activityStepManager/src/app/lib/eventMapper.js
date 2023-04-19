@@ -141,16 +141,19 @@ async function processInvoice(event, recIdx) {
     const invoicedElement = processInvoicedElement(timelineObj);
     if (invoicedElement) {
       invoicedElements.push(invoicedElement);
-      // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
-      const iun = timelineObj.iun;
-      const timelineElements = await getTimelineElements(iun, [
-        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
-        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-        `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
-      ]);
-      if (timelineElements && timelineElements.length > 0) {
-        for (const timelineElem of timelineElements) {
-          invoicedElements.push(processInvoicedElement(timelineElem));
+
+      if( recIdx !== null ) {
+        // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
+        const iun = timelineObj.iun;
+        const timelineElements = await getTimelineElements(iun, [
+          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+          `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
+        ]);
+        if (timelineElements && timelineElements.length > 0) {
+          for (const timelineElem of timelineElements) {
+            invoicedElements.push(processInvoicedElement(timelineElem));
+          }
         }
       }
     }
@@ -214,7 +217,12 @@ async function mapPayload(event) {
           event
         );
         dynamoDbOps.push(op);
-
+        // PN-4564 - process invoice data
+        const invoicedElementsRefused = await processInvoice(event, null);
+        const bulkOpRefused = makeBulkInsertOp(event, invoicedElementsRefused);
+        if (bulkOpRefused) {
+          dynamoDbOps.push(bulkOpRefused);
+        }
         break;
       case "REFINEMENT":
       case "NOTIFICATION_VIEWED":
