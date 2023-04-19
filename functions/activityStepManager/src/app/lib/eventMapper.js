@@ -12,10 +12,10 @@ const allowedTimelineCategories = [
   "REQUEST_REFUSED",
   "REFINEMENT",
   "NOTIFICATION_VIEWED",
-  "SEND_DIGITAL_DOMICILE",
-  "SEND_DIGITAL_FEEDBACK",
-  "SEND_ANALOG_DOMICILE",
-  "SEND_ANALOG_FEEDBACK",
+  "SEND_DIGITAL", // previously: SEND_DIGITAL_DOMICILE + changed SENTATTEMPTMADE to ATTEMPT + added REPEAT_false / REPEAT_true
+  "SEND_DIGITAL_FEEDBACK", // changed SENTATTEMPTMADE to ATTEMPT
+  "SEND_ANALOG_DOMICILE", // changed SENTATTEMPTMADE to ATTEMPT
+  "SEND_ANALOG_FEEDBACK", // changed SENTATTEMPTMADE to ATTEMPT
   "DIGITAL_FAILURE_WORKFLOW",
   "SEND_SIMPLE_REGISTERED_LETTER",
   "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS",
@@ -146,8 +146,8 @@ async function processInvoice(event, recIdx) {
         // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
         const iun = timelineObj.iun;
         const timelineElements = await getTimelineElements(iun, [
-          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_0`,
-          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.SENTATTEMPTMADE_1`,
+          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
           `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
         ]);
         if (timelineElements && timelineElements.length > 0) {
@@ -242,7 +242,7 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOp);
         }
         break;
-      case "SEND_DIGITAL_DOMICILE":
+      case "SEND_DIGITAL":
         op = makeInsertOp(
           "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S,
           "SEND_PEC",

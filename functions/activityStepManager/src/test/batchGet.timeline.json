@@ -3,7 +3,7 @@
         "pn-Timelines": [
             {
                 "iun": "abcd",
-                "timelineElementId": "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.SENTATTEMPTMADE_0",
+                "timelineElementId": "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0",
                 "legalFactId": [],
                 "timestamp": "2023-02-16T09:12:05.283425635Z",
                 "category": "AAR_GENERATION",

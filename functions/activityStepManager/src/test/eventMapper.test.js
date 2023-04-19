@@ -123,7 +123,7 @@ describe("event mapper tests", function () {
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-02-16"
     );
     expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
-      "2023-02-16T09:12:05.283Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.SENTATTEMPTMADE_0"
+      "2023-02-16T09:12:05.283Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0"
     );
     expect(res[1].payload[1].ttl).equal(1708074725);
     expect(res[1].payload[1].invoicingDay).equal("2023-02-16");
@@ -197,10 +197,10 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
-  it("test SEND_DIGITAL_DOMICILE", async () => {
+  it("test SEND_DIGITAL", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
-    event = setCategory(event, "SEND_DIGITAL_DOMICILE");
+    event = setCategory(event, "SEND_DIGITAL");
 
     const events = [event];
 

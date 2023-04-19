@@ -23,7 +23,7 @@ describe("DynamoDB tests", function () {
     entityName_type_relatedEntityId:
       "step##SEND_PEC##GVPH-ZMZX-ZULV-202301-P-1",
     type: type,
-    id: "02_PEC__##send_digital_domicile-;IUN_AWMX-HXYK-YDAH-202302-P-1;RECINDEX_0;SOURCE_SPECIAL;SENTATTEMPTMADE_0",
+    id: "02_PEC__##SEND_DIGITAL;IUN_AWMX-HXYK-YDAH-202302-P-1;RECINDEX_0;SOURCE_SPECIAL;ATTEMPT_0",
     startTimestamp: "2023-01-23T14:43:58.897907952Z",
     slaExpiration: "2023-01-25T14:43:58.897Z",
     alarmTTL: "2023-01-25T14:43:58.897Z",
@@ -139,9 +139,9 @@ describe("Find closingElementId tests by type", function () {
     );
   });
 
-  it("should match the SEND_PEC type", () => {
+  it("should match the SEND_PEC type, REPEAT false", () => {
     const id =
-      "02_PEC__##SEND_DIGITAL_DOMICILE.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.SENTATTEMPTMADE_0";
+      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0";
     const type = "SEND_PEC";
 
     const response = closingElementIdFromIDAndType(id, type);
@@ -149,14 +149,29 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.mainTimelineElementId).equal(
-      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.SENTATTEMPTMADE_0"
+      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0"
+    );
+    expect(response.alternativeTimelineElementId).to.be.null;
+  });
+
+  it("should match the SEND_PEC type, REPEAT true", () => {
+    const id =
+      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0";
+    const type = "SEND_PEC";
+
+    const response = closingElementIdFromIDAndType(id, type);
+
+    expect(response).to.not.be.null;
+    expect(response).to.not.be.undefined;
+    expect(response.mainTimelineElementId).equal(
+      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0"
     );
     expect(response.alternativeTimelineElementId).to.be.null;
   });
 
   it("should match the SEND_PAPER_AR_890 type", () => {
     const id =
-      "03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.SENTATTEMPTMADE_1";
+      "03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1";
     const type = "SEND_PAPER_AR_890";
 
     const response = closingElementIdFromIDAndType(id, type);
@@ -164,7 +179,7 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.mainTimelineElementId).equal(
-      "SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.SENTATTEMPTMADE_1"
+      "SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1"
     );
     expect(response.alternativeTimelineElementId).to.be.null;
   });
