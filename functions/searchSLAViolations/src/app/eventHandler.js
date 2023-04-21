@@ -29,10 +29,12 @@ const checkSearchSLAViolationsEvent = (event) => {
   if (
     !isValidType(event.type) ||
     typeof event.active !== "boolean" ||
-    (event.olderThan != null && !isValidDate(event.olderThan)) || // we control it only if passed
-    (event.lastScannedKey != null && typeof event.lastScannedKey !== "string")
+    (event.olderThan != null && !isValidDate(event.olderThan)) // we control it only if passed
+    // lastScannedKey, if present and != null will be an object: we don't check it
   ) {
-    throw new WrongInputParametersException("Incorrect input parameters");
+    throw new WrongInputParametersException(
+      "Incorrect input parameters, event: " + JSON.stringify(event)
+    );
   }
 };
 
