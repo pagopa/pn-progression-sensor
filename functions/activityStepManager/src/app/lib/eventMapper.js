@@ -21,6 +21,8 @@ const allowedTimelineCategories = [
   "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS",
 ];
 
+const ttlSlaTimes = initTtlSlaTimes();
+
 function calculateNextDate(startTS, days) {
   if (days < 1) {
     const minutes = 24 * 60 * days;
@@ -113,9 +115,10 @@ function processInvoicedElement(timelineObj) {
     .tz("Europe/Rome")
     .format("YYYY-MM-DD");
   const paId = timelineObj.paId;
-  // ttl = invoicingTimestamp + 1 year (in seconds)
+  // ttl = invoicingTimestamp + 1 year default (in seconds)
+  const days = ttlSlaTimes.INVOICING_TTL_DAYS; // default 365
   const ttl = Math.floor(
-    moment(invoincingTimestamp).add(1, "year").valueOf() / 1000
+    moment(invoincingTimestamp).add(days, "days").valueOf() / 1000
   );
   return {
     paId_invoicingDay: `${paId}_${invoicingDay}`,
@@ -142,7 +145,7 @@ async function processInvoice(event, recIdx) {
     if (invoicedElement) {
       invoicedElements.push(invoicedElement);
 
-      if( recIdx !== null ) {
+      if (recIdx !== null) {
         // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
         const iun = timelineObj.iun;
         const timelineElements = await getTimelineElements(iun, [
@@ -162,8 +165,6 @@ async function processInvoice(event, recIdx) {
 }
 
 async function mapPayload(event) {
-  const ttlSlaTimes = initTtlSlaTimes();
-
   const dynamoDbOps = [];
   /* istanbul ignore else */
   if (event.tableName == TABLES.NOTIFICATIONS) {
