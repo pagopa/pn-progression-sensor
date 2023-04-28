@@ -11,6 +11,7 @@
     "SlaExpirationRefinement" : "120",
     "SlaExpirationSendPec" : "2",
     "SlaExpirationSendPaperAr890" : "100",
-    "SlaExpirationSendAmr" : "2"
+    "SlaExpirationSendAmr" : "2",
+    "InvoicingTtlDays": "365"
   }
 }

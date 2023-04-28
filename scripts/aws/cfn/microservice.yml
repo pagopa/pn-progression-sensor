@@ -149,6 +149,11 @@ Parameters:
     Description: "SLA expiration for activity SEND AMR (in days)"
     Type: Number
 
+  InvoicingTtlDays:
+    Default: 365
+    Description: "TTL expiration for row in pn-TimelinesForInvoicing (in days)"
+    Type: Number
+
   SearchSLAViolationsLambdaName:
     Type: String
 
@@ -279,6 +284,7 @@ Resources:
           SLA_EXPIRATION_SEND_PEC: !Ref SlaExpirationSendPec
           SLA_EXPIRATION_SEND_PAPER_AR_890: !Ref SlaExpirationSendPaperAr890
           SLA_EXPIRATION_SEND_AMR: !Ref SlaExpirationSendAmr
+          INVOICING_TTL_DAYS: !Ref InvoicingTtlDays
       TracingConfig:
         Mode: Active
       Layers:
