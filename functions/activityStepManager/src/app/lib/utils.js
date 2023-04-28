@@ -75,6 +75,7 @@ exports.initTtlSlaTimes = () => {
     SLA_EXPIRATION_SEND_PEC: 2,
     SLA_EXPIRATION_SEND_PAPER_AR_890: 100,
     SLA_EXPIRATION_SEND_AMR: 2,
+    INVOICING_TTL_DAYS: 365,
   };
 
   ttlSlaTimes.ALARM_TTL_VALIDATION =
@@ -101,6 +102,8 @@ exports.initTtlSlaTimes = () => {
     ttlSlaTimes.SLA_EXPIRATION_SEND_PAPER_AR_890;
   ttlSlaTimes.SLA_EXPIRATION_SEND_AMR =
     process.env.SLA_EXPIRATION_SEND_AMR || ttlSlaTimes.SLA_EXPIRATION_SEND_AMR;
+  ttlSlaTimes.INVOICING_TTL_DAYS =
+    process.env.INVOICING_TTL_DAYS || ttlSlaTimes.INVOICING_TTL_DAYS;
 
   return ttlSlaTimes;
 };
