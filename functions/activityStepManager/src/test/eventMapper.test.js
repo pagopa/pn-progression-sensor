@@ -298,6 +298,10 @@ describe("event mapper tests", function () {
       S: "abcd",
     };
 
+    event.dynamodb.NewImage.deliveryDetailCode = {
+      S: "CON080",
+    };
+
     event.dynamodb.NewImage.details = {
       M: {
         recIndex: {
