@@ -193,7 +193,7 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.mainTimelineElementId).equal(
-      "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1"
+      "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1"
     );
     expect(response.alternativeTimelineElementId).to.be.null;
   });
