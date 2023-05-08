@@ -85,7 +85,7 @@ module.exports.searchSLAViolations = async (
   //console.log("params: ", params);
 
   let response = await dynamoDB.send(new QueryCommand(params));
-  //response.queryParameters = params;
+  response.queryParameters = params; // checked in tests
   //console.log("response: ", response);
 
   return response;
