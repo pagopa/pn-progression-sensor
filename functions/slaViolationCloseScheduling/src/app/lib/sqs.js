@@ -46,6 +46,7 @@ exports.addActiveSLAToQueue = async (violations) => {
     const entry = {
       MessageBody: body,
       Id: crypto.randomUUID(),
+      // only the primary key
       MessageAttributes: {
         entityName_type_relatedEntityId: {
           DataType: "String",
@@ -54,10 +55,6 @@ exports.addActiveSLAToQueue = async (violations) => {
         id: {
           DataType: "String",
           StringValue: singleViolation.id,
-        },
-        type: {
-          DataType: "String",
-          StringValue: singleViolation.type,
         },
       },
     };

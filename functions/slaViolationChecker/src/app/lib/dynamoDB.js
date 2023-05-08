@@ -140,9 +140,14 @@ exports.findActivityEnd = async (iun, id, type) => {
       }
     }
 
+    if (response.Item == null) {
+      console.log("Nothing found on GetItem with the partition key: " + iun);
+      return null;
+    }
+
     // 2. extract and return endTimestamp
     //
-    // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS is be present, we also need to check the presence of the
+    // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
     // registeredLetterCode attribute and that deliveryDetailCode is "CON080", and only in that case return
     // the timestamp instead of null, only for SEND_AMR type
     //
@@ -151,22 +156,22 @@ exports.findActivityEnd = async (iun, id, type) => {
     if (type === "SEND_AMR") {
       // error log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
       if (
-        response.Item?.registeredLetterCode != undefined &&
-        response.Item?.deliveryDetailCode !== "CON080"
+        response.Item.registeredLetterCode &&
+        response.Item.deliveryDetailCode !== "CON080"
       ) {
         console.error(
-          "error checking SEND_SIMPLE_REGISTERD_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: ",
-          response.Item?.deliveryDetailCode
+          "error checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: ",
+          response.Item.deliveryDetailCode
         );
       }
 
-      return response.Item?.registeredLetterCode != undefined &&
-        response.Item?.deliveryDetailCode === "CON080"
-        ? response.Item?.timestamp || null
+      return response.Item.registeredLetterCode &&
+        response.Item.deliveryDetailCode === "CON080"
+        ? response.Item.timestamp || null
         : null;
     } else {
       // all other cases
-      return response.Item?.timestamp || null;
+      return response.Item.timestamp || null;
     }
   } catch (error) {
     /* istanbul ignore next */
