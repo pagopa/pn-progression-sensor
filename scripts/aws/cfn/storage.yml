@@ -43,6 +43,10 @@ Parameters:
     Type: String
     Description: "Topic alarm"
 
+  LogRetention:
+    Type: Number
+    Default: 14
+
 Conditions:
   CdcProgressionSensorOnDemandDisabled: !Not [!Equals [!Ref CdcProgressionSensorStreamMode, ON_DEMAND]]
 
@@ -238,6 +242,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
         LogGroupName: !Sub "${ProjectName}-searchSLAViolationsLambda"
+        LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
   ActivityStepManagerLambdaLogGroup:
@@ -248,6 +253,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
         LogGroupName: !Sub "${ProjectName}-activityStepManagerLambda"
+        LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
   SLAViolationCheckerLambdaLogGroup:
@@ -258,6 +264,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
         LogGroupName: !Sub "${ProjectName}-slaViolationCheckerLambda"
+        LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
   SLAViolationCheckerLambdaSQSLogGroup:
@@ -268,6 +275,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
         LogGroupName: !Sub "${ProjectName}-slaViolationCheckerLambda-SQS"
+        LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
   SLAViolationCloseSchedulingLambdaLogGroup:
@@ -278,6 +286,7 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
       Parameters:
         LogGroupName: !Sub "${ProjectName}-slaViolationCloseSchedulingLambda"
+        LogGroupRetention: !Ref LogRetention
         LogGroupPrefix: '/aws/lambda'
 
 Outputs:
