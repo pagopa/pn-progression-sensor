@@ -55,6 +55,10 @@ exports.addActiveSLAToQueue = async (violations) => {
           DataType: "String",
           StringValue: singleViolation.id,
         },
+        type: {
+          DataType: "String",
+          StringValue: singleViolation.type,
+        },
       },
     };
     allEntries.push(entry);
