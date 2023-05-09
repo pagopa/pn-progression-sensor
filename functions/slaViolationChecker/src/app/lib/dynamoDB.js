@@ -143,6 +143,8 @@ exports.findActivityEnd = async (iun, id, type) => {
     if (response.Item == null) {
       console.log("Nothing found on GetItem with the partition key: " + iun);
       return null;
+    } else {
+      console.log("Returned item: " + JSON.stringify(response.Item));
     }
 
     // 2. extract and return endTimestamp
@@ -156,17 +158,19 @@ exports.findActivityEnd = async (iun, id, type) => {
     if (type === "SEND_AMR") {
       // error log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
       if (
-        response.Item.registeredLetterCode &&
-        response.Item.deliveryDetailCode !== "CON080"
+        response.Item.details &&
+        response.Item.details.registeredLetterCode &&
+        response.Item.details.deliveryDetailCode !== "CON080"
       ) {
         console.error(
           "error checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: ",
-          response.Item.deliveryDetailCode
+          response.Item.details.deliveryDetailCode
         );
       }
 
-      return response.Item.registeredLetterCode &&
-        response.Item.deliveryDetailCode === "CON080"
+      return response.Item.details &&
+        response.Item.details.registeredLetterCode &&
+        response.Item.details.deliveryDetailCode === "CON080"
         ? response.Item.timestamp || null
         : null;
     } else {

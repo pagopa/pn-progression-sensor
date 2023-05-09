@@ -342,8 +342,10 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     ddbMock.on(GetCommand).resolves({
       Item: {
         timestamp: foundTimestamp,
-        registeredLetterCode: "abcd",
-        deliveryDetailCode: "CON080",
+        details: {
+          registeredLetterCode: "abcd",
+          deliveryDetailCode: "CON080",
+        },
       },
     });
 
@@ -370,7 +372,9 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     ddbMock.on(GetCommand).resolves({
       Item: {
         timestamp: foundTimestamp,
-        registeredLetterCode: "abcd",
+        details: {
+          registeredLetterCode: "abcd",
+        },
       },
     });
 
