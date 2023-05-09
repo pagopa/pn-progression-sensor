@@ -162,7 +162,7 @@ exports.findActivityEnd = async (iun, id, type) => {
         response.Item.details.registeredLetterCode &&
         response.Item.details.deliveryDetailCode !== "CON080"
       ) {
-        console.warning(
+        console.warn(
           "problem checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: " +
             response.Item.details.deliveryDetailCode +
             ", item: " +
