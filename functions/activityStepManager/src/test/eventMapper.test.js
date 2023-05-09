@@ -294,18 +294,16 @@ describe("event mapper tests", function () {
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS");
 
-    event.dynamodb.NewImage.registeredLetterCode = {
-      S: "abcd",
-    };
-
-    event.dynamodb.NewImage.deliveryDetailCode = {
-      S: "CON080",
-    };
-
     event.dynamodb.NewImage.details = {
       M: {
         recIndex: {
           N: 0,
+        },
+        registeredLetterCode: {
+          S: "abcd",
+        },
+        deliveryDetailCode: {
+          S: "CON080",
         },
       },
     };
