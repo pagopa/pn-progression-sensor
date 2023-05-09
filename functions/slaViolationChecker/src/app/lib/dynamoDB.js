@@ -150,27 +150,27 @@ exports.findActivityEnd = async (iun, id, type) => {
     // 2. extract and return endTimestamp
     //
     // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
-    // registeredLetterCode attribute and that deliveryDetailCode is "CON080", and only in that case return
+    // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
     // the timestamp instead of null, only for SEND_AMR type
     //
     // note: we only perform this for .IDX_1
 
     if (type === "SEND_AMR") {
-      // error log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
+      // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
       if (
         response.Item.details &&
         response.Item.details.registeredLetterCode &&
         response.Item.details.deliveryDetailCode !== "CON080"
       ) {
-        console.error(
-          "error checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: ",
-          response.Item.details.deliveryDetailCode
+        console.warning(
+          "problem checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: " +
+            response.Item.details.deliveryDetailCode +
+            ", item: " +
+            JSON.stringify(response.Item)
         );
       }
 
-      return response.Item.details &&
-        response.Item.details.registeredLetterCode &&
-        response.Item.details.deliveryDetailCode === "CON080"
+      return response.Item.details && response.Item.details.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
         ? response.Item.timestamp || null
         : null;
     } else {

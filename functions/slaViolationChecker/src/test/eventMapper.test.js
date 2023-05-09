@@ -366,15 +366,13 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
   });
 
-  it("should be correct mapping with SEND_AMR - update, no CON080", async () => {
+  it("should be correct mapping with SEND_AMR - update, no registeredLetterCode", async () => {
     const foundTimestamp = "2023-07-03T15:06:12.470Z";
 
     ddbMock.on(GetCommand).resolves({
       Item: {
         timestamp: foundTimestamp,
-        details: {
-          registeredLetterCode: "abcd",
-        },
+        details: {},
       },
     });
 
