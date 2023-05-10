@@ -80,12 +80,12 @@ module.exports.searchSLAViolations = async (
     };
   }
   if (lastScannedKey != undefined) {
-    params.lastScannedKey = lastScannedKey;
+    params.ExclusiveStartKey = lastScannedKey; // the DynamoDB command parameter to be passed is called ExclusiveStartKey, not lastScannedKey!
   }
   //console.log("params: ", params);
 
   let response = await dynamoDB.send(new QueryCommand(params));
-  response.queryParameters = params;
+  response.queryParameters = params; // checked in tests
   //console.log("response: ", response);
 
   return response;

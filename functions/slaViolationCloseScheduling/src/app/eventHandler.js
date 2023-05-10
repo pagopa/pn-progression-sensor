@@ -36,7 +36,10 @@ module.exports.eventHandler = async (event) => {
         lastScannedKey = null;
       } else {
         // success
-        //console.log("lambda invocation response: ", lambdaResponse);
+        console.log(
+          "lambda invocation response: ",
+          JSON.stringify(lambdaResponse)
+        );
         payload.activeSLASearchSuccesses++;
         currentTypeSlaViolations = currentTypeSlaViolations.concat(
           lambdaResponse.results

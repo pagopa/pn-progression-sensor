@@ -340,7 +340,13 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     const foundTimestamp = "2023-07-03T15:06:12.470Z";
 
     ddbMock.on(GetCommand).resolves({
-      Item: { timestamp: foundTimestamp, registeredLetterCode: "abcd" },
+      Item: {
+        timestamp: foundTimestamp,
+        details: {
+          registeredLetterCode: "abcd",
+          deliveryDetailCode: "CON080",
+        },
+      },
     });
 
     const processedItems = await mapEvents([kinesisEventAMR]);
@@ -354,8 +360,36 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     );
     expect(processedItems[0].id).equal("04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1");
 
-    expect(processedItems[0].active_sla_entityName_type).to.be.undefined; // must have been removed, because we're updating (it won't be undefined if registeredLetterCode is not present)
+    // must have been removed, because we're updating
+    // (it won't be undefined if registeredLetterCode is not present or deliveryDetailCode is not "CON080")
+    expect(processedItems[0].active_sla_entityName_type).to.be.undefined;
     expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
+  });
+
+  it("should be correct mapping with SEND_AMR - update, no registeredLetterCode", async () => {
+    const foundTimestamp = "2023-07-03T15:06:12.470Z";
+
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        timestamp: foundTimestamp,
+        details: {},
+      },
+    });
+
+    const processedItems = await mapEvents([kinesisEventAMR]);
+    console.log("processed items: ", processedItems);
+
+    expect(processedItems.length).equal(1);
+
+    // SEND_AMR
+    expect(processedItems[0].entityName_type_relatedEntityId).equal(
+      "XLDW-MQYJ-WUKA-202302-A-1"
+    );
+    expect(processedItems[0].id).equal("04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1");
+
+    // not removed
+    expect(processedItems[0].active_sla_entityName_type).not.to.be.undefined;
+    expect(processedItems[0].endTimeStamp).to.be.undefined;
   });
 });
 

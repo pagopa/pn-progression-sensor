@@ -46,6 +46,7 @@ exports.addActiveSLAToQueue = async (violations) => {
     const entry = {
       MessageBody: body,
       Id: crypto.randomUUID(),
+      // only the primary key
       MessageAttributes: {
         entityName_type_relatedEntityId: {
           DataType: "String",
@@ -55,19 +56,18 @@ exports.addActiveSLAToQueue = async (violations) => {
           DataType: "String",
           StringValue: singleViolation.id,
         },
-      }
-    }
+      },
+    };
     allEntries.push(entry);
-
   } // for end
 
   for (let i = 0; i < allEntries.length; i += 10) {
     const batchEntries = allEntries.slice(i, i + 10);
     const params = {
       Entries: batchEntries,
-      QueueUrl: process.env.SEARCH_SLA_VIOLATIONS_QUEUE_URL
-    }
-    
+      QueueUrl: process.env.SEARCH_SLA_VIOLATIONS_QUEUE_URL,
+    };
+
     //console.log("send message params: ", params);
     const command = new SendMessageBatchCommand(params);
 
@@ -82,7 +82,7 @@ exports.addActiveSLAToQueue = async (violations) => {
       /* istanbul ignore next */
       response.problemsSendingViolations += batchEntries.length;
       /* istanbul ignore next */
-      console.error("problem sending violations to queue: ", error);
+      console.error("error sending violations to queue: ", error);
     }
   } // for end
   return response;

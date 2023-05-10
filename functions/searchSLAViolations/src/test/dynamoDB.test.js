@@ -144,6 +144,6 @@ describe("DynamoDB tests", function () {
     expect(response.queryParameters.KeyConditionExpression).equal(
       "active_sla_entityName_type = :partitionKey"
     );
-    expect(response.queryParameters.lastScannedKey).equal("testKey");
+    expect(response.queryParameters.ExclusiveStartKey).equal("testKey");
   });
 });

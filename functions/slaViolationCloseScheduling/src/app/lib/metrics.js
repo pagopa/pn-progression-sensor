@@ -11,11 +11,11 @@ const client = new CloudWatchClient({ region: process.env.REGION });
 
 exports.putMetricDataForType = async (value, type) => {
   if (!isValidType(type)) {
-    console.error("wrong type passed: ", type);
+    console.error("error: wrong type passed: ", type);
     return false;
   }
   if (typeof value !== "number" || value < 0) {
-    console.error("wrong metric input value: ", value);
+    console.error("error: wrong metric input value: ", value);
     return false;
   }
 
@@ -25,8 +25,8 @@ exports.putMetricDataForType = async (value, type) => {
         MetricName: metricName,
         Dimensions: [
           {
-            Name: 'type',
-            Value: type
+            Name: "type",
+            Value: type,
           },
         ],
         //Unit: "None",
@@ -43,7 +43,7 @@ exports.putMetricDataForType = async (value, type) => {
   } catch (error) {
     /* istanbul ignore next */
     console.error(
-      "problem publishing metric, for input: ",
+      "error publishing metric, for input: ",
       JSON.stringify(input),
       ", error: ",
       error

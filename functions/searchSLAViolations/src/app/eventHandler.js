@@ -89,7 +89,7 @@ module.exports.eventHandler = async (event /*, context, callback*/) => {
 
     // -- prepare and return response
     payload.results = response.Items;
-    payload.lastScannedKey = response.LastEvaluatedKey || null;
+    payload.lastScannedKey = response.LastEvaluatedKey || null; // the DynamoDB returned parameter is called LastEvaluatedKey, not lastScannedKey!
   } catch (error) {
     payload.success = false;
     payload.message = error?.message;

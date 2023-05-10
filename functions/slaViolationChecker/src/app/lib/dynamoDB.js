@@ -67,13 +67,17 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */
-    case "SEND_AMR": // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1
+    case "SEND_AMR": // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always look for IDX_1)
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
       const timelineBaseAMR = id
         .replace("04_AMR##", "IUN_")
         .replace("##", sepChar + "RECINDEX_");
       returnCouple.mainTimelineElementId =
-        "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS" + sepChar + timelineBaseAMR;
+        "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS" +
+        sepChar +
+        timelineBaseAMR +
+        sepChar +
+        "IDX_1";
       returnCouple.alternativeTimelineElementId = null;
       break;
     /* istanbul ignore next */
@@ -136,19 +140,42 @@ exports.findActivityEnd = async (iun, id, type) => {
       }
     }
 
+    if (response.Item == null) {
+      console.log("Nothing found on GetItem with the partition key: " + iun);
+      return null;
+    } else {
+      console.log("Returned item: " + JSON.stringify(response.Item));
+    }
+
     // 2. extract and return endTimestamp
     //
-    // when SEND_SIMPLE_REGISTERD_LETTER_PROGRESS is be present, we also need to check the presence of the
-    // registeredLetterCode attribute, and only in that case return the timestamp instead of null, only
-    // for SEND_AMR type (if (type === "SEND_AMR" && response.Item?.registeredLetterCode != undefined))
+    // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
+    // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
+    // the timestamp instead of null, only for SEND_AMR type
+    //
+    // note: we only perform this for .IDX_1
 
     if (type === "SEND_AMR") {
-      return response.Item?.registeredLetterCode != undefined
-        ? response.Item?.timestamp || null
+      // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
+      if (
+        response.Item.details &&
+        response.Item.details.registeredLetterCode &&
+        response.Item.details.deliveryDetailCode !== "CON080"
+      ) {
+        console.warn(
+          "problem checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: " +
+            response.Item.details.deliveryDetailCode +
+            ", item: " +
+            JSON.stringify(response.Item)
+        );
+      }
+
+      return response.Item.details && response.Item.details.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
+        ? response.Item.timestamp || null
         : null;
     } else {
       // all other cases
-      return response.Item?.timestamp || null;
+      return response.Item.timestamp || null;
     }
   } catch (error) {
     /* istanbul ignore next */

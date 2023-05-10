@@ -297,8 +297,10 @@ async function mapPayload(event) {
         break;
       case "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS":
         if (
-          event.dynamodb.NewImage.registeredLetterCode &&
-          event.dynamodb.NewImage.registeredLetterCode.S
+          event.dynamodb.NewImage.details &&
+          event.dynamodb.NewImage.details.M &&
+          event.dynamodb.NewImage.details.M.registeredLetterCode &&
+          event.dynamodb.NewImage.details.M.registeredLetterCode.S // we no longer require that event.dynamodb.NewImage.details.M.deliveryDetailCode.S === "CON080"
         ) {
           recIdx = event.dynamodb.NewImage.details.M.recIndex.N;
           op = makeDeleteOp(

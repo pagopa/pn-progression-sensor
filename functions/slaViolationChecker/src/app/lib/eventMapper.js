@@ -84,27 +84,35 @@ exports.mapEvents = async (events) => {
 
 // common
 const makeUpdateOp = (event, endTimeStamp, source = "kinesis") => {
-  // note: we only need to pass whats's needed for setting the primary key and the field to add (endTimeStamp)
+  // note: we only need to pass whats's needed for finding the primary key and for
+  // setting the fields to add (endTimeStamp and type_endTimestampYearMonth)
   const op = {
-    // what to set
+    // attribute to set
     endTimeStamp: endTimeStamp,
     // end of fields
     opType: "UPDATE",
   };
 
   if (source.toLowerCase() === "sqs") {
+    // SQS
     op.messageId = event.messageId;
+
     // keys
     op.entityName_type_relatedEntityId =
       event.dynamodb.entityName_type_relatedEntityId;
     op.id = event.dynamodb.id;
+    // attribute to set
+    op.type = event.dynamodb.type;
   } else {
     // Kinesis
     op.kinesisSeqNumber = event.kinesisSeqNumber;
+
     // keys
     op.entityName_type_relatedEntityId =
       event.dynamodb.OldImage.entityName_type_relatedEntityId.S;
     op.id = event.dynamodb.OldImage.id.S;
+    // attribute to set
+    op.type = event.dynamodb.OldImage.type.S;
   }
 
   return op;
