@@ -12,7 +12,7 @@ const allowedTimelineCategories = [
   "REQUEST_REFUSED",
   "REFINEMENT",
   "NOTIFICATION_VIEWED",
-  "SEND_DIGITAL", // previously: SEND_DIGITAL_DOMICILE + changed SENTATTEMPTMADE to ATTEMPT + added REPEAT_false / REPEAT_true
+  "SEND_DIGITAL_DOMICILE", // the category is SEND_DIGITAL_DOMICILE: in the timelineElementId is SEND_DIGITAL + changed SENTATTEMPTMADE to ATTEMPT + added REPEAT_false / REPEAT_true
   "SEND_DIGITAL_FEEDBACK", // changed SENTATTEMPTMADE to ATTEMPT
   "SEND_ANALOG_DOMICILE", // changed SENTATTEMPTMADE to ATTEMPT
   "SEND_ANALOG_FEEDBACK", // changed SENTATTEMPTMADE to ATTEMPT
@@ -243,7 +243,7 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOp);
         }
         break;
-      case "SEND_DIGITAL":
+      case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
           "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S,
           "SEND_PEC",
