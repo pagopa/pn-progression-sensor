@@ -197,10 +197,10 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
-  it("test SEND_DIGITAL", async () => {
+  it("test SEND_DIGITAL_DOMICILE", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
-    event = setCategory(event, "SEND_DIGITAL");
+    event = setCategory(event, "SEND_DIGITAL_DOMICILE");
 
     const events = [event];
 
