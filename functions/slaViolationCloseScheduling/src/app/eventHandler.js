@@ -110,6 +110,10 @@ module.exports.eventHandler = async (event) => {
     slaViolations = slaViolations.concat(currentTypeSlaViolations); // an array is added to the global array
 
     // communicate the metric
+    //
+    // WE MUST ALSO COMMUNICATE THE NUMBER OF ACTIVE SLA VIOLATIONS FOR EACH TYPE, so
+    // we need to save this and communicate only when we have the complete number for that type
+    // ...
     await putMetricDataForType(currentTypeSlaViolations.length, type);
   }
 
@@ -119,6 +123,9 @@ module.exports.eventHandler = async (event) => {
     numberOfActiveSLAViolations
   );
   // 2. send active queue for checking/processing
+  //
+  // WE COULD PERFORM THE SEND NOT AT THE END, BUT FOR EACH "ROUND" OF THE LOOP
+  //
   const queueResponse = await addActiveSLAToQueue(slaViolations);
 
   console.log("send to queue response: ", queueResponse);
