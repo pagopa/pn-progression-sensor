@@ -8,8 +8,8 @@ let globalLastScannedKey = null;
 let globalLastScannedKeyType = "";
 
 module.exports.eventHandler = async (event) => {
-  // INSERT LOGIC: read max allowed execution time from env
-  // ...
+  // read max allowed execution time from env
+  const max_allowed_time_ms = process.env.MAX_ALLOWED_TIME_MS || 10000; // default 10 seconds
 
   // determine start time
   const startTime = new Date().getTime();
@@ -59,8 +59,6 @@ module.exports.eventHandler = async (event) => {
         lastScannedKey = null;
 
         // reset global last scanned key
-        // SEE... should we do it?
-        // ...
         globalLastScannedKey = null;
         globalLastScannedKeyType = "";
       } else {
@@ -75,12 +73,19 @@ module.exports.eventHandler = async (event) => {
         ); // an array is added to the array for current type
         lastScannedKey = lambdaResponse.lastScannedKey || null;
 
+        // send active queue for checking/processing
+        const queueResponse = await addActiveSLAToQueue(lambdaResponse.results);
+        console.log("send to queue response: ", queueResponse);
+
         // check elapsed time
         const currentTime = new Date().getTime();
-        const elapsed = currentTime - startTime; // in milliseconds
+        const elapsed_ms = currentTime - startTime; // in milliseconds
 
-        let mustStopBeforeTimeout = false; // INSERT LOGIC: calc time till here and compare to max time
-        // ...
+        // check if we must stop
+        let mustStopBeforeTimeout = false;
+        if (elapsed_ms > max_allowed_time_ms) {
+          mustStopBeforeTimeout = true;
+        }
 
         // if we must stop
         if (mustStopBeforeTimeout) {
@@ -95,7 +100,7 @@ module.exports.eventHandler = async (event) => {
           /// ...
         }
       }
-    } while (lastScannedKey != null);
+    } while (lastScannedKey != null); // end violations inner loop
 
     if (currentTypeSlaViolations.length < 1) {
       console.log("No active SLA Violations for type: " + type);
@@ -115,7 +120,7 @@ module.exports.eventHandler = async (event) => {
     // we need to save this and communicate only when we have the complete number for that type
     // ...
     await putMetricDataForType(currentTypeSlaViolations.length, type);
-  }
+  } // end types loop
 
   const numberOfActiveSLAViolations = slaViolations.length;
   console.log(
@@ -123,12 +128,8 @@ module.exports.eventHandler = async (event) => {
     numberOfActiveSLAViolations
   );
   // 2. send active queue for checking/processing
-  //
-  // WE COULD PERFORM THE SEND NOT AT THE END, BUT FOR EACH "ROUND" OF THE LOOP
-  //
-  const queueResponse = await addActiveSLAToQueue(slaViolations);
-
-  console.log("send to queue response: ", queueResponse);
+  //const queueResponse = await addActiveSLAToQueue(slaViolations);
+  //console.log("send to queue response: ", queueResponse);
 
   return payload;
 };
