@@ -14,6 +14,8 @@ module.exports.eventHandler = async (event) => {
   // determine start time
   const startTime = new Date().getTime();
 
+  let completelyStop = false;
+
   // basic return payload
   const payload = {
     activeSLASearchSuccesses: 0,
@@ -35,17 +37,20 @@ module.exports.eventHandler = async (event) => {
   for (const type of types) {
     let lastScannedKey = null;
 
-    // check if we have a global last scanned key,
-    // and if it is for the same type
+    //check if we have a global last scanned key,
+    //and if it is for the same type
     if (globalLastScannedKey != null) {
       if (globalLastScannedKeyType === type) {
+        // process this type from previous interryption
         lastScannedKey = globalLastScannedKey;
       } else {
-        // reset and break, passing to next type
-        globalLastScannedKeyType = "";
-
+        // pass to next type for recovering from previous interruption
         continue;
       }
+    } // if we get here, go with normal loop processing (no recover needed)
+
+    if (completelyStop) {
+      break;
     }
 
     // violations inner loop
@@ -77,30 +82,31 @@ module.exports.eventHandler = async (event) => {
         const queueResponse = await addActiveSLAToQueue(lambdaResponse.results);
         console.log("send to queue response: ", queueResponse);
 
-        // check elapsed time
-        const currentTime = new Date().getTime();
-        const elapsed_ms = currentTime - startTime; // in milliseconds
+        // we performed everything for the current loop iteration
+
+        // we save the last scanned key, if not null, and reset it otherwise
+        if (lastScannedKey != null) {
+          // we could do this only if previously different...
+          globalLastScannedKey = lastScannedKey;
+          globalLastScannedKeyType = type;
+        } else {
+          // reset global last scanned key
+          globalLastScannedKey = null;
+          globalLastScannedKeyType = "";
+        }
 
         // check if we must stop
-        let mustStopBeforeTimeout = false;
-        if (elapsed_ms > max_allowed_time_ms) {
-          mustStopBeforeTimeout = true;
-        }
+        const currentTime = new Date().getTime();
+        const elapsed_ms = currentTime - startTime; // in milliseconds
+        console.log("elapsed time: ", elapsed_ms);
 
-        // if we must stop
-        if (mustStopBeforeTimeout) {
-          // we save the last scanned key, if not null
-          if (lastScannedKey != null) {
-            globalLastScannedKey = lastScannedKey;
-            globalLastScannedKeyType = type;
-          }
-
-          break; // stop the loop
-          // SEE... we must stop both loops!!!! while and for... (but probably we automatically exit with the continue from the external one...)
-          /// ...
+        if (elapsed_ms >= max_allowed_time_ms) {
+          console.log("stopping before timeout");
+          completelyStop = true; // stop the outer loop (types loop)
+          break; // stop the do while loop (violations inner loop)
         }
       }
-    } while (lastScannedKey != null); // end violations inner loop
+    } while (lastScannedKey != null); // end violations inner do while loop (single type)
 
     if (currentTypeSlaViolations.length < 1) {
       console.log("No active SLA Violations for type: " + type);
@@ -120,7 +126,7 @@ module.exports.eventHandler = async (event) => {
     // we need to save this and communicate only when we have the complete number for that type
     // ...
     await putMetricDataForType(currentTypeSlaViolations.length, type);
-  } // end types loop
+  } // end types loop (for)
 
   const numberOfActiveSLAViolations = slaViolations.length;
   console.log(
