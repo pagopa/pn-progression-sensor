@@ -24,7 +24,6 @@ describe("event handler tests", function () {
     });
 
     const res = await lambda.eventHandler(event);
-    //console.log(res);
     expect(res.activeSLASearchSuccesses).deep.equals(5); // 1 success for each type
     expect(res.activeSLASearchFailures).deep.equals(0);
     expect(res.eventsSentToQueue).deep.equals(0);
@@ -52,7 +51,6 @@ describe("event handler tests", function () {
     });
 
     const res = await lambda.eventHandler(event);
-    //console.log(res);
     expect(res.activeSLASearchSuccesses).deep.equals(0);
     expect(res.activeSLASearchFailures).deep.equals(5); // 1 failure for each type
     expect(res.eventsSentToQueue).deep.equals(0);
@@ -80,7 +78,6 @@ describe("event handler tests", function () {
     });
 
     const res = await lambda.eventHandler(event);
-    //console.log(res);
     expect(res.activeSLASearchSuccesses).deep.equals(5); // 1 success for each type
     expect(res.activeSLASearchFailures).deep.equals(0);
     expect(res.eventsSentToQueue).deep.equals(0);

@@ -6,6 +6,7 @@ const { putMetricDataForType } = require("./lib/metrics");
 // invoked again and is hot
 let globalLastScannedKey = null;
 let globalLastScannedKeyType = "";
+let globalLastScannedCount = 0;
 
 module.exports.eventHandler = async (event) => {
   // read max allowed execution time from env
@@ -37,6 +38,8 @@ module.exports.eventHandler = async (event) => {
   for (const type of types) {
     let lastScannedKey = null;
 
+    let recoveredTypeCount = 0;
+
     //check if we have a global last scanned key,
     //and if it is for the same type
     if (globalLastScannedKey != null) {
@@ -66,6 +69,7 @@ module.exports.eventHandler = async (event) => {
         // reset global last scanned key
         globalLastScannedKey = null;
         globalLastScannedKeyType = "";
+        globalLastScannedCount = 0;
       } else {
         // success
         console.log(
@@ -89,10 +93,15 @@ module.exports.eventHandler = async (event) => {
           // we could do this only if previously different...
           globalLastScannedKey = lastScannedKey;
           globalLastScannedKeyType = type;
+          globalLastScannedCount =
+            globalLastScannedCount + lambdaResponse.results.length;
         } else {
+          recoveredTypeCount =
+            globalLastScannedCount + lambdaResponse.results.length;
           // reset global last scanned key
           globalLastScannedKey = null;
           globalLastScannedKeyType = "";
+          globalLastScannedCount = 0;
         }
 
         // check if we must stop
@@ -104,6 +113,8 @@ module.exports.eventHandler = async (event) => {
           console.log("stopping before timeout");
           completelyStop = true; // stop the outer loop (types loop)
           break; // stop the do while loop (violations inner loop)
+        } else {
+          completelyStop = false;
         }
       }
     } while (lastScannedKey != null); // end violations inner do while loop (single type)
@@ -120,12 +131,15 @@ module.exports.eventHandler = async (event) => {
 
     slaViolations = slaViolations.concat(currentTypeSlaViolations); // an array is added to the global array
 
-    // communicate the metric
-    //
-    // WE MUST ALSO COMMUNICATE THE NUMBER OF ACTIVE SLA VIOLATIONS FOR EACH TYPE, so
-    // we need to save this and communicate only when we have the complete number for that type
-    // ...
-    await putMetricDataForType(currentTypeSlaViolations.length, type);
+    // communicate the metric if we were not forced to stop (and only have partials for the current type)
+    if (!completelyStop) {
+      if (recoveredTypeCount > currentTypeSlaViolations.length) {
+        await putMetricDataForType(recoveredTypeCount, type);
+      } else {
+        // we have a complete count for the current type
+        await putMetricDataForType(currentTypeSlaViolations.length, type);
+      }
+    }
   } // end types loop (for)
 
   const numberOfActiveSLAViolations = slaViolations.length;
