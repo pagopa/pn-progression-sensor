@@ -2,6 +2,7 @@
   "Parameters" : {
     "SlaViolationCheckRateExpression": "rate(5 minutes)",
     "SlaViolationCloseSchedulingLambdaTimeoutSeconds": "60",
+    "SlaViolationCloseSchedulingLambdaMaxExecutionMs": "50000",
     "AlarmTtlValidation" : "0.5",
     "AlarmTtlRefinement" : "110",
     "AlarmTtlSendPec" : "2",
