@@ -144,7 +144,10 @@ exports.findActivityEnd = async (iun, id, type) => {
       console.log("Nothing found on GetItem with the partition key: " + iun);
       return null;
     } else {
-      console.log("Returned item: " + JSON.stringify(response.Item));
+      //console.log("Returned item: " + JSON.stringify(response.Item));
+      console.log(
+        "Returned item timelineElementId: " + response.Item.timelineElementId
+      );
     }
 
     // 2. extract and return endTimestamp
