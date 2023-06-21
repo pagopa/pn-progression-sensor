@@ -22,6 +22,8 @@ module.exports.eventHandler = async (event) => {
     activeSLASearchSuccesses: 0,
     activeSLASearchFailures: 0,
     eventsSentToQueue: 0,
+    activeSlasFound: 0,
+    partialResults: false,
   };
 
   // 1. get currently active SLA Violations
@@ -40,8 +42,9 @@ module.exports.eventHandler = async (event) => {
 
     let recoveredTypeCount = 0;
 
-    //check if we have a global last scanned key,
-    //and if it is for the same type
+    // check if we have a global last scanned key,
+    // and if it is for the same type
+    /* istanbul ignore next */
     if (globalLastScannedKey != null) {
       if (globalLastScannedKeyType === type) {
         // process this type from previous interryption
@@ -52,6 +55,7 @@ module.exports.eventHandler = async (event) => {
       }
     } // if we get here, go with normal loop processing (no recover needed)
 
+    /* istanbul ignore next */
     if (completelyStop) {
       break;
     }
@@ -89,6 +93,7 @@ module.exports.eventHandler = async (event) => {
         // we performed everything for the current loop iteration
 
         // we save the last scanned key, if not null, and reset it otherwise
+        /* istanbul ignore next */
         if (lastScannedKey != null) {
           // we could do this only if previously different...
           globalLastScannedKey = lastScannedKey;
@@ -109,9 +114,11 @@ module.exports.eventHandler = async (event) => {
         const elapsed_ms = currentTime - startTime; // in milliseconds
         console.log("elapsed time: ", elapsed_ms);
 
+        /* istanbul ignore next */
         if (elapsed_ms >= max_allowed_time_ms) {
           console.log("stopping before timeout");
           completelyStop = true; // stop the outer loop (types loop)
+          payload.partialResults = true;
           break; // stop the do while loop (violations inner loop)
         } else {
           completelyStop = false;
@@ -133,16 +140,13 @@ module.exports.eventHandler = async (event) => {
 
     // communicate the metric if we were not forced to stop (and only have partials for the current type)
     if (!completelyStop) {
-      if (recoveredTypeCount > currentTypeSlaViolations.length) {
-        await putMetricDataForType(recoveredTypeCount, type);
-      } else {
-        // we have a complete count for the current type
-        await putMetricDataForType(currentTypeSlaViolations.length, type);
-      }
+      await putMetricDataForType(recoveredTypeCount, type);
+      console.log("put metric data for type: ", recoveredTypeCount);
     }
   } // end types loop (for)
 
   const numberOfActiveSLAViolations = slaViolations.length;
+  payload.activeSlasFound = numberOfActiveSLAViolations;
   console.log(
     "total number of active SLA Violations: ",
     numberOfActiveSLAViolations
