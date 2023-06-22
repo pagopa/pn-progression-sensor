@@ -98,6 +98,11 @@ Parameters:
     Default: 60
     Description: "Timeout (in seconds) for Close Schedululing Lambda"
     Type: Number
+
+  SlaViolationCloseSchedulingLambdaMaxExecutionMs:
+    Default: 50000
+    Description: "Max execution time (in ms) for Close Schedululing Lambda: set less than SlaViolationCloseSchedulingLambdaTimeoutSeconds * 1000 for avoiding lambda timeout"
+    Type: Number
   
   AlarmTtlValidation:
     Default: 0.5
@@ -561,6 +566,7 @@ Resources:
           #SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
           SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt SearchSLAViolationsLambda.Arn
           SEARCH_SLA_VIOLATIONS_QUEUE_URL: !Ref ProgressionSensorQueueURL
+          MAX_ALLOWED_TIME_MS: !Ref SlaViolationCloseSchedulingLambdaMaxExecutionMs
       TracingConfig:
         Mode: Active
       Layers:
