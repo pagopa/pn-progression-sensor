@@ -77,8 +77,8 @@ module.exports.eventHandler = async (event) => {
       } else {
         // success
         console.log(
-          "lambda invocation response: ",
-          JSON.stringify(lambdaResponse)
+          "lambda invocation response - results number: ",
+          JSON.stringify(lambdaResponse.results.length)
         );
         payload.activeSLASearchSuccesses++;
         currentTypeSlaViolations = currentTypeSlaViolations.concat(
