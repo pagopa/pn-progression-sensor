@@ -100,6 +100,12 @@ module.exports.eventHandler = async (event) => {
           globalLastScannedKeyType = type;
           globalLastScannedCount =
             globalLastScannedCount + lambdaResponse.results.length;
+          console.log(
+            "global last scanned key: ",
+            globalLastScannedKey,
+            ", type: ",
+            type
+          );
         } else {
           recoveredTypeCount =
             globalLastScannedCount + lambdaResponse.results.length;
@@ -107,6 +113,7 @@ module.exports.eventHandler = async (event) => {
           globalLastScannedKey = null;
           globalLastScannedKeyType = "";
           globalLastScannedCount = 0;
+          console.log("reset global last scanned key, type: ", type);
         }
 
         // check if we must stop
