@@ -149,7 +149,7 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.mainTimelineElementId).equal(
-      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0"
+      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0"
     );
     expect(response.alternativeTimelineElementId).to.be.null;
   });
@@ -164,7 +164,7 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response.mainTimelineElementId).equal(
-      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0"
+      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0"
     );
     expect(response.alternativeTimelineElementId).to.be.null;
   });
