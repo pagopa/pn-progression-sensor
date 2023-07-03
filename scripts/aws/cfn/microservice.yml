@@ -100,7 +100,7 @@ Parameters:
     Type: Number
 
   SlaViolationCloseSchedulingLambdaMaxExecutionMs:
-    Default: 50000
+    Default: 40000
     Description: "Max execution time (in ms) for Close Schedululing Lambda: set less than SlaViolationCloseSchedulingLambdaTimeoutSeconds * 1000 for avoiding lambda timeout"
     Type: Number
   

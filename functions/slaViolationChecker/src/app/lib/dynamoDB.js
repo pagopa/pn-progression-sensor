@@ -46,14 +46,12 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnCouple.mainTimelineElementId = timeLineIdRefinement;
       returnCouple.alternativeTimelineElementId = timeLineIdNotificationViewed;
       break;
-    case "SEND_PEC": // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.ATTEMPT_0
+    case "SEND_PEC": // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0
       // SEND_PEC:
       // - INSERT in pn-Timelines of a record with category SEND_DIGITAL_FEEDBACK: SEND PEC activity end
       const timeLineIdSendDigitalFeedback = id
         .replace("02_PEC__##", "")
-        .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK")
-        .replace(".REPEAT_false", "")
-        .replace(".REPEAT_true", "");
+        .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK");
       returnCouple.mainTimelineElementId = timeLineIdSendDigitalFeedback;
       returnCouple.alternativeTimelineElementId = null;
       break;
