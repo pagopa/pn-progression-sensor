@@ -12,6 +12,7 @@ const allowedTimelineCategories = [
   "REQUEST_REFUSED",
   "REFINEMENT",
   "NOTIFICATION_VIEWED",
+  "NOTIFICATION_CANCELLED",
   "SEND_DIGITAL_DOMICILE", // the category is SEND_DIGITAL_DOMICILE: in the timelineElementId is SEND_DIGITAL + changed SENTATTEMPTMADE to ATTEMPT + added REPEAT_false / REPEAT_true
   "SEND_DIGITAL_FEEDBACK", // changed SENTATTEMPTMADE to ATTEMPT
   "SEND_ANALOG_DOMICILE", // changed SENTATTEMPTMADE to ATTEMPT
@@ -242,6 +243,33 @@ async function mapPayload(event) {
         if (bulkOp) {
           dynamoDbOps.push(bulkOp);
         }
+        break;
+      case "NOTIFICATION_CANCELLED":
+        // PN-7522 - close validation and all refinements
+        // close validation
+        op = makeDeleteOp(
+          "00_VALID##" + event.dynamodb.NewImage.iun.S,
+          "VALIDATION",
+          event
+        );
+        dynamoDbOps.push(op);
+        // close all refinements
+        let recIdxs =
+          event.dynamodb.NewImage.detail?.M?.notRefinedRecipientIndexes?.NS ??
+          event.dynamodb.NewImage.detail?.M?.notRefinedRecipientIndexes?.SS ??
+          null; // array of indexes (number set) on non perfectionated recipients
+        if (recIdxs) {
+          for (const recIdx of recIdxs) {
+            op = makeDeleteOp(
+              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
+              "REFINEMENT",
+              event
+            );
+            dynamoDbOps.push(op);
+          }
+        }
+        // here we will process invoice data
+        // ...
         break;
       case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
