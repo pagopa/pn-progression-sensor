@@ -246,7 +246,7 @@ async function mapPayload(event) {
         break;
       case "NOTIFICATION_CANCELLED":
         // PN-7522 - close validation and all refinements
-        // close validation
+        // close validation (if still open)
         op = makeDeleteOp(
           "00_VALID##" + event.dynamodb.NewImage.iun.S,
           "VALIDATION",
@@ -255,13 +255,12 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         // close all refinements
         let recIdxs =
-          event.dynamodb.NewImage.details?.M?.notRefinedRecipientIndexes?.NS ??
-          event.dynamodb.NewImage.details?.M?.notRefinedRecipientIndexes?.SS ??
-          null; // array of indexes (number set) on non perfectionated recipients
+          event.dynamodb.NewImage.details?.M?.notRefinedRecipientIndexes?.L ??
+          null; // List of indexes (numbers expressed as strings) of non perfectionated recipients
         if (recIdxs) {
           for (const recIdx of recIdxs) {
             op = makeDeleteOp(
-              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
+              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx.N,
               "REFINEMENT",
               event
             );

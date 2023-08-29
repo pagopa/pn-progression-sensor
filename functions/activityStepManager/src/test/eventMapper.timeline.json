@@ -24,7 +24,7 @@
                         "N": 100
                     },
                     "notRefinedRecipientIndexes": {
-                        "NS": [1, 2, 3]
+                        "L": [ {"N": "1"}, {"N": "2"}, {"N": "3"} ]
                     }
                 }
             }
