@@ -197,6 +197,25 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
+  it("test NOTIFICATION_CANCELLED", async () => {
+    const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
+    let event = JSON.parse(eventJSON);
+    event = setCategory(event, "NOTIFICATION_CANCELLED");
+
+    const events = [event];
+
+    const res = await mapEvents(events);
+
+    expect(res[0].type).equal("VALIDATION");
+    expect(res[0].opType).equal("DELETE");
+    expect(res[1].type).equal("REFINEMENT");
+    expect(res[1].opType).equal("DELETE");
+    expect(res[2].type).equal("REFINEMENT");
+    expect(res[2].opType).equal("DELETE");
+    expect(res[3].type).equal("REFINEMENT");
+    expect(res[3].opType).equal("DELETE");
+  });
+
   it("test SEND_DIGITAL_DOMICILE", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);

@@ -255,8 +255,8 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         // close all refinements
         let recIdxs =
-          event.dynamodb.NewImage.detail?.M?.notRefinedRecipientIndexes?.NS ??
-          event.dynamodb.NewImage.detail?.M?.notRefinedRecipientIndexes?.SS ??
+          event.dynamodb.NewImage.details?.M?.notRefinedRecipientIndexes?.NS ??
+          event.dynamodb.NewImage.details?.M?.notRefinedRecipientIndexes?.SS ??
           null; // array of indexes (number set) on non perfectionated recipients
         if (recIdxs) {
           for (const recIdx of recIdxs) {
