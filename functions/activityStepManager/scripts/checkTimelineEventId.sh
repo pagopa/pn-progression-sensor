@@ -1,5 +1,5 @@
 # la data in cui è stato controllata la logica della lambda rispetto al file TimelineEventId,java
-APP_LAST_CHECK_DATE="2023-06-01 10:00:00 +0200"
+APP_LAST_CHECK_DATE="2023-08-29 15:20:00 +0200"
 
 headBranch=$(git for-each-ref --format='%(objectname) %(refname:short)' refs/heads | awk "/^$(git rev-parse HEAD)/ {print \$2}")   
 BRANCH=develop

@@ -22,6 +22,9 @@
                 "M": {
                     "notificationCost": {
                         "N": 100
+                    },
+                    "notRefinedRecipientIndexes": {
+                        "L": [ {"N": "1"}, {"N": "2"}, {"N": "3"} ]
                     }
                 }
             }
