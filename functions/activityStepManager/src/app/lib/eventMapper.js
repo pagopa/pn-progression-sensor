@@ -132,7 +132,7 @@ function processInvoicedElement(timelineObj) {
   };
 }
 
-async function processInvoice(event, recIdx) {
+async function processInvoice(event, recIdxs) {
   console.log("Processing data for invoice...");
   const invoicedElements = [];
   const timelineObj = parseKinesisObjToJsonObj(event.dynamodb.NewImage);
@@ -146,21 +146,30 @@ async function processInvoice(event, recIdx) {
     if (invoicedElement) {
       invoicedElements.push(invoicedElement);
 
-      if (recIdx !== null) {
-        // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
-        const iun = timelineObj.iun;
-        const timelineElements = await getTimelineElements(iun, [
-          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
-          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-          `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
-        ]);
-        if (timelineElements && timelineElements.length > 0) {
-          for (const timelineElem of timelineElements) {
-            invoicedElements.push(processInvoicedElement(timelineElem));
+      if (recIdxs !== null) {
+        for (let recIdx of recIdxs) {
+          console.log(
+            "**********************************************************"
+          );
+          console.log("Processing data for invoice for recIdx: " + recIdx);
+          console.log(
+            "**********************************************************"
+          );
+          // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
+          const iun = timelineObj.iun;
+          const timelineElements = await getTimelineElements(iun, [
+            `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+            `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+            `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
+          ]);
+          if (timelineElements && timelineElements.length > 0) {
+            for (const timelineElem of timelineElements) {
+              invoicedElements.push(processInvoicedElement(timelineElem));
+            }
           }
-        }
-      }
-    }
+        } // for
+      } // if recIdx
+    } // if invoicedElement
   }
   return invoicedElements;
 }
@@ -238,7 +247,7 @@ async function mapPayload(event) {
         );
         dynamoDbOps.push(op);
         // PN-4564 - process invoice data
-        const invoicedElements = await processInvoice(event, recIdx);
+        const invoicedElements = await processInvoice(event, [recIdx]);
         const bulkOp = makeBulkInsertOp(event, invoicedElements);
         if (bulkOp) {
           dynamoDbOps.push(bulkOp);
