@@ -1,0 +1,373 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Some storage with input and output
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description: Nome dell'ambiente destinazione
+
+  # Unused but required by CD pipeline
+  MicroserviceNumber:
+    Type: Number
+    Description: An unique number that identify the microservice inside the ECS cluster.
+
+  # Unused but required by CD pipeline
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: URL da cui caricare i frammenti di template di infrastruttura
+
+  Version:
+    Type: String
+    Description: "keep track of used projects commitIds"
+
+  CdcProgressionSensorStreamRetentionHours:
+    Type: Number
+    Description: "Change Data Capture Kinesis Data Stream retention period in hours"
+    Default: "72"
+
+  CdcProgressionSensorStreamShardCount:
+    Type: Number
+    Default: "0"
+
+  CdcProgressionSensorStreamMode:
+    Description: Stream Mode.
+    Default: ON_DEMAND
+    Type: String
+    AllowedValues: [ON_DEMAND, PROVISIONED]
+
+  CdcKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
+  AlarmSNSTopicName:
+    Type: String
+    Description: "Topic alarm"
+
+  LogRetention:
+    Type: Number
+    Default: 14
+
+Conditions:
+  CdcProgressionSensorOnDemandDisabled: !Not [!Equals [!Ref CdcProgressionSensorStreamMode, ON_DEMAND]]
+
+Resources:
+  ## KINESIS SOURCE STREAM FOR Change Data Capture
+  ### AWS KMS / Server-side encryption for Kinesis Stream 
+  CdcProgressionSensorKinesisServerSideEncryptionKey:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Statement:
+          - Action: kms:*
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  - - "arn:"
+                    - Ref: AWS::Partition
+                    - ":iam::"
+                    - Ref: AWS::AccountId
+                    - :root
+            Resource: "*"
+        Version: "2012-10-17"
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+
+  ### Kinesis Data Stream 
+  CdcProgressionSensorKinesisStream:
+    Type: AWS::Kinesis::Stream
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: !Sub "${ProjectName}-cdc-progression-sensor-stream-001"
+      RetentionPeriodHours: !Ref CdcProgressionSensorStreamRetentionHours
+      ShardCount: !If [CdcProgressionSensorOnDemandDisabled, !Ref CdcProgressionSensorStreamShardCount, !Ref "AWS::NoValue"]
+      StreamEncryption:
+        EncryptionType: KMS
+        KeyId:
+          Fn::GetAtt:
+            - CdcProgressionSensorKinesisServerSideEncryptionKey
+            - Arn
+      StreamModeDetails:
+        StreamMode: !Ref CdcProgressionSensorStreamMode   
+
+  ProgressionSensorDataTable:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain 
+    Properties:
+      TableName: !Sub "${ProjectName}-ProgressionSensorData"
+      AttributeDefinitions:
+        # primary key
+        - AttributeName: "entityName_type_relatedEntityId" # entity type (step or sla violation) concatenated to step type and then to IUN
+          AttributeType: "S"
+        - AttributeName: "id" # string concatenation based on step type
+          AttributeType: "S"
+        # secondary keys
+        - AttributeName: "sla_relatedEntityId" # IUN
+          AttributeType: "S"
+        - AttributeName: "type_endTimestampYearMonth"
+          AttributeType: "S"
+        - AttributeName: "endTimeStamp"
+          AttributeType: "S"
+        - AttributeName: "alarmTTLYearToMinute"
+          AttributeType: "S"
+        - AttributeName: "alarmTTL" # alarmTTL set both for steps and SLA; step_alarmTTL only set for steps (and TTL is set on step_alarmTTL, so it's an 'N' type)
+          AttributeType: "S"
+        - AttributeName: "active_sla_entityName_type"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "entityName_type_relatedEntityId"
+          KeyType: "HASH"
+        - AttributeName: "id"
+          KeyType: "RANGE"
+      GlobalSecondaryIndexes:
+        # violations read patterns
+        - IndexName: "iun-index"
+          KeySchema:
+            - AttributeName: "sla_relatedEntityId"
+              KeyType: "HASH"
+            - AttributeName: "alarmTTL"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: "activeViolations-index"
+          KeySchema:
+            - AttributeName: "active_sla_entityName_type" # new field for SLA Violations, to be removed when endTimestamp is set (and the SLA Violation is historicized)
+              KeyType: "HASH"
+            - AttributeName: "alarmTTL"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        - IndexName: "partitionedEndTimeStamp-index"
+          KeySchema:
+            - AttributeName: "type_endTimestampYearMonth" # TYPE##2023-01 - present only for storicized SLA Violations (when endTimestamp != null)
+              KeyType: "HASH"
+            - AttributeName: "endTimeStamp"
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+        # activity step read pattern
+        - IndexName: "alarmTTL-index"
+          KeySchema:
+            - AttributeName: "alarmTTLYearToMinute" # from ISO timestamp, with 00# (hex) deterministic prefix, generated starting from IUN (00#[ISOTIMESTAMPYearTominute])
+              KeyType: "HASH"
+            - AttributeName: "id" # no longer alarmTTLSecondsAndMilliseconds from ISO timestamp
+              KeyType: "RANGE"
+          Projection:
+            ProjectionType: "ALL"
+      BillingMode: "PAY_PER_REQUEST"
+      TimeToLiveSpecification:
+        AttributeName: "step_alarmTTL"
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      KinesisStreamSpecification:
+        StreamArn: !GetAtt CdcProgressionSensorKinesisStream.Arn
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  TimelinesForInvoicingDataTable:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain 
+    Properties:
+      TableName: !Sub "${ProjectName}-TimelinesForInvoicing"
+      AttributeDefinitions:
+        # primary key
+        - AttributeName: "paId_invoicingDay" # paId concatenated to invoicingDay
+          AttributeType: "S"
+        - AttributeName: "invoincingTimestamp_timelineElementId" # invoincingTimestamp concatenated to timelineElementId
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "paId_invoicingDay"
+          KeyType: "HASH"
+        - AttributeName: "invoincingTimestamp_timelineElementId"
+          KeyType: "RANGE"
+      BillingMode: "PAY_PER_REQUEST"
+      TimeToLiveSpecification:
+        AttributeName: "ttl"
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      KinesisStreamSpecification:
+        StreamArn: !Ref CdcKinesisSourceStreamArn
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
+  # SQS Queue
+  ProgressionSensorQueue:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain 
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
+      Parameters:
+        QueueName: !Sub "${ProjectName}-progression-sensor-queue"
+        DelaySeconds: 10
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+
+  ActivityStepManagerDLQ:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
+      Parameters:
+        QueueName: !Sub '${ProjectName}-progression-sensor_activity_step_manager_DLQ'
+        DelaySeconds: 1
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        HasDLQ: "false"
+        QueueHasAlarm: "true"
+
+  SLAViolationCheckerDLQ:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/sqs-queue.yaml"
+      Parameters:
+        QueueName: !Sub '${ProjectName}-progression-sensor_sla_violation_checker_DLQ'
+        DelaySeconds: 1
+        AlarmSNSTopicName: !Ref AlarmSNSTopicName
+        HasDLQ: "false"
+        QueueHasAlarm: "true"
+
+  SearchSLAViolationsLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain    
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-searchSLAViolationsLambda"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+
+  ActivityStepManagerLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain    
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-activityStepManagerLambda"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+
+  SLAViolationCheckerLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain    
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-slaViolationCheckerLambda"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+
+  SLAViolationCheckerLambdaSQSLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain    
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-slaViolationCheckerLambda-SQS"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+
+  SLAViolationCloseSchedulingLambdaLogGroup:
+    Type: AWS::CloudFormation::Stack
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain    
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/log-group.yaml"
+      Parameters:
+        LogGroupName: !Sub "${ProjectName}-slaViolationCloseSchedulingLambda"
+        LogGroupRetention: !Ref LogRetention
+        LogGroupPrefix: '/aws/lambda'
+
+Outputs:
+  ProgressionSensorDataDynamoTableName:
+    Description: Name of dynamodb table containing notifications metadata
+    Value: !Ref ProgressionSensorDataTable
+  ProgressionSensorDataDynamoTableArn:
+    Description: ARN of dynamodb table containing notifications metadata
+    Value: !Sub "${ProgressionSensorDataTable.Arn}"
+  TimelinesForInvoicingDynamoTableName:
+    Description: Name of dynamodb table containing timelines invoicing metadata
+    Value: !Ref TimelinesForInvoicingDataTable
+  TimelinesForInvoicingDynamoTableArn:
+    Description: ARN of dynamodb table containing timelines invoicing metadata
+    Value: !Sub "${TimelinesForInvoicingDataTable.Arn}"
+
+  # Kinesis Source Stream containing the DynamoDB Change Data Capture events
+  CdcProgressionSensorKinesisSourceStreamArn:
+    Description: "Kinesis source CDC stream ARN"
+    Value: !GetAtt CdcProgressionSensorKinesisStream.Arn
+  CdcProgressionSensorKinesisSourceStreamKeyArn:
+    Description: "Kinesis source CDC stream crypto key ARN"
+    Value: !GetAtt CdcProgressionSensorKinesisServerSideEncryptionKey.Arn
+
+  # Scheduled Actions
+  ProgressionSensorQueueName:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.QueueName
+    Description: pn-delivery-push actions queue name
+  ProgressionSensorQueueURL:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.QueueURL
+    Description: pn-delivery-push actions queue URL
+  ProgressionSensorQueueARN:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.QueueARN
+    Description: pn-delivery-push actions queue ARN
+  ProgressionSensorQueueAlarmARN:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.SqsDLQAlarmArn
+    Description: pn-delivery-push actions queue dlq alarm queue
+  ProgressionSensorQueueAgeAlarmARN:
+    Value: !GetAtt ProgressionSensorQueue.Outputs.SqsAgeAlarmArn
+    Description: pn-delivery-push actions queue age alarm ARN
+
+  # Lambda functions
+  SearchSLAViolationsLambdaName:
+    Value: !Sub "${ProjectName}-searchSLAViolationsLambda"
+
+  ActivityStepManagerLambdaName:
+    Value: !Sub "${ProjectName}-activityStepManagerLambda"
+
+  SLAViolationCheckerLambdaName:
+    Value: !Sub "${ProjectName}-slaViolationCheckerLambda"
+
+  SLAViolationCheckerLambdaSQSName:
+    Value: !Sub "${ProjectName}-slaViolationCheckerLambda-SQS"
+  
+  SLAViolationCloseSchedulingLambdaName:
+    Value: !Sub "${ProjectName}-slaViolationCloseSchedulingLambda"
+
+  # Activity Step Manager DLQ
+  ActivityStepManagerDLQName:
+    Value: !GetAtt ActivityStepManagerDLQ.Outputs.QueueName
+    Description: pn-progression-sensor_activity_step_manager_DLQ queue name
+  ActivityStepManagerDLQURL:
+    Value: !GetAtt ActivityStepManagerDLQ.Outputs.QueueURL
+    Description: pn-progression-sensor_activity_step_manager_DLQ queue URL
+  ActivityStepManagerDLQARN:
+    Value: !GetAtt ActivityStepManagerDLQ.Outputs.QueueARN
+    Description: pn-progression-sensor_activity_step_manager_DLQ queue ARN
+  ActivityStepManagerDLQAlarmARN:
+    Value: !GetAtt ActivityStepManagerDLQ.Outputs.SqsDLQAlarmArn
+    Description: pn-progression-sensor_activity_step_manager_DLQ alarm ARN
+
+  # SLA Violation Checker DLQ
+  SLAViolationCheckerDLQName:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.QueueName
+    Description: pn-progression-sensor_sla_violation_checker_DLQ queue name
+  SLAViolationCheckerDLQURL:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.QueueURL
+    Description: pn-progression-sensor_sla_violation_checker_DLQ queue URL
+  SLAViolationCheckerDLQARN:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.QueueARN
+    Description: pn-progression-sensor_sla_violation_checker_DLQ queue ARN
+  SLAViolationCheckerDLQAlarmARN:
+    Value: !GetAtt SLAViolationCheckerDLQ.Outputs.SqsDLQAlarmArn
+    Description: pn-progression-sensor_sla_violation_checker_DLQ alarm ARN

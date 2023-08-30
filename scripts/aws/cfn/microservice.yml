@@ -1,0 +1,678 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "Example microservice deploy"
+
+Transform:
+  - UpdateDeploymentTransform
+
+Parameters:
+  ProjectName:
+    Type: String
+    Description:
+      "Usually pn can be pnXYZ where XYZ are the feature number, useful to create
+      experimental environments without crash official development environment"
+
+  LambdasBucketName:
+    Type: String
+    Description: "The S3 bucket from which to fetch the templates used by this stack."
+
+  BucketBasePath:
+    Type: String
+    Description: "The S3 bucket base path where lambda functions are stored"
+
+  # Unused but required by CD pipeline
+  MicroserviceNumber:
+    Type: Number
+    Description: "Disambiguation useful for load balancer rules"
+
+  # Unused but required by CD pipeline
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: "The S3 bucket from which to fetch the templates used by this stack."
+
+  #SNS Topic Alarm Arn and Name
+  AlarmSNSTopicArn:
+    Type: String
+    Description: "An ARN of an SNS topic where to send alarm when log line includes ERROR or FATAL"
+
+  Version:
+    Type: String
+    Description: "Keep versioning of commitIds used for cloudformation templates"
+
+  ProgressionSensorDataDynamoTableArn:
+    Type: String
+    Description: ARN of dynamodb table containing notifications metadata
+
+  ProgressionSensorDataDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing notifications metadata
+
+  TimelinesForInvoicingDynamoTableArn:
+    Type: String
+    Description: ARN of dynamodb table containing timelines invoicing metadata
+
+  TimelinesForInvoicingDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing timelines invoicing metadata
+
+  CdcKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
+  CdcKinesisSourceStreamKeyArn:
+    Description: "Kinesis source CDC stream crypto key ARN"
+    Type: String
+
+  CdcProgressionSensorKinesisSourceStreamArn:
+    Type: String
+    Description: "Where to send CDC"
+
+  CdcProgressionSensorKinesisSourceStreamKeyArn:
+    Description: "Kinesis source CDC stream crypto key ARN"
+    Type: String
+
+  # SQS
+  ProgressionSensorQueueARN:
+    Description: "SQS queue ARN"
+    Type: String
+
+  ProgressionSensorQueueURL:
+    Description: "SQS queue URL"
+    Type: String
+
+  ProgressionSensorQueueAlarmARN:
+    Type: String
+    Description: SQS DLQ Alarm arn
+
+  ProgressionSensorQueueAgeAlarmARN:
+    Type: String
+    Description: SQS Age Alarm arn
+
+  # schedule cron expression:
+  SlaViolationCheckRateExpression:
+    Default: "rate(5 minutes)"
+    Description: "Rate expression for scheduling the Close Schedululing Lambda"
+    Type: String
+
+  # schedule cron expression:
+  SlaViolationCloseSchedulingLambdaTimeoutSeconds:
+    Default: 60
+    Description: "Timeout (in seconds) for Close Schedululing Lambda"
+    Type: Number
+
+  SlaViolationCloseSchedulingLambdaMaxExecutionMs:
+    Default: 40000
+    Description: "Max execution time (in ms) for Close Schedululing Lambda: set less than SlaViolationCloseSchedulingLambdaTimeoutSeconds * 1000 for avoiding lambda timeout"
+    Type: Number
+  
+  AlarmTtlValidation:
+    Default: 0.5
+    Description: "Alarm TTL for activity VALIDATION (in days)"
+    Type: Number
+  
+  AlarmTtlRefinement:
+    Default: 110
+    Description: "Alarm TTL for activity REFINEMENT (in days)"
+    Type: Number
+  
+  AlarmTtlSendPec:
+    Default: 2
+    Description: "Alarm TTL for activity SEND PEC (in days)"
+    Type: Number
+
+  AlarmTtlSendPaperAr890:
+    Default: 100
+    Description: "Alarm TTL for activity SEND PAPER AR 890 (in days)"
+    Type: Number
+
+  AlarmTtlSendAmr:
+    Default: 2
+    Description: "Alarm TTL for activity SEND AMR (in days)"
+    Type: Number
+
+  SlaExpirationValidation:
+    Default: 1
+    Description: "SLA expiration for activity VALIDATION (in days)"
+    Type: Number
+
+  SlaExpirationRefinement:
+    Default: 120
+    Description: "SLA expiration for activity REFINEMENT (in days)"
+    Type: Number
+
+  SlaExpirationSendPec:
+    Default: 2
+    Description: "SLA expiration for activity SEND PEC (in days)"
+    Type: Number
+
+  SlaExpirationSendPaperAr890:
+    Default: 100
+    Description: "SLA expiration for activity SEND PAPER AR 890 (in days)"
+    Type: Number
+  
+  SlaExpirationSendAmr:
+    Default: 2
+    Description: "SLA expiration for activity SEND AMR (in days)"
+    Type: Number
+
+  InvoicingTtlDays:
+    Default: 365
+    Description: "TTL expiration for row in pn-TimelinesForInvoicing (in days)"
+    Type: Number
+
+  SearchSLAViolationsLambdaName:
+    Type: String
+
+  ActivityStepManagerLambdaName:
+    Type: String
+
+  ActivityStepManagerDLQARN:
+    Type: String
+    Description: 'DLQ ARN for ActivityStepManagerLambda'
+
+  ActivityStepManagerDLQAlarmARN:
+    Type: String
+    Description: 'DLQ Alarm ARN for ActivityStepManagerLambda'
+
+  SLAViolationCheckerLambdaName:
+    Type: String
+
+  SLAViolationCheckerDLQARN:
+    Type: String
+    Description: 'DLQ ARN for SLAViolationCheckerLambda'
+
+  SLAViolationCheckerDLQAlarmARN:
+    Type: String
+    Description: 'DLQ Alarm ARN for SLAViolationCheckerLambda'
+
+  SLAViolationCheckerLambdaSQSName:
+    Type: String
+
+  SLAViolationCloseSchedulingLambdaName:
+    Type: String
+
+Resources:
+  #########################################################
+  ###              SearchSLAViolationsLambda            ###
+  #########################################################
+
+  # Lambda function
+  SearchSLAViolationsLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref SearchSLAViolationsLambdaName
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/searchSLAViolations.zip"
+      Role: !GetAtt SearchSLAViolationsLambdaRole.Arn
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Sub "${ProgressionSensorDataDynamoTableName}"
+      Timeout: 10
+
+  # Lambda function role
+  SearchSLAViolationsLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-SearchSLAViolationsLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Path: /
+
+  # Lambda function IAM policy
+  SearchSLAViolationsLambdaRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-SearchSLAViolationsLambdaRolePolicy
+      Roles:
+        - !Ref SearchSLAViolationsLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "dynamodb:Query"
+            Resource:
+              - !Sub "${ProgressionSensorDataDynamoTableArn}"
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+
+  SearchSLAViolationsLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SearchSLAViolationsLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  #########################################################
+  ###              ActivityStepManagerLambda            ###
+  #########################################################
+
+  # Lambda function
+  ActivityStepManagerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref ActivityStepManagerLambdaName
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/activityStepManager.zip"
+      Role: !GetAtt ActivityStepManagerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOICING_DYNAMODB_TABLE: !Ref TimelinesForInvoicingDynamoTableName
+          ALARM_TTL_VALIDATION: !Ref AlarmTtlValidation
+          ALARM_TTL_REFINEMENT: !Ref AlarmTtlRefinement
+          ALARM_TTL_SEND_PEC: !Ref AlarmTtlSendPec
+          ALARM_TTL_SEND_PAPER_AR_890: !Ref AlarmTtlSendPaperAr890
+          ALARM_TTL_SEND_AMR: !Ref AlarmTtlSendAmr
+          SLA_EXPIRATION_VALIDATION: !Ref SlaExpirationValidation
+          SLA_EXPIRATION_REFINEMENT: !Ref SlaExpirationRefinement
+          SLA_EXPIRATION_SEND_PEC: !Ref SlaExpirationSendPec
+          SLA_EXPIRATION_SEND_PAPER_AR_890: !Ref SlaExpirationSendPaperAr890
+          SLA_EXPIRATION_SEND_AMR: !Ref SlaExpirationSendAmr
+          INVOICING_TTL_DAYS: !Ref InvoicingTtlDays
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout: 10
+
+  # Lambda function role
+  ActivityStepManagerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-activityStepManagerLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda function IAM policy
+  ActivityStepManagerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-ActivityStepManagerLambdaPolicy
+      Roles:
+        - !Ref ActivityStepManagerLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "dynamodb:*"
+            Resource:
+              - !Ref ProgressionSensorDataDynamoTableArn
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+              - !Ref TimelinesForInvoicingDynamoTableArn
+              - !Sub "${TimelinesForInvoicingDynamoTableArn}/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:GetItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Notifications
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Notifications/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:BatchGetItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:BatchWriteItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing/*"
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Resource: !Ref CdcKinesisSourceStreamArn
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource: !Ref CdcKinesisSourceStreamKeyArn
+          - Effect: Allow
+            Action:
+              - sqs:ChangeMessageVisibility
+              - sqs:GetQueueAttributes
+              - sqs:GetQueueUrl
+              - sqs:SendMessage
+            Resource: !Ref ActivityStepManagerDLQARN
+
+  # CDC to Activity Step Manager
+  ActivityStepManagerLambdaKinesisSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 20
+      BisectBatchOnFunctionError: true
+      EventSourceArn: !Ref CdcKinesisSourceStreamArn
+      FunctionName: !Ref ActivityStepManagerLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 300 # 1 minute
+      StartingPosition: TRIM_HORIZON
+      DestinationConfig:
+        OnFailure:
+          Destination: !Ref ActivityStepManagerDLQARN
+
+  ActivityStepManagerLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref ActivityStepManagerLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  #########################################################
+  ###              SLAViolationCheckerLambda            ###
+  #########################################################
+
+  # Lambda function (from Kinesis)
+  SLAViolationCheckerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref SLAViolationCheckerLambdaName
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationChecker.zip"
+      Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOCATION_TYPE: "Kinesis"
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout: 10
+
+  # Lambda function (from SQS)
+  SLAViolationCheckerLambdaSQS:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambda-SQS"
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationChecker.zip"
+      Role: !GetAtt SLAViolationCheckerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
+          INVOCATION_TYPE: "SQS"
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout: 10
+
+  # Lambda function role
+  SLAViolationCheckerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-slaViolationCheckerLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda function IAM policy
+  SLAViolationCheckerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-SLAViolationCheckerLambdaPolicy
+      Roles:
+        - !Ref SLAViolationCheckerLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "dynamodb:PutItem"
+              - "dynamodb:UpdateItem"
+            Resource:
+              - !Ref ProgressionSensorDataDynamoTableArn
+              - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:GetItem"
+            Resource:
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines"
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Resource: !Ref CdcProgressionSensorKinesisSourceStreamArn
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource: !Ref CdcProgressionSensorKinesisSourceStreamKeyArn
+          - Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+              - sqs:SendMessage
+            Resource:
+              - !Ref ProgressionSensorQueueARN
+              - !Ref SLAViolationCheckerDLQARN
+
+  SLAViolationCheckerEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 10
+      Enabled: true
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      EventSourceArn: !Ref ProgressionSensorQueueARN
+      FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
+
+  # CDC to SLA Violation Checker
+  SLAViolationCheckerLambdaKinesisSource:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 20
+      BisectBatchOnFunctionError: true
+      EventSourceArn: !Ref CdcProgressionSensorKinesisSourceStreamArn
+      FunctionName: !Ref SLAViolationCheckerLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 300 # 1 minute
+      StartingPosition: TRIM_HORIZON
+      DestinationConfig:
+        OnFailure:
+          Destination: !Ref SLAViolationCheckerDLQARN
+
+  SLAViolationCheckerLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SLAViolationCheckerLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  SLAViolationCheckerLambdaSQSAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SLAViolationCheckerLambdaSQS
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  #########################################################
+  ###          SLAViolationCloseSchedulingLambda        ###
+  #########################################################
+
+  # Lambda function
+  SLAViolationCloseSchedulingLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref SLAViolationCloseSchedulingLambdaName
+      Runtime: nodejs18.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/slaViolationCloseScheduling.zip"
+      Role: !GetAtt SLAViolationCloseSchedulingLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          #SEARCH_SLA_VIOLATIONS_FUNCTION_NAME: !Ref SearchSLAViolationsLambda
+          SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt SearchSLAViolationsLambda.Arn
+          SEARCH_SLA_VIOLATIONS_QUEUE_URL: !Ref ProgressionSensorQueueURL
+          MAX_ALLOWED_TIME_MS: !Ref SlaViolationCloseSchedulingLambdaMaxExecutionMs
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout: !Ref SlaViolationCloseSchedulingLambdaTimeoutSeconds # it should be longer than other functions, since this one calls the search lambda synchronously
+
+  # Lambda function role
+  SLAViolationCloseSchedulingLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-slaViolationCloseSchedulingLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+  # Lambda function IAM policy
+  SLAViolationCloseSchedulingLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-SLAViolationCloseSchedulingLambdaPolicy
+      Roles:
+        - !Ref SLAViolationCloseSchedulingLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - sqs:SendMessage
+            Resource: !Ref ProgressionSensorQueueARN
+          - Effect: Allow
+            Action:
+              - lambda:InvokeFunction
+            Resource: !GetAtt SearchSLAViolationsLambda.Arn
+          - Effect: Allow
+            Action:
+              - cloudwatch:PutMetricData
+            Resource: "*"
+
+  LambdaScheduleRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "${ProjectName}-LambdaScheduleRule"
+      ScheduleExpression: !Ref SlaViolationCheckRateExpression
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt SLAViolationCloseSchedulingLambda.Arn
+          Id: !Ref SLAViolationCloseSchedulingLambda
+
+  LambdaSchedulePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref SLAViolationCloseSchedulingLambda
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt LambdaScheduleRule.Arn
+
+  SLAViolationCloseSchedulingLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref SLAViolationCloseSchedulingLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  # Dashboard
+  MicroserviceDashboard:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/microservice-cloudwatch-dashboard.yaml"
+      Parameters:
+        DashboardName: !Sub "${ProjectName}-progression-sensor"
+        DynamoDBTableNames: !Join
+          - ","
+          - - !Ref ProgressionSensorDataDynamoTableName
+        LambdaArns: !Join
+          - ","
+          - - !GetAtt SearchSLAViolationsLambda.Arn
+            - !GetAtt ActivityStepManagerLambda.Arn
+            - !GetAtt SLAViolationCheckerLambda.Arn
+            - !GetAtt SLAViolationCloseSchedulingLambda.Arn
+        QueueArns: !Join
+          - ","
+          - - !Ref ProgressionSensorQueueARN
+        AlarmArns: !Join
+          - ","
+          - - !GetAtt SearchSLAViolationsLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt ActivityStepManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt SLAViolationCheckerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt SLAViolationCloseSchedulingLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !Ref ProgressionSensorQueueAgeAlarmARN
+            - !Ref ProgressionSensorQueueAlarmARN
+            - !Ref ActivityStepManagerDLQAlarmARN
+            - !Ref SLAViolationCheckerDLQAlarmARN
+        LogGroupsNames: !Join
+          - ","
+          - - !Sub /aws/lambda/${SearchSLAViolationsLambdaName}
+            - !Sub /aws/lambda/${ActivityStepManagerLambdaName}
+            - !Sub /aws/lambda/${SLAViolationCheckerLambdaName}
+            - !Sub /aws/lambda/${SLAViolationCheckerLambdaSQSName}
+            - !Sub /aws/lambda/${SLAViolationCloseSchedulingLambdaName}

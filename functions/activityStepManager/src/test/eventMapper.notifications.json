@@ -1,0 +1,14 @@
+{
+    "tableName": "pn-Notifications",
+    "eventName": "INSERT",
+    "dynamodb": {
+        "NewImage": {
+            "iun": {
+                "S": "abcd"
+            },
+            "sentAt": {
+                "S": "2011-10-05T14:48:00.000Z"
+            }
+        }
+    }
+}
