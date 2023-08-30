@@ -72,7 +72,7 @@ describe("event mapper tests", function () {
         expect(res[2].opType).equal('INSERT')
     });
 */
-  it("test REQUEST REFUSED", async () => {
+  it("test REQUEST_REFUSED", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "REQUEST_REFUSED");
@@ -83,6 +83,19 @@ describe("event mapper tests", function () {
 
     expect(res[0].type).equal("VALIDATION");
     expect(res[0].opType).equal("DELETE");
+    expect(res[1].opType).equal("BULK_INSERT_INVOICES");
+    // element 0
+    expect(res[1].payload[0].paId_invoicingDay).equal(
+      "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
+    );
+    expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+      "2023-01-20T14:48:00.000Z_notification_viewed_creation_request;IUN_XLDW-MQYJ-WUKA-202302-A-1;RECINDEX_1"
+    );
+    expect(res[1].payload[0].ttl).equal(1705762080);
+    expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
+    expect(res[1].payload[0].invoincingTimestamp).equal(
+      "2023-01-20T14:48:00.000Z"
+    );
   });
 
   it("test REFINEMENT", async () => {

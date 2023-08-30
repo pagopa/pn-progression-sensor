@@ -132,6 +132,7 @@ function processInvoicedElement(timelineObj) {
   };
 }
 
+// recIdxs is an array of recipient indexes
 async function processInvoice(event, recIdxs) {
   console.log("Processing data for invoice...");
   const invoicedElements = [];
