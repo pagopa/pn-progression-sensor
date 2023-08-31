@@ -132,7 +132,8 @@ function processInvoicedElement(timelineObj) {
   };
 }
 
-async function processInvoice(event, recIdx) {
+// recIdxs is an array of recipient indexes
+async function processInvoice(event, recIdxs) {
   console.log("Processing data for invoice...");
   const invoicedElements = [];
   const timelineObj = parseKinesisObjToJsonObj(event.dynamodb.NewImage);
@@ -146,21 +147,26 @@ async function processInvoice(event, recIdx) {
     if (invoicedElement) {
       invoicedElements.push(invoicedElement);
 
-      if (recIdx !== null) {
-        // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipeintIndex
-        const iun = timelineObj.iun;
-        const timelineElements = await getTimelineElements(iun, [
-          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
-          `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-          `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
-        ]);
-        if (timelineElements && timelineElements.length > 0) {
-          for (const timelineElem of timelineElements) {
-            invoicedElements.push(processInvoicedElement(timelineElem));
+      // REQUEST_REFUSED has recIdxs null
+      // REFINEMENT/NOTIFICATION_VIEWED have an array with one recIdxs
+      // NOTIFICATION_CANCELLED has an array with recIdxs
+      if (recIdxs !== null) {
+        for (let recIdx of recIdxs) {
+          // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
+          const iun = timelineObj.iun;
+          const timelineElements = await getTimelineElements(iun, [
+            `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+            `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+            `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
+          ]);
+          if (timelineElements && timelineElements.length > 0) {
+            for (const timelineElem of timelineElements) {
+              invoicedElements.push(processInvoicedElement(timelineElem));
+            }
           }
-        }
-      }
-    }
+        } // for
+      } // if recIdx
+    } // if invoicedElement
   }
   return invoicedElements;
 }
@@ -238,7 +244,7 @@ async function mapPayload(event) {
         );
         dynamoDbOps.push(op);
         // PN-4564 - process invoice data
-        const invoicedElements = await processInvoice(event, recIdx);
+        const invoicedElements = await processInvoice(event, [recIdx]);
         const bulkOp = makeBulkInsertOp(event, invoicedElements);
         if (bulkOp) {
           dynamoDbOps.push(bulkOp);
@@ -257,8 +263,10 @@ async function mapPayload(event) {
         let recIdxs =
           event.dynamodb.NewImage.details?.M?.notRefinedRecipientIndexes?.L ??
           null; // List of indexes (numbers expressed as strings) of non perfectionated recipients
+        let cleanRecIdxs = [];
         if (recIdxs) {
           for (const recIdx of recIdxs) {
+            cleanRecIdxs.push(recIdx.N);
             op = makeDeleteOp(
               "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx.N,
               "REFINEMENT",
@@ -267,8 +275,18 @@ async function mapPayload(event) {
             dynamoDbOps.push(op);
           }
         }
-        // here we will process invoice data
-        // ...
+        // PN-7521 - process invoice data
+        const invoicedElementsCancelled = await processInvoice(
+          event,
+          cleanRecIdxs
+        );
+        const bulkOpCancelled = makeBulkInsertOp(
+          event,
+          invoicedElementsCancelled
+        );
+        if (bulkOpCancelled) {
+          dynamoDbOps.push(bulkOpCancelled);
+        }
         break;
       case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
