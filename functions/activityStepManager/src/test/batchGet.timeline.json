@@ -15,7 +15,7 @@
                 "notificationSentAt": "2023-02-16T09:10:02.487762146Z",
                 "details": {
                     "numberOfPages": 1,
-                    "recIndex": 0,
+                    "recIndex": 1,
                     "generatedAarUrl": "safestorage://PN_AAR-0002-V5LA-H07D-Q4H7-BJBX"
                 },
                 "paId": "026e8c72-7944-4dcd-8668-f596447fec6d"
@@ -35,7 +35,7 @@
                 "details": {
                     "numberOfPages": 1,
                     "aarKey": "safestorage://PN_AAR-0002-V5LA-H07D-Q4H7-BJBX",
-                    "recIndex": 0
+                    "recIndex": 1
                 },
                 "paId": "026e8c72-7944-4dcd-8668-f596447fec6d"
             }

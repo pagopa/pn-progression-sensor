@@ -147,7 +147,7 @@ async function processInvoice(event, recIdxs) {
     if (invoicedElement) {
       invoicedElements.push(invoicedElement);
 
-      // REQUEST_REFUSED has null recIdxs
+      // REQUEST_REFUSED has recIdxs null
       // REFINEMENT/NOTIFICATION_VIEWED have an array with one recIdxs
       // NOTIFICATION_CANCELLED has an array with recIdxs
       if (recIdxs !== null) {
