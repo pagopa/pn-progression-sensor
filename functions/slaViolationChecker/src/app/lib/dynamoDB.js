@@ -14,10 +14,7 @@ const client = new DynamoDBClient({
 const sepChar = ".";
 
 exports.closingElementIdFromIDAndType = (id, type) => {
-  const returnCouple = {
-    mainTimelineElementId: null,
-    alternativeTimelineElementId: null,
-  };
+  const returnSearchArray = [];
 
   switch (type) {
     case "VALIDATION": // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> REQUEST_ACCEPTED.IUN_WEUD-XHKG-ZHDN-202301-W-1 and REQUEST_REFUSED.IUN_WEUD-XHKG-ZHDN-202301-W-1
@@ -29,8 +26,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "REQUEST_ACCEPTED" + sepChar + "IUN_" + timelineBaseValidation;
       const timeLineIdRefused =
         "REQUEST_REFUSED" + sepChar + "IUN_" + timelineBaseValidation;
-      returnCouple.mainTimelineElementId = timeLineIdAccepted;
-      returnCouple.alternativeTimelineElementId = timeLineIdRefused;
+      returnSearchArray.push(timeLineIdAccepted);
+      returnSearchArray.push(timeLineIdRefused);
       break;
     case "REFINEMENT": // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> REFINEMENT.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0
       // type REFINEMENT:
@@ -43,8 +40,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "REFINEMENT" + sepChar + timelineBaseRefinement;
       const timeLineIdNotificationViewed =
         "NOTIFICATION_VIEWED" + sepChar + timelineBaseRefinement;
-      returnCouple.mainTimelineElementId = timeLineIdRefinement;
-      returnCouple.alternativeTimelineElementId = timeLineIdNotificationViewed;
+      returnSearchArray.push(timeLineIdRefinement);
+      returnSearchArray.push(timeLineIdNotificationViewed);
       break;
     case "SEND_PEC": // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0
       // SEND_PEC:
@@ -52,8 +49,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       const timeLineIdSendDigitalFeedback = id
         .replace("02_PEC__##", "")
         .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK");
-      returnCouple.mainTimelineElementId = timeLineIdSendDigitalFeedback;
-      returnCouple.alternativeTimelineElementId = null;
+      returnSearchArray.push(timeLineIdSendDigitalFeedback);
       break;
     case "SEND_PAPER_AR_890": // id: 03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1 -> SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1
       // SEND_PAPER_AR_890
@@ -61,8 +57,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       const timelineIdPaperAR890 = id
         .replace("03_PAPER##", "")
         .replace("SEND_ANALOG_DOMICILE", "SEND_ANALOG_FEEDBACK");
-      returnCouple.mainTimelineElementId = timelineIdPaperAR890;
-      returnCouple.alternativeTimelineElementId = null;
+      returnSearchArray.push(timelineIdPaperAR890);
       break;
     /* istanbul ignore next */
     case "SEND_AMR": // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
@@ -70,21 +65,19 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       const timelineBaseAMR = id
         .replace("04_AMR##", "IUN_")
         .replace("##", sepChar + "RECINDEX_");
-      returnCouple.mainTimelineElementId =
+      const timelineIdPaperAMR =
         "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS" +
         sepChar +
         timelineBaseAMR +
         sepChar +
         "IDX_1";
-      returnCouple.alternativeTimelineElementId = null;
+      returnSearchArray.push(timelineIdPaperAMR);
       break;
     /* istanbul ignore next */
     default:
-      returnCouple.mainTimelineElementId = null;
-      returnCouple.alternativeTimelineElementId = null;
       break;
   }
-  return returnCouple;
+  return returnSearchArray;
 };
 
 /**
@@ -103,8 +96,8 @@ exports.findActivityEnd = async (iun, id, type) => {
   };
 
   // instead of performing a query with filter, we can construct the partition and the sort key and perform a GetItem (eventually two)
-  const returnCouple = this.closingElementIdFromIDAndType(id, type);
-  if (returnCouple.mainTimelineElementId === null) {
+  const returnArray = this.closingElementIdFromIDAndType(id, type);
+  if (returnArray === null || returnArray.length) {
     // event not computed, directly return null
     return null;
   }
