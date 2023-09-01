@@ -97,91 +97,78 @@ exports.findActivityEnd = async (iun, id, type) => {
 
   // instead of performing a query with filter, we can construct the partition and the sort key and perform a GetItem (eventually two)
   const returnArray = this.closingElementIdFromIDAndType(id, type);
-  if (returnArray === null || returnArray.length) {
+  if (returnArray === null || returnArray.length === 0) {
     // event not computed, directly return null
     return null;
   }
-  params.Key.timelineElementId = returnCouple.mainTimelineElementId;
-  const altSortKey = returnCouple.alternativeTimelineElementId;
 
-  const dynamoDB = DynamoDBDocumentClient.from(client);
+  // we need to perform a GetItem for each timelineElementId,
+  // stopping when we first found a result, returning it
+  for (let timelineElementID of returnArray) {
+    params.Key.timelineElementId = timelineElementID;
 
-  try {
-    // we perform a GetItem and, in case we also have an alternative sort key, we perform a second GetItem
-    // in case the first one did not produce a result
-    let response = await dynamoDB.send(new GetCommand(params));
+    const dynamoDB = DynamoDBDocumentClient.from(client);
 
-    if (response.Item == null) {
-      console.log(
-        "Nothing found on GetItem with the sort key: " +
-          params.Key.timelineElementId
-      );
-      if (altSortKey !== null) {
-        console.log("GetItem with alternative sort key: " + altSortKey);
+    try {
+      let response = await dynamoDB.send(new GetCommand(params));
 
-        params.Key.timelineElementId = altSortKey; // GetItem with the alternative sort key
-        response = await dynamoDB.send(new GetCommand(params));
+      if (response.Item == null) {
+        console.log(
+          "Nothing found on GetItem with the sort key: " +
+            params.Key.timelineElementId
+        );
+        // go to the next iteration
+      } else {
+        // found a result
+        console.log(
+          "Returned item timelineElementId: " + response.Item.timelineElementId
+        );
 
-        if (response.Item == null) {
-          console.log(
-            "Nothing found on GetItem with the alternative sort key: " +
-              params.Key.timelineElementId
-          );
+        // extract and return endTimestamp
+        //
+        // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
+        // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
+        // the timestamp instead of null, only for SEND_AMR type
+        //
+        // note: we only perform this for .IDX_1
+        if (type === "SEND_AMR") {
+          // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
+          if (
+            response.Item.details?.registeredLetterCode &&
+            response.Item.details.deliveryDetailCode !== "CON080"
+          ) {
+            console.warn(
+              "problem checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: " +
+                response.Item.details.deliveryDetailCode +
+                ", item: " +
+                JSON.stringify(response.Item)
+            );
+          }
+
+          return response.Item.details?.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
+            ? response.Item.timestamp || null
+            : null;
+        } else {
+          // all other cases
+          return response.Item.timestamp || null;
         }
       }
-    }
-
-    if (response.Item == null) {
-      console.log("Nothing found on GetItem with the partition key: " + iun);
-      return null;
-    } else {
-      //console.log("Returned item: " + JSON.stringify(response.Item));
+    } catch (error) {
+      /* istanbul ignore next */
       console.log(
-        "Returned item timelineElementId: " + response.Item.timelineElementId
+        "ERROR during GetItem: ",
+        error,
+        ", params: ",
+        JSON.stringify(params)
       );
+      /* istanbul ignore next */
+      throw error; // after logging, we rethrow the error, for the caller to catch it
     }
-
-    // 2. extract and return endTimestamp
-    //
-    // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
-    // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
-    // the timestamp instead of null, only for SEND_AMR type
-    //
-    // note: we only perform this for .IDX_1
-
-    if (type === "SEND_AMR") {
-      // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
-      if (
-        response.Item.details &&
-        response.Item.details.registeredLetterCode &&
-        response.Item.details.deliveryDetailCode !== "CON080"
-      ) {
-        console.warn(
-          "problem checking SEND_SIMPLE_REGISTERED_LETTER_PROGRESS: registeredLetterCode present but deliveryDetailCode not CON080: " +
-            response.Item.details.deliveryDetailCode +
-            ", item: " +
-            JSON.stringify(response.Item)
-        );
-      }
-
-      return response.Item.details && response.Item.details.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
-        ? response.Item.timestamp || null
-        : null;
-    } else {
-      // all other cases
-      return response.Item.timestamp || null;
-    }
-  } catch (error) {
-    /* istanbul ignore next */
-    console.log(
-      "ERROR during GetItem: ",
-      error,
-      ", params: ",
-      JSON.stringify(params)
-    );
-    /* istanbul ignore next */
-    throw error; // after logging, we rethrow the error, for the caller to catch it
   }
+
+  // if we arrive here, we didn't find any result
+  console.log("Nothing found for: " + JSON.stringify(returnArray));
+  return null;
 };
 
 /**
@@ -207,8 +194,6 @@ exports.makeInsertCommandFromEvent = (event) => {
     ConditionExpression:
       "attribute_not_exists(entityName_type_relatedEntityId)",
   };
-
-  //console.log(params);
 
   return params;
 };
