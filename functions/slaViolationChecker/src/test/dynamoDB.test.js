@@ -117,7 +117,10 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.undefined;
     expect(response[0]).equal("REQUEST_ACCEPTED.IUN_WEUD-XHKG-ZHDN-202301-W-1");
     expect(response[1]).equal("REQUEST_REFUSED.IUN_WEUD-XHKG-ZHDN-202301-W-1");
-    expect(response.length).equal(2);
+    expect(response[2]).equal(
+      "NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1"
+    );
+    expect(response.length).equal(3);
   });
 
   it("should match the REFINEMENT type", () => {
@@ -134,7 +137,10 @@ describe("Find closingElementId tests by type", function () {
     expect(response[1]).equal(
       "NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0"
     );
-    expect(response.length).equal(2);
+    expect(response[2]).equal(
+      "NOTIFICATION_CANCELLED.IUN_REKD-NZRJ-NWQJ-202302-M-1"
+    );
+    expect(response.length).equal(3);
   });
 
   it("should match the SEND_PEC type, REPEAT false", () => {

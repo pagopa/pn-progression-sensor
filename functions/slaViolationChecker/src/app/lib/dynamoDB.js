@@ -17,22 +17,33 @@ exports.closingElementIdFromIDAndType = (id, type) => {
   const returnSearchArray = [];
 
   switch (type) {
-    case "VALIDATION": // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> REQUEST_ACCEPTED.IUN_WEUD-XHKG-ZHDN-202301-W-1 and REQUEST_REFUSED.IUN_WEUD-XHKG-ZHDN-202301-W-1
+    case "VALIDATION":
+      // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> REQUEST_ACCEPTED.IUN_WEUD-XHKG-ZHDN-202301-W-1,
+      // REQUEST_REFUSED.IUN_WEUD-XHKG-ZHDN-202301-W-1 and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1
+      //
       // type VALIDATION:
       // - INSERT in pn-Timelines of a record with category REQUEST_ACCEPTED: VALIDATION activity end
       // - INSERT in pn-Timelines of a record with category REQUEST_REFUSED: VALIDATION activity end
+      // - INSERT in pn-Timelines of a record with category NOTIFICATION_CANCELLED: VALIDATION activity end
       const timelineBaseValidation = id.split("##")[1]; // IUN remains
       const timeLineIdAccepted =
         "REQUEST_ACCEPTED" + sepChar + "IUN_" + timelineBaseValidation;
       const timeLineIdRefused =
         "REQUEST_REFUSED" + sepChar + "IUN_" + timelineBaseValidation;
+      const timeLineIdCancelled =
+        "NOTIFICATION_CANCELLED" + sepChar + "IUN_" + timelineBaseValidation;
       returnSearchArray.push(timeLineIdAccepted);
       returnSearchArray.push(timeLineIdRefused);
+      returnSearchArray.push(timeLineIdCancelled);
       break;
-    case "REFINEMENT": // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> REFINEMENT.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0
+    case "REFINEMENT":
+      // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> REFINEMENT.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0,
+      // NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1 (NO RECINDEX)
+      //
       // type REFINEMENT:
       // - INSERT in pn-Timelines of a record with category REFINEMENT: DELIVERY activity end for one of the recipients
       // - INSERT in pn-Timelines of a record with category NOTIFICATION_VIEWED: DELIVERY activity end for one of the recipients
+      // - INSERT in pn-Timelines of a record with category NOTIFICATION_CANCELLED (no recipients): DELIVERY activity end for one of the recipients
       const timelineBaseRefinement = id
         .replace("01_REFIN##", "IUN_")
         .replace("##", sepChar + "RECINDEX_");
@@ -40,10 +51,16 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "REFINEMENT" + sepChar + timelineBaseRefinement;
       const timeLineIdNotificationViewed =
         "NOTIFICATION_VIEWED" + sepChar + timelineBaseRefinement;
+      const timelineBaseRefinementCancelled =
+        "NOTIFICATION_CANCELLED" + sepChar + "IUN_" + id.split("##")[1]; // IUN remains
       returnSearchArray.push(timeLineIdRefinement);
       returnSearchArray.push(timeLineIdNotificationViewed);
+      returnSearchArray.push(timelineBaseRefinementCancelled);
+      // we will search, for multiple refinement (one for recidx), for the same notification cancelled element in timeline (that doesn't have recidx)
       break;
-    case "SEND_PEC": // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0
+    case "SEND_PEC":
+      // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0
+      //
       // SEND_PEC:
       // - INSERT in pn-Timelines of a record with category SEND_DIGITAL_FEEDBACK: SEND PEC activity end
       const timeLineIdSendDigitalFeedback = id
@@ -51,7 +68,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK");
       returnSearchArray.push(timeLineIdSendDigitalFeedback);
       break;
-    case "SEND_PAPER_AR_890": // id: 03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1 -> SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1
+    case "SEND_PAPER_AR_890":
+      // id: 03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1 -> SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1
+      //
       // SEND_PAPER_AR_890
       // - INSERT in pn-Timelines of a record with category SEND_ANALOG_FEEDBACK: SEND PAPER AR activity end
       const timelineIdPaperAR890 = id
@@ -60,7 +79,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnSearchArray.push(timelineIdPaperAR890);
       break;
     /* istanbul ignore next */
-    case "SEND_AMR": // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
+    case "SEND_AMR":
+      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
+      //
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
       const timelineBaseAMR = id
         .replace("04_AMR##", "IUN_")
@@ -81,7 +102,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
 };
 
 /**
- * checks wheter the activity is ended or is still running
+ * checks wheter the activity is ended or it is still running
  * @returns {Promise<string>} returns the ISO timestamp of the ended searched activity, or null if the activity is still running
  */
 exports.findActivityEnd = async (iun, id, type) => {
