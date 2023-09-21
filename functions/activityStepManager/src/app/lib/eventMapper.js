@@ -107,9 +107,11 @@ function makeBulkInsertOp(event, payload) {
   return op;
 }
 
-function processInvoicedElement(timelineObj) {
+function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
   // timestamp format 2023-02-16T09:16:07.712247798Z
-  const timestamp = timelineObj.timestamp;
+  //
+  // if invoicingTimestamp is defined use it, otherwise take it from timelineObj
+  const timestamp = passedInvoicingTimestamp ?? timelineObj.timestamp;
   const invoincingTimestampMs = moment(timestamp).valueOf(); // milliseconds
   const invoincingTimestamp = moment(invoincingTimestampMs).toISOString(); // ISO string 8601
   const invoicingDay = moment(invoincingTimestamp)
@@ -123,11 +125,11 @@ function processInvoicedElement(timelineObj) {
   );
   return {
     paId_invoicingDay: `${paId}_${invoicingDay}`,
-    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`,
+    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
     ttl,
     paId,
     invoicingDay,
-    invoincingTimestamp,
+    invoincingTimestamp, // typo, but left
     ...timelineObj,
   };
 }
@@ -161,7 +163,13 @@ async function processInvoice(event, recIdxs) {
           ]);
           if (timelineElements && timelineElements.length > 0) {
             for (const timelineElem of timelineElements) {
-              invoicedElements.push(processInvoicedElement(timelineElem));
+              invoicedElements.push(
+                processInvoicedElement(
+                  timelineElem,
+                  // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
+                  invoicedElement.invoincingTimestamp // typo, but left
+                )
+              );
             }
           }
         } // for
