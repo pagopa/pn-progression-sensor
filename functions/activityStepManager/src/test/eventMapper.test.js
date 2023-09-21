@@ -90,6 +90,9 @@ describe("event mapper tests", function () {
     expect(res[1].payload[0].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
+    expect(res[1].payload[0].timestamp).equal(
+      res[1].payload[0].invoincingTimestamp
+    );
     // element 1 - paper invoice - the timestamp from the first element, not the one from this element
     expect(res[1].payload[1].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
@@ -102,6 +105,9 @@ describe("event mapper tests", function () {
     expect(res[1].payload[1].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
+    expect(res[1].payload[1].invoincingTimestamp).not.equal(
+      res[1].payload[1].timestamp
+    );
     // element 2 - paper invoice
     expect(res[1].payload[2].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
@@ -113,6 +119,9 @@ describe("event mapper tests", function () {
     expect(res[1].payload[2].invoicingDay).equal("2023-01-20");
     expect(res[1].payload[2].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
+    );
+    expect(res[1].payload[2].invoincingTimestamp).not.equal(
+      res[1].payload[2].timestamp
     );
     // reset mock
     ddbMock.reset();
@@ -140,6 +149,9 @@ describe("event mapper tests", function () {
     expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
     expect(res[1].payload[0].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
+    );
+    expect(res[1].payload[0].timestamp).equal(
+      res[1].payload[0].invoincingTimestamp
     );
   });
 
@@ -210,6 +222,9 @@ describe("event mapper tests", function () {
     expect(res[4].payload[0].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
+    expect(res[4].payload[0].timestamp).equal(
+      res[4].payload[0].invoincingTimestamp
+    );
     // element 1
     expect(res[4].payload[1].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
@@ -222,6 +237,9 @@ describe("event mapper tests", function () {
     expect(res[4].payload[1].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
+    expect(res[4].payload[1].timestamp).not.equal(
+      res[4].payload[1].invoincingTimestamp
+    );
     // element 2
     expect(res[4].payload[2].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
@@ -233,6 +251,9 @@ describe("event mapper tests", function () {
     expect(res[4].payload[2].invoicingDay).equal("2023-01-20");
     expect(res[4].payload[2].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
+    );
+    expect(res[4].payload[2].timestamp).not.equal(
+      res[4].payload[2].invoincingTimestamp
     );
     // we're simulating only for recindex 1
   });
