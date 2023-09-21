@@ -124,11 +124,11 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
   );
   return {
     paId_invoicingDay: `${paId}_${invoicingDay}`,
-    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`,
+    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
     ttl,
     paId,
     invoicingDay,
-    invoincingTimestamp,
+    invoincingTimestamp, // typo, but left
     ...timelineObj,
   };
 }
@@ -161,7 +161,7 @@ async function processInvoice(event, recIdx) {
               processInvoicedElement(
                 timelineElem,
                 // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
-                invoicedElement.invoincingTimestamp
+                invoicedElement.invoincingTimestamp // typo, but left
               )
             );
           }
