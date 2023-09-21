@@ -106,9 +106,11 @@ function makeBulkInsertOp(event, payload) {
   return op;
 }
 
-function processInvoicedElement(timelineObj) {
+function processInvoicedElement(timelineObj, invoicingTimestamp) {
   // timestamp format 2023-02-16T09:16:07.712247798Z
-  const timestamp = timelineObj.timestamp;
+  //
+  // if invoicingTimestamp is defined use it, otherwise take it from timelineObj
+  const timestamp = invoicingTimestamp ?? timelineObj.timestamp;
   const invoincingTimestampMs = moment(timestamp).valueOf(); // milliseconds
   const invoincingTimestamp = moment(invoincingTimestampMs).toISOString(); // ISO string 8601
   const invoicingDay = moment(invoincingTimestamp)
@@ -155,7 +157,13 @@ async function processInvoice(event, recIdx) {
         ]);
         if (timelineElements && timelineElements.length > 0) {
           for (const timelineElem of timelineElements) {
-            invoicedElements.push(processInvoicedElement(timelineElem));
+            invoicedElements.push(
+              processInvoicedElement(
+                timelineElem,
+                // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
+                invoicedElement.invoincingTimestamp
+              )
+            );
           }
         }
       }
