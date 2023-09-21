@@ -106,11 +106,11 @@ function makeBulkInsertOp(event, payload) {
   return op;
 }
 
-function processInvoicedElement(timelineObj, invoicingTimestamp) {
+function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
   // timestamp format 2023-02-16T09:16:07.712247798Z
   //
   // if invoicingTimestamp is defined use it, otherwise take it from timelineObj
-  const timestamp = invoicingTimestamp ?? timelineObj.timestamp;
+  const timestamp = passedInvoicingTimestamp ?? timelineObj.timestamp;
   const invoincingTimestampMs = moment(timestamp).valueOf(); // milliseconds
   const invoincingTimestamp = moment(invoincingTimestampMs).toISOString(); // ISO string 8601
   const invoicingDay = moment(invoincingTimestamp)
