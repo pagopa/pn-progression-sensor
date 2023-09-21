@@ -106,7 +106,7 @@ describe("event mapper tests", function () {
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
     expect(res[1].opType).equal("BULK_INSERT_INVOICES");
-    // element 0
+    // element 0 - refinement - invoice
     expect(res[1].payload[0].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
@@ -118,29 +118,29 @@ describe("event mapper tests", function () {
     expect(res[1].payload[0].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
-    // element 1
+    // element 1 - paper invoice - the timestamp from the first element, not the one from this element
     expect(res[1].payload[1].paId_invoicingDay).equal(
-      "026e8c72-7944-4dcd-8668-f596447fec6d_2023-02-16"
+      "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
     expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
-      "2023-02-16T09:12:05.283Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0"
+      "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0"
     );
-    expect(res[1].payload[1].ttl).equal(1708074725);
-    expect(res[1].payload[1].invoicingDay).equal("2023-02-16");
+    expect(res[1].payload[1].ttl).equal(1705762080);
+    expect(res[1].payload[1].invoicingDay).equal("2023-01-20");
     expect(res[1].payload[1].invoincingTimestamp).equal(
-      "2023-02-16T09:12:05.283Z"
+      "2023-01-20T14:48:00.000Z"
     );
-    // element 2
+    // element 2 - paper invoice
     expect(res[1].payload[2].paId_invoicingDay).equal(
-      "026e8c72-7944-4dcd-8668-f596447fec6d_2023-02-16"
+      "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
     expect(res[1].payload[2].invoincingTimestamp_timelineElementId).equal(
-      "2023-02-16T09:11:38.619Z_SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_0"
+      "2023-01-20T14:48:00.000Z_SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_0"
     );
-    expect(res[1].payload[2].ttl).equal(1708074698);
-    expect(res[1].payload[2].invoicingDay).equal("2023-02-16");
+    expect(res[1].payload[2].ttl).equal(1705762080);
+    expect(res[1].payload[2].invoicingDay).equal("2023-01-20");
     expect(res[1].payload[2].invoincingTimestamp).equal(
-      "2023-02-16T09:11:38.619Z"
+      "2023-01-20T14:48:00.000Z"
     );
     // reset mock
     ddbMock.reset();
