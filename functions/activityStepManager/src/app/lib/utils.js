@@ -88,7 +88,7 @@ exports.initTtlSlaTimes = () => {
     process.env.ALARM_TTL_SEND_PAPER_AR_890 ||
     ttlSlaTimes.ALARM_TTL_SEND_PAPER_AR_890;
   ttlSlaTimes.ALARM_TTL_SEND_AMR =
-    process.env.ALARM_TTL_SEND_AM || ttlSlaTimes.ALARM_TTL_SEND_AM;
+    process.env.ALARM_TTL_SEND_AMR || ttlSlaTimes.ALARM_TTL_SEND_AMR;
   ttlSlaTimes.SLA_EXPIRATION_VALIDATION =
     process.env.SLA_EXPIRATION_VALIDATION ||
     ttlSlaTimes.SLA_EXPIRATION_VALIDATION;
@@ -104,6 +104,23 @@ exports.initTtlSlaTimes = () => {
     process.env.SLA_EXPIRATION_SEND_AMR || ttlSlaTimes.SLA_EXPIRATION_SEND_AMR;
   ttlSlaTimes.INVOICING_TTL_DAYS =
     process.env.INVOICING_TTL_DAYS || ttlSlaTimes.INVOICING_TTL_DAYS;
+
+  // ensure any property is a float number and not a string
+  for (const [key, value] of Object.entries(ttlSlaTimes)) {
+    ttlSlaTimes[key] = parseFloat(value);
+
+    if (isNaN(ttlSlaTimes[key])) {
+      console.error(
+        `ERROR: the value for ${key} is not a number: ${value}. Please check the environment variables.`
+      );
+    }
+
+    if (ttlSlaTimes[key] === 0) {
+      console.warn(
+        `WARNING: the value for ${key} is 0. Please check the environment variables.`
+      );
+    }
+  }
 
   return ttlSlaTimes;
 };
