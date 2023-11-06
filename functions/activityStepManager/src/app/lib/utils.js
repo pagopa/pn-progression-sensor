@@ -108,6 +108,18 @@ exports.initTtlSlaTimes = () => {
   // ensure any property is a float number and not a string
   for (const [key, value] of Object.entries(ttlSlaTimes)) {
     ttlSlaTimes[key] = parseFloat(value);
+
+    if (isNaN(ttlSlaTimes[key])) {
+      console.error(
+        `ERROR: the value for ${key} is not a number: ${value}. Please check the environment variables.`
+      );
+    }
+
+    if (ttlSlaTimes[key] === 0) {
+      console.warn(
+        `WARNING: the value for ${key} is 0. Please check the environment variables.`
+      );
+    }
   }
 
   return ttlSlaTimes;
