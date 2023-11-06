@@ -92,4 +92,110 @@ describe("test utils functions", () => {
       },
     });
   });
+
+  it("should test initTtlSlaTimes with default values", () => {
+    const { initTtlSlaTimes } = require("../app/lib/utils");
+
+    const ttlSlaTimes = initTtlSlaTimes();
+
+    expect(ttlSlaTimes.ALARM_TTL_VALIDATION).to.eq(0.5);
+    expect(ttlSlaTimes.ALARM_TTL_REFINEMENT).to.eq(110);
+    expect(ttlSlaTimes.ALARM_TTL_SEND_PEC).to.eq(2);
+    expect(ttlSlaTimes.ALARM_TTL_SEND_PAPER_AR_890).to.eq(100);
+    expect(ttlSlaTimes.ALARM_TTL_SEND_AMR).to.eq(2);
+    expect(ttlSlaTimes.SLA_EXPIRATION_VALIDATION).to.eq(1);
+    expect(ttlSlaTimes.SLA_EXPIRATION_REFINEMENT).to.eq(120);
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_PEC).to.eq(2);
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_PAPER_AR_890).to.eq(100);
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_AMR).to.eq(2);
+    expect(ttlSlaTimes.INVOICING_TTL_DAYS).to.eq(365);
+  });
+
+  it("should test initTtlSlaTimes with values from env variables", () => {
+    // set the environment variables
+    process.env.ALARM_TTL_VALIDATION = 1;
+    process.env.ALARM_TTL_REFINEMENT = 2;
+    process.env.ALARM_TTL_SEND_PEC = 3;
+    process.env.ALARM_TTL_SEND_PAPER_AR_890 = 4;
+    process.env.ALARM_TTL_SEND_AMR = 5;
+    process.env.SLA_EXPIRATION_VALIDATION = 6;
+    process.env.SLA_EXPIRATION_REFINEMENT = 7;
+    process.env.SLA_EXPIRATION_SEND_PEC = 8;
+    process.env.SLA_EXPIRATION_SEND_PAPER_AR_890 = 9;
+    process.env.SLA_EXPIRATION_SEND_AMR = 10;
+    process.env.INVOICING_TTL_DAYS = 0;
+
+    const { initTtlSlaTimes } = require("../app/lib/utils");
+
+    const ttlSlaTimes = initTtlSlaTimes();
+
+    expect(ttlSlaTimes.ALARM_TTL_VALIDATION).to.eq(1);
+    expect(ttlSlaTimes.ALARM_TTL_REFINEMENT).to.eq(2);
+    expect(ttlSlaTimes.ALARM_TTL_SEND_PEC).to.eq(3);
+    expect(ttlSlaTimes.ALARM_TTL_SEND_PAPER_AR_890).to.eq(4);
+    expect(ttlSlaTimes.ALARM_TTL_SEND_AMR).to.eq(5);
+    expect(ttlSlaTimes.SLA_EXPIRATION_VALIDATION).to.eq(6);
+    expect(ttlSlaTimes.SLA_EXPIRATION_REFINEMENT).to.eq(7);
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_PEC).to.eq(8);
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_PAPER_AR_890).to.eq(9);
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_AMR).to.eq(10);
+    expect(ttlSlaTimes.INVOICING_TTL_DAYS).to.eq(0);
+
+    // unset the environment variables
+    delete process.env.ALARM_TTL_VALIDATION;
+    delete process.env.ALARM_TTL_REFINEMENT;
+    delete process.env.ALARM_TTL_SEND_PEC;
+    delete process.env.ALARM_TTL_SEND_PAPER_AR_890;
+    delete process.env.ALARM_TTL_SEND_AMR;
+    delete process.env.SLA_EXPIRATION_VALIDATION;
+    delete process.env.SLA_EXPIRATION_REFINEMENT;
+    delete process.env.SLA_EXPIRATION_SEND_PEC;
+    delete process.env.SLA_EXPIRATION_SEND_PAPER_AR_890;
+    delete process.env.SLA_EXPIRATION_SEND_AMR;
+    delete process.env.INVOICING_TTL_DAYS;
+  });
+
+  it("should get initTtlSlaTimes with NaN with text values from env variables", () => {
+    // set the environment variables
+    process.env.ALARM_TTL_VALIDATION = "a";
+    process.env.ALARM_TTL_REFINEMENT = "b";
+    process.env.ALARM_TTL_SEND_PEC = "c";
+    process.env.ALARM_TTL_SEND_PAPER_AR_890 = "d";
+    process.env.ALARM_TTL_SEND_AMR = "e";
+    process.env.SLA_EXPIRATION_VALIDATION = "f";
+    process.env.SLA_EXPIRATION_REFINEMENT = "g";
+    process.env.SLA_EXPIRATION_SEND_PEC = "h";
+    process.env.SLA_EXPIRATION_SEND_PAPER_AR_890 = "i";
+    process.env.SLA_EXPIRATION_SEND_AMR = "j";
+    process.env.INVOICING_TTL_DAYS = "k";
+
+    const { initTtlSlaTimes } = require("../app/lib/utils");
+
+    const ttlSlaTimes = initTtlSlaTimes();
+
+    expect(ttlSlaTimes.ALARM_TTL_VALIDATION).to.be.NaN;
+    expect(ttlSlaTimes.ALARM_TTL_REFINEMENT).to.be.NaN;
+    expect(ttlSlaTimes.ALARM_TTL_SEND_PEC).to.be.NaN;
+    expect(ttlSlaTimes.ALARM_TTL_SEND_PAPER_AR_890).to.be.NaN;
+    expect(ttlSlaTimes.ALARM_TTL_SEND_AMR).to.be.NaN;
+    expect(ttlSlaTimes.SLA_EXPIRATION_VALIDATION).to.be.NaN;
+    expect(ttlSlaTimes.SLA_EXPIRATION_REFINEMENT).to.be.NaN;
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_PEC).to.be.NaN;
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_PAPER_AR_890).to.be.NaN;
+    expect(ttlSlaTimes.SLA_EXPIRATION_SEND_AMR).to.be.NaN;
+    expect(ttlSlaTimes.INVOICING_TTL_DAYS).to.be.NaN;
+
+    // unset the environment variables
+    delete process.env.ALARM_TTL_VALIDATION;
+    delete process.env.ALARM_TTL_REFINEMENT;
+    delete process.env.ALARM_TTL_SEND_PEC;
+    delete process.env.ALARM_TTL_SEND_PAPER_AR_890;
+    delete process.env.ALARM_TTL_SEND_AMR;
+    delete process.env.SLA_EXPIRATION_VALIDATION;
+    delete process.env.SLA_EXPIRATION_REFINEMENT;
+    delete process.env.SLA_EXPIRATION_SEND_PEC;
+    delete process.env.SLA_EXPIRATION_SEND_PAPER_AR_890;
+    delete process.env.SLA_EXPIRATION_SEND_AMR;
+    delete process.env.INVOICING_TTL_DAYS;
+  });
 });
