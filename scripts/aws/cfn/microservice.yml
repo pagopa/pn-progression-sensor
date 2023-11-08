@@ -190,6 +190,15 @@ Parameters:
   SLAViolationCloseSchedulingLambdaName:
     Type: String
 
+  CdcProgressionSensorKinesisStreamName:
+    Type: String
+    Description: "Kinesis stream name to send CDC logs to"
+
+  CdcKinesisMaxAgeInMilliseconds:
+    Type: Number
+    Default: 129600000 # 36 hours
+    Description: 'MaxAgeInMilliseconds for Kinesis Cdc GetRecords'
+
 Resources:
   #########################################################
   ###              SearchSLAViolationsLambda            ###
@@ -640,6 +649,27 @@ Resources:
         FunctionName: !Ref SLAViolationCloseSchedulingLambda
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
+  # Cdc Kinesis GetRecords.IteratorAgeMilliseconds alarm
+  CdcKinesisGetRecordsIteratorAgeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-CdcProgressionSensorKinesis-IteratorAge-Alarm"
+      AlarmDescription: "CloudWatch alarm for when Kinesis Logs GetRecords.IteratorAgeMilliseconds is too high."
+      TreatMissingData: notBreaching        
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: !Ref CdcProgressionSensorKinesisStreamName
+          Name: StreamName
+      DatapointsToAlarm: 10           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 60
+      Period: 60
+      Namespace: AWS/Kinesis   
+      MetricName: GetRecords.IteratorAgeMilliseconds
+      Statistic: Maximum
+      Threshold: !Ref CdcKinesisMaxAgeInMilliseconds
+
   # Dashboard
   MicroserviceDashboard:
     Type: AWS::CloudFormation::Stack
@@ -665,6 +695,7 @@ Resources:
             - !GetAtt ActivityStepManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCheckerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCloseSchedulingLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt CdcKinesisGetRecordsIteratorAgeAlarm.Arn
             - !Ref ProgressionSensorQueueAgeAlarmARN
             - !Ref ProgressionSensorQueueAlarmARN
             - !Ref ActivityStepManagerDLQAlarmARN
