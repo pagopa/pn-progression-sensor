@@ -307,6 +307,9 @@ Outputs:
   CdcProgressionSensorKinesisSourceStreamArn:
     Description: "Kinesis source CDC stream ARN"
     Value: !GetAtt CdcProgressionSensorKinesisStream.Arn
+  CdcProgressionSensorKinesisStreamName:
+    Description: "Kinesis source CDC stream name"
+    Value: !Ref CdcProgressionSensorKinesisStream
   CdcProgressionSensorKinesisSourceStreamKeyArn:
     Description: "Kinesis source CDC stream crypto key ARN"
     Value: !GetAtt CdcProgressionSensorKinesisServerSideEncryptionKey.Arn
