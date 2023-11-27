@@ -210,11 +210,12 @@ async function mapPayload(event) {
         const notification = await getNotification(
           event.dynamodb.NewImage.iun.S
         );
-        const recipientsCount = notification.recipients.length;
-        if (notification) {
+        if (notification?.recipients) {
+          const recipientsCount = notification.recipients.length;
+
           for (let i = 0; i < recipientsCount; i++) {
             const op1 = makeInsertOp(
-              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + i,
+              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + i, // 01_REFIN##UYPE-JQKY-QXWL-202307-D-1##0
               "REFINEMENT",
               event,
               "notificationSentAt",
@@ -228,7 +229,7 @@ async function mapPayload(event) {
         break;
       case "REQUEST_REFUSED":
         op = makeDeleteOp(
-          "00_VALID##" + event.dynamodb.NewImage.iun.S,
+          "00_VALID##" + event.dynamodb.NewImage.iun.S, // 00_VALID##NYQU-XMEH-JRMH-202311-T-1
           "VALIDATION",
           event
         );
@@ -251,12 +252,34 @@ async function mapPayload(event) {
           event
         );
         dynamoDbOps.push(op);
+
         // PN-4564 - process invoice data
         const invoicedElements = await processInvoice(event, [recIdx]);
         const bulkOp = makeBulkInsertOp(event, invoicedElements);
         if (bulkOp) {
           dynamoDbOps.push(bulkOp);
         }
+
+        // close all SEND_PEC steps
+        if (category === "NOTIFICATION_VIEWED") {
+          const notification = await getNotification(
+            event.dynamodb.NewImage.iun.S
+          );
+          if (notification?.recipients) {
+            const recipientsCount = notification.recipients.length;
+            for (let i = 0; i < recipientsCount; i++) {
+              /*op = makeDeleteOp(
+                "02_PEC__##" + event.dynamodb.NewImage.iun.S + "##" + i,
+                "SEND_PEC",
+                event
+              );*/
+              dynamoDbOps.push(op);
+            }
+            // ...
+            // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
+          }
+        }
+
         break;
       case "NOTIFICATION_CANCELLED":
         // PN-7522 - close validation and all refinements
@@ -298,7 +321,7 @@ async function mapPayload(event) {
         break;
       case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
-          "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S,
+          "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S, // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
           "SEND_PEC",
           event,
           "timestamp",
@@ -317,7 +340,7 @@ async function mapPayload(event) {
         break;
       case "SEND_ANALOG_DOMICILE":
         op = makeInsertOp(
-          "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S,
+          "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S, // 03_PAPER##SEND_ANALOG_DOMICILE.IUN_VDML-NVZG-ZEXR-202307-T-1.RECINDEX_0.ATTEMPT_0
           "SEND_PAPER_AR_890",
           event,
           "timestamp",
