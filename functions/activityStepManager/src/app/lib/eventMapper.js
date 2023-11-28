@@ -260,23 +260,32 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOp);
         }
 
-        // close all SEND_PEC steps
+        // close all SEND_PEC steps for the specific recipient
         if (category === "NOTIFICATION_VIEWED") {
-          const notification = await getNotification(
-            event.dynamodb.NewImage.iun.S
-          );
-          if (notification?.recipients) {
-            const recipientsCount = notification.recipients.length;
-            for (let i = 0; i < recipientsCount; i++) {
-              /*op = makeDeleteOp(
-                "02_PEC__##" + event.dynamodb.NewImage.iun.S + "##" + i,
-                "SEND_PEC",
-                event
-              );*/
-              dynamoDbOps.push(op);
+          // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
+          // SOURCE_GENERAL
+          // SOURCE_SPECIAL
+          //
+          // ATTEMPT_0-1
+          const sources = [
+            "SOURCE_GENERAL",
+            "SOURCE_SPECIAL",
+            "SOURCE_PLATFORM",
+          ];
+          const repeat = ["REPEAT_false", "REPEAT_true"];
+          const attempts = ["ATTEMPT_0", "ATTEMPT_1"];
+
+          for (const source of sources) {
+            for (const rep of repeat) {
+              for (const attempt of attempts) {
+                const op = makeDeleteOp(
+                  `02_PEC__##${event.dynamodb.NewImage.iun.S}##${recIdx}.${source}.${rep}.${attempt}`,
+                  "SEND_PEC",
+                  event
+                );
+                dynamoDbOps.push(op);
+              }
             }
-            // ...
-            // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
           }
         }
 
