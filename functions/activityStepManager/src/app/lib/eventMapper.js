@@ -248,7 +248,7 @@ async function mapPayload(event) {
         );
         op = makeDeleteOp(
           "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
-          "REFINEMENT",
+          category,
           event
         );
         dynamoDbOps.push(op);
@@ -260,7 +260,9 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOp);
         }
 
-        // close all SEND_PEC steps for the specific recipient
+        // PN-8703 - close all possible SEND_PEC steps for the specific recipient
+        //
+        // the deletion attempts where the key is not found end gracefully
         if (category === "NOTIFICATION_VIEWED") {
           // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
           // SOURCE_GENERAL
@@ -275,6 +277,7 @@ async function mapPayload(event) {
           const repeat = ["REPEAT_false", "REPEAT_true"];
           const attempts = ["ATTEMPT_0", "ATTEMPT_1"];
 
+          // 12 combinations
           for (const source of sources) {
             for (const rep of repeat) {
               for (const attempt of attempts) {
@@ -368,7 +371,7 @@ async function mapPayload(event) {
         break;
       //case "DIGITAL_FAILURE_WORKFLOW": // DIGITAL_FAILURE_WORKFLOW is immediately followed by SEND_SIMPLE_REGISTERED_LETTER, so we ignore the first one as beginning of event
       case "SEND_SIMPLE_REGISTERED_LETTER":
-        recIdx = event.dynamodb.NewImage.details.M.recIndex.N;
+        recIdx = event.dynamodb.NewImage.details.M.recIndex.N; // "04_AMR##MYQH-TDYJ-KMNG-202310-H-1##0"
         op = makeInsertOp(
           "04_AMR##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
           "SEND_AMR",

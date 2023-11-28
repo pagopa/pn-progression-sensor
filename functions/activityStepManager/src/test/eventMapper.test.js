@@ -177,8 +177,20 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
-    expect(res[0].type).equal("REFINEMENT");
+    expect(res.length).equal(14);
+
+    expect(res[0].type).equal("NOTIFICATION_VIEWED");
     expect(res[0].opType).equal("DELETE");
+
+    // invoices
+    expect(res[1].opType).equal("BULK_INSERT_INVOICES");
+
+    // pec
+    for (let index = 2; index < res.length; index++) {
+      console.log("pec: ", res[index]);
+      expect(res[index].type).equal("SEND_PEC");
+      expect(res[index].opType).equal("DELETE");
+    }
   });
 
   it("test NOTIFICATION_CANCELLED", async () => {
