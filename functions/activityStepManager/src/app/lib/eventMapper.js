@@ -279,11 +279,11 @@ async function mapPayload(event) {
             for (const rep of repeat) {
               for (const attempt of attempts) {
                 const op = makeDeleteOp(
-                  `02_PEC__##${event.dynamodb.NewImage.iun.S}##${recIdx}.${source}.${rep}.${attempt}`,
+                  `02_PEC__##SEND_DIGITAL.IUN${event.dynamodb.NewImage.iun.S}.RECINDEX_${recIdx}.${source}.${rep}.${attempt}`,
                   "SEND_PEC",
                   event
                 );
-                dynamoDbOps.push(op);
+                dynamoDbOps.push(op); // SOURCE_SPECIAL should actually only have REPEAT_false, but we generalized the code
               }
             }
           }
