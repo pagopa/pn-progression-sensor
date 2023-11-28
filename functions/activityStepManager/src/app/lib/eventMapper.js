@@ -248,7 +248,7 @@ async function mapPayload(event) {
         );
         op = makeDeleteOp(
           "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
-          "REFINEMENT", // used for creating the key, so it will always be REFINEMENT, not category
+          "REFINEMENT", // used for creating the key later, in repository.js, so it will always be REFINEMENT, not category
           event
         );
         dynamoDbOps.push(op);
