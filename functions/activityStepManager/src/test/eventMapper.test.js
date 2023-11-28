@@ -179,7 +179,7 @@ describe("event mapper tests", function () {
 
     expect(res.length).equal(14);
 
-    expect(res[0].type).equal("NOTIFICATION_VIEWED");
+    expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
 
     // invoices
