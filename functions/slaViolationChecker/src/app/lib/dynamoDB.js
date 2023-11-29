@@ -17,7 +17,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
   const returnSearchArray = [];
 
   switch (type) {
-    case "VALIDATION":
+    case "VALIDATION": {
       // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> REQUEST_ACCEPTED.IUN_WEUD-XHKG-ZHDN-202301-W-1,
       // REQUEST_REFUSED.IUN_WEUD-XHKG-ZHDN-202301-W-1 and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1
       //
@@ -36,7 +36,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnSearchArray.push(timeLineIdRefused);
       returnSearchArray.push(timeLineIdCancelled);
       break;
-    case "REFINEMENT":
+    }
+    case "REFINEMENT": {
       // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> REFINEMENT.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0,
       // NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1 (NO RECINDEX)
       //
@@ -58,7 +59,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnSearchArray.push(timelineBaseRefinementCancelled);
       // we will search, for multiple refinement (one for recidx), for the same notification cancelled element in timeline (that doesn't have recidx)
       break;
-    case "SEND_PEC":
+    }
+    case "SEND_PEC": {
       // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0
       //
       // SEND_PEC:
@@ -67,8 +69,21 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("02_PEC__##", "")
         .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK");
       returnSearchArray.push(timeLineIdSendDigitalFeedback);
+      // SEND_PEC SLA also closed by NOTIFICATION_VIEWED
+      let timeLineIdNotificationViewedSendDigitalFeedback =
+        timeLineIdSendDigitalFeedback.replace(
+          // we start with "02_..." already removed and "SEND_DIGITAL_FEEDBACK" already replaced
+          "SEND_DIGITAL_FEEDBACK",
+          "NOTIFICATION_VIEWED"
+        );
+      // remove everything after the first RECINDEX
+      const regex = new RegExp(sepChar + "RECINDEX_.*");
+      timeLineIdNotificationViewedSendDigitalFeedback =
+        timeLineIdNotificationViewedSendDigitalFeedback.replace(regex, "");
+      returnSearchArray.push(timeLineIdNotificationViewedSendDigitalFeedback);
       break;
-    case "SEND_PAPER_AR_890":
+    }
+    case "SEND_PAPER_AR_890": {
       // id: 03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1 -> SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1
       //
       // SEND_PAPER_AR_890
@@ -78,8 +93,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("SEND_ANALOG_DOMICILE", "SEND_ANALOG_FEEDBACK");
       returnSearchArray.push(timelineIdPaperAR890);
       break;
+    }
     /* istanbul ignore next */
-    case "SEND_AMR":
+    case "SEND_AMR": {
       // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
       //
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
@@ -94,6 +110,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "IDX_1";
       returnSearchArray.push(timelineIdPaperAMR);
       break;
+    }
     /* istanbul ignore next */
     default:
       break;

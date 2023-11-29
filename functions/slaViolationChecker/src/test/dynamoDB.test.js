@@ -155,7 +155,10 @@ describe("Find closingElementId tests by type", function () {
     expect(response[0]).equal(
       "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0"
     );
-    expect(response.length).equal(1);
+    expect(response[1]).equal(
+      "NOTIFICATION_VIEWED.IUN_AWMX-HXYK-YDAH-202302-P-1"
+    );
+    expect(response.length).equal(2);
   });
 
   it("should match the SEND_PEC type, REPEAT true", () => {
@@ -170,7 +173,10 @@ describe("Find closingElementId tests by type", function () {
     expect(response[0]).equal(
       "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0"
     );
-    expect(response.length).equal(1);
+    expect(response[1]).equal(
+      "NOTIFICATION_VIEWED.IUN_AWMX-HXYK-YDAH-202302-P-1"
+    );
+    expect(response.length).equal(2);
   });
 
   it("should match the SEND_PAPER_AR_890 type", () => {
