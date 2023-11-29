@@ -196,7 +196,7 @@ async function mapPayload(event) {
     let op, recIdx;
     const category = event.dynamodb.NewImage.category.S;
     switch (category) {
-      case "REQUEST_ACCEPTED":
+      case "REQUEST_ACCEPTED": {
         op = makeDeleteOp(
           "00_VALID##" + event.dynamodb.NewImage.iun.S,
           "VALIDATION",
@@ -227,7 +227,8 @@ async function mapPayload(event) {
         }
 
         break;
-      case "REQUEST_REFUSED":
+      }
+      case "REQUEST_REFUSED": {
         op = makeDeleteOp(
           "00_VALID##" + event.dynamodb.NewImage.iun.S, // 00_VALID##NYQU-XMEH-JRMH-202311-T-1
           "VALIDATION",
@@ -241,8 +242,9 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOpRefused);
         }
         break;
+      }
       case "REFINEMENT":
-      case "NOTIFICATION_VIEWED":
+      case "NOTIFICATION_VIEWED": {
         recIdx = extractRecIdsFromTimelineId(
           event.dynamodb.NewImage.timelineElementId.S
         );
@@ -293,7 +295,8 @@ async function mapPayload(event) {
         }
 
         break;
-      case "NOTIFICATION_CANCELLED":
+      }
+      case "NOTIFICATION_CANCELLED": {
         // PN-7522 - close validation and all refinements
         // close validation (if still open)
         op = makeDeleteOp(
@@ -331,6 +334,7 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOpCancelled);
         }
         break;
+      }
       case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
           "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S, // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0

@@ -27,6 +27,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("VALIDATION");
     expect(res[0].opType).equal("INSERT");
   });
@@ -39,6 +41,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(2);
 
     expect(res[0].type).equal("VALIDATION");
     expect(res[0].opType).equal("DELETE");
@@ -74,6 +78,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(2);
 
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
@@ -136,6 +142,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(2);
+
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
     expect(res[1].opType).equal("BULK_INSERT_INVOICES");
@@ -163,6 +171,8 @@ describe("event mapper tests", function () {
 
     const events = [event];
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
     expect(res[1]).equal(undefined);
@@ -279,6 +289,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("SEND_PEC");
     expect(res[0].opType).equal("INSERT");
   });
@@ -291,6 +303,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
 
     expect(res[0].type).equal("SEND_PEC");
     expect(res[0].opType).equal("DELETE");
@@ -305,6 +319,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("SEND_PAPER_AR_890");
     expect(res[0].opType).equal("INSERT");
   });
@@ -318,29 +334,11 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("SEND_PAPER_AR_890");
     expect(res[0].opType).equal("DELETE");
   });
-
-  // it("test DIGITAL_FAILURE_WORKFLOW", async () => {
-  //   const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
-  //   let event = JSON.parse(eventJSON);
-  //   event = setCategory(event, "DIGITAL_FAILURE_WORKFLOW");
-
-  //   event.dynamodb.NewImage.details = {
-  //     M: {
-  //       recIndex: {
-  //         N: 0,
-  //       },
-  //     },
-  //   };
-  //   const events = [event];
-
-  //   const res = await mapEvents(events);
-
-  //   expect(res[0].type).equal("SEND_AMR");
-  //   expect(res[0].opType).equal("INSERT");
-  // });
 
   it("test SEND_SIMPLE_REGISTERED_LETTER", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
@@ -357,6 +355,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
 
     expect(res[0].type).equal("SEND_AMR");
     expect(res[0].opType).equal("INSERT");
@@ -384,6 +384,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
 
     expect(res[0].type).equal("SEND_AMR");
     expect(res[0].opType).equal("DELETE");
