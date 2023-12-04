@@ -70,7 +70,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK");
       returnSearchArray.push(timeLineIdSendDigitalFeedback);
 
-      // // PN-8703 - SEND_PEC SLA also closed by NOTIFICATION_VIEWED
+      // PN-8703 - SEND_PEC SLA also closed by NOTIFICATION_VIEWED
       let timeLineIdNotificationViewedSendDigitalFeedback =
         timeLineIdSendDigitalFeedback.replace(
           // we start with "02_..." already removed and "SEND_DIGITAL_FEEDBACK" already replaced
