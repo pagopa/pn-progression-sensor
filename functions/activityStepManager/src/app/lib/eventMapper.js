@@ -284,7 +284,7 @@ async function mapPayload(event) {
             for (const rep of repeat) {
               for (const attempt of attempts) {
                 const op = makeDeleteOp(
-                  `02_PEC__##SEND_DIGITAL.IUN${event.dynamodb.NewImage.iun.S}.RECINDEX_${recIdx}.${source}.${rep}.${attempt}`,
+                  `02_PEC__##SEND_DIGITAL.IUN_${event.dynamodb.NewImage.iun.S}.RECINDEX_${recIdx}.${source}.${rep}.${attempt}`,
                   "SEND_PEC",
                   event
                 );
