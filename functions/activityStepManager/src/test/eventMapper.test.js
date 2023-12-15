@@ -192,6 +192,8 @@ describe("event mapper tests", function () {
     expect(res[0].type).equal("REFINEMENT"); // used for creating the key for DynamoDB later: it must be REFINEMENT, not NOTIFICATION_VIEWED
     expect(res[0].opType).equal("DELETE");
 
+    expect(res[0].id).equal("01_REFIN##abcd##1");
+
     // invoices
     expect(res[1].opType).equal("BULK_INSERT_INVOICES");
 
@@ -200,6 +202,12 @@ describe("event mapper tests", function () {
       console.log("pec: ", res[index]);
       expect(res[index].type).equal("SEND_PEC");
       expect(res[index].opType).equal("DELETE");
+
+      // expect  res[index].id to start with
+      // 02_PEC__##SEND_DIGITAL.IUN_abcd.RECINDEX_
+      expect(
+        res[index].id.startsWith("02_PEC__##SEND_DIGITAL.IUN_abcd.RECINDEX_")
+      ).to.be.true;
     }
   });
 
