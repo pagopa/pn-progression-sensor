@@ -196,7 +196,7 @@ async function mapPayload(event) {
     let op, recIdx;
     const category = event.dynamodb.NewImage.category.S;
     switch (category) {
-      case "REQUEST_ACCEPTED":
+      case "REQUEST_ACCEPTED": {
         op = makeDeleteOp(
           "00_VALID##" + event.dynamodb.NewImage.iun.S,
           "VALIDATION",
@@ -210,11 +210,12 @@ async function mapPayload(event) {
         const notification = await getNotification(
           event.dynamodb.NewImage.iun.S
         );
-        const recipientsCount = notification.recipients.length;
-        if (notification) {
+        if (notification?.recipients) {
+          const recipientsCount = notification.recipients.length;
+
           for (let i = 0; i < recipientsCount; i++) {
             const op1 = makeInsertOp(
-              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + i,
+              "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + i, // 01_REFIN##UYPE-JQKY-QXWL-202307-D-1##0
               "REFINEMENT",
               event,
               "notificationSentAt",
@@ -226,9 +227,10 @@ async function mapPayload(event) {
         }
 
         break;
-      case "REQUEST_REFUSED":
+      }
+      case "REQUEST_REFUSED": {
         op = makeDeleteOp(
-          "00_VALID##" + event.dynamodb.NewImage.iun.S,
+          "00_VALID##" + event.dynamodb.NewImage.iun.S, // 00_VALID##NYQU-XMEH-JRMH-202311-T-1
           "VALIDATION",
           event
         );
@@ -240,25 +242,61 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOpRefused);
         }
         break;
+      }
       case "REFINEMENT":
-      case "NOTIFICATION_VIEWED":
+      case "NOTIFICATION_VIEWED": {
         recIdx = extractRecIdsFromTimelineId(
           event.dynamodb.NewImage.timelineElementId.S
         );
         op = makeDeleteOp(
           "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
-          "REFINEMENT",
+          "REFINEMENT", // used for creating the key later, in repository.js, so it will always be REFINEMENT, not category
           event
         );
         dynamoDbOps.push(op);
+
         // PN-4564 - process invoice data
         const invoicedElements = await processInvoice(event, [recIdx]);
         const bulkOp = makeBulkInsertOp(event, invoicedElements);
         if (bulkOp) {
           dynamoDbOps.push(bulkOp);
         }
+
+        // PN-8703 - close all possible SEND_PEC steps for the specific recipient
+        //
+        // the deletion attempts where the key is not found end gracefully
+        if (category === "NOTIFICATION_VIEWED") {
+          // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
+          // SOURCE_GENERAL
+          // SOURCE_SPECIAL
+          //
+          // ATTEMPT_0-1
+          const sources = [
+            "SOURCE_GENERAL",
+            "SOURCE_SPECIAL",
+            "SOURCE_PLATFORM",
+          ];
+          const repeat = ["REPEAT_false", "REPEAT_true"];
+          const attempts = ["ATTEMPT_0", "ATTEMPT_1"];
+
+          // 12 combinations
+          for (const source of sources) {
+            for (const rep of repeat) {
+              for (const attempt of attempts) {
+                const op = makeDeleteOp(
+                  `02_PEC__##SEND_DIGITAL.IUN_${event.dynamodb.NewImage.iun.S}.RECINDEX_${recIdx}.${source}.${rep}.${attempt}`,
+                  "SEND_PEC",
+                  event
+                );
+                dynamoDbOps.push(op); // SOURCE_SPECIAL should actually only have REPEAT_false, but we generalized the code
+              }
+            }
+          }
+        }
+
         break;
-      case "NOTIFICATION_CANCELLED":
+      }
+      case "NOTIFICATION_CANCELLED": {
         // PN-7522 - close validation and all refinements
         // close validation (if still open)
         op = makeDeleteOp(
@@ -296,9 +334,10 @@ async function mapPayload(event) {
           dynamoDbOps.push(bulkOpCancelled);
         }
         break;
+      }
       case "SEND_DIGITAL_DOMICILE":
         op = makeInsertOp(
-          "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S,
+          "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S, // 02_PEC__##SEND_DIGITAL.IUN_JGZP-HLEV-ZGAE-202306-U-1.RECINDEX_0.SOURCE_PLATFORM.REPEAT_false.ATTEMPT_0
           "SEND_PEC",
           event,
           "timestamp",
@@ -317,7 +356,7 @@ async function mapPayload(event) {
         break;
       case "SEND_ANALOG_DOMICILE":
         op = makeInsertOp(
-          "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S,
+          "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S, // 03_PAPER##SEND_ANALOG_DOMICILE.IUN_VDML-NVZG-ZEXR-202307-T-1.RECINDEX_0.ATTEMPT_0
           "SEND_PAPER_AR_890",
           event,
           "timestamp",
@@ -336,7 +375,7 @@ async function mapPayload(event) {
         break;
       //case "DIGITAL_FAILURE_WORKFLOW": // DIGITAL_FAILURE_WORKFLOW is immediately followed by SEND_SIMPLE_REGISTERED_LETTER, so we ignore the first one as beginning of event
       case "SEND_SIMPLE_REGISTERED_LETTER":
-        recIdx = event.dynamodb.NewImage.details.M.recIndex.N;
+        recIdx = event.dynamodb.NewImage.details.M.recIndex.N; // "04_AMR##MYQH-TDYJ-KMNG-202310-H-1##0"
         op = makeInsertOp(
           "04_AMR##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
           "SEND_AMR",
