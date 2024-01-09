@@ -77,10 +77,12 @@ exports.closingElementIdFromIDAndType = (id, type) => {
           "SEND_DIGITAL_FEEDBACK",
           "NOTIFICATION_VIEWED"
         );
-      // remove everything after the first RECINDEX
-      const regex = new RegExp(sepChar + "RECINDEX_.*");
+      // remove everything after RECINDEX_* (included)
       timeLineIdNotificationViewedSendDigitalFeedback =
-        timeLineIdNotificationViewedSendDigitalFeedback.replace(regex, "");
+        timeLineIdNotificationViewedSendDigitalFeedback.replace(
+          /(\.RECINDEX_\d+)(\..*)$/,
+          "$1"
+        );
       returnSearchArray.push(timeLineIdNotificationViewedSendDigitalFeedback);
       break;
     }
