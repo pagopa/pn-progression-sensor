@@ -156,14 +156,14 @@ describe("Find closingElementId tests by type", function () {
       "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0"
     );
     expect(response[1]).equal(
-      "NOTIFICATION_VIEWED.IUN_AWMX-HXYK-YDAH-202302-P-1"
+      "NOTIFICATION_VIEWED.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0"
     );
     expect(response.length).equal(2);
   });
 
   it("should match the SEND_PEC type, REPEAT true", () => {
     const id =
-      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0";
+      "02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_1.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0";
     const type = "SEND_PEC";
 
     const response = closingElementIdFromIDAndType(id, type);
@@ -171,10 +171,10 @@ describe("Find closingElementId tests by type", function () {
     expect(response).to.not.be.null;
     expect(response).to.not.be.undefined;
     expect(response[0]).equal(
-      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0"
+      "SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_1.SOURCE_SPECIAL.REPEAT_true.ATTEMPT_0"
     );
     expect(response[1]).equal(
-      "NOTIFICATION_VIEWED.IUN_AWMX-HXYK-YDAH-202302-P-1"
+      "NOTIFICATION_VIEWED.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_1"
     );
     expect(response.length).equal(2);
   });
