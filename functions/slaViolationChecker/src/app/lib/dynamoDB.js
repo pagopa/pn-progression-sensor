@@ -153,7 +153,8 @@ exports.findActivityEnd = async (iun, id, type) => {
     try {
       let response = await dynamoDB.send(new GetCommand(params));
 
-      if (!response.Item) {
+      if (response.Item == null) {
+        // including undefined
         console.log(
           "Nothing found on GetItem with the sort key: " +
             params.Key.timelineElementId
@@ -205,6 +206,7 @@ exports.findActivityEnd = async (iun, id, type) => {
               params.Key.timelineElementId = partialTimelineElementID + idx;
               response = await dynamoDB.send(new GetCommand(params));
               if (response.Item == null) {
+                // including undefined
                 // we didn't find the element: we stop the search
                 found = true;
               } else if (
