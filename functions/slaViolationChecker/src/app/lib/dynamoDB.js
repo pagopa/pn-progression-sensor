@@ -99,7 +99,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
     }
     /* istanbul ignore next */
     case "SEND_AMR": {
-      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
+      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always start with IDX_1, and
+      // in the receiving function we eventually search for other IDXs)
       //
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
       const timelineBaseAMR = id
