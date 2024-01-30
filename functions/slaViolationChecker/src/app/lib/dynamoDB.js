@@ -204,8 +204,8 @@ exports.findActivityEnd = async (iun, id, type) => {
               "IDX_1",
               "IDX_"
             );
-            while (!found && idx < maxIdxsInSendAmrSearch) {
-              // we stop at 50, to avoid infinite loops
+            while (!found && idx <= maxIdxsInSendAmrSearch) {
+              // we stop at maxIdxsInSendAmrSearch, to avoid infinite loops
               params.Key.timelineElementId = partialTimelineElementID + idx;
               response = await dynamoDB.send(new GetCommand(params));
               if (response.Item == null) {
