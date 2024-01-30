@@ -186,13 +186,44 @@ exports.findActivityEnd = async (iun, id, type) => {
             );
           }
 
-          return response.Item.details?.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
-            ? response.Item.timestamp || null
-            : null;
+          if (
+            response.Item.details?.registeredLetterCode && // we're also excluding the empty string
+            response.Item.timestamp // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
+          ) {
+            return response.Item.timestamp;
+          } // else we continue with the other found results -> no, we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
+          else {
+            // we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
+            // we start from 2, because we already checked idx 1
+            let idx = 2;
+            let found = false;
+            while (!found) {
+              params.Key.timelineElementId =
+                timelineElementID + sepChar + "IDX_" + idx;
+              response = await dynamoDB.send(new GetCommand(params));
+              if (response.Item == null) {
+                // we didn't find the element: we stop the search
+                found = true;
+              } else {
+                // we found the element: we check if the registeredLetterCode is present
+                if (
+                  response.Item.details?.registeredLetterCode &&
+                  response.Item.timestamp
+                ) {
+                  return response.Item.timestamp;
+                } else {
+                  // we continue the search
+                  idx++;
+                }
+              }
+            }
+          }
         } else {
           // all other cases
           return response.Item.timestamp || null;
         }
+        // we examined all the timelineElementId, but we didn't find any result
+        return null;
       }
     } catch (error) {
       /* istanbul ignore next */
