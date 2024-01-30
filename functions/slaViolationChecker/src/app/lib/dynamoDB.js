@@ -153,7 +153,7 @@ exports.findActivityEnd = async (iun, id, type) => {
     try {
       let response = await dynamoDB.send(new GetCommand(params));
 
-      if (response.Item == null) {
+      if (!response.Item) {
         console.log(
           "Nothing found on GetItem with the sort key: " +
             params.Key.timelineElementId
@@ -191,8 +191,7 @@ exports.findActivityEnd = async (iun, id, type) => {
             response.Item.timestamp // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
           ) {
             return response.Item.timestamp;
-          } // else we continue with the other found results -> no, we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
-          else {
+          } else {
             // we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
             // we start from 2, because we already checked idx 1
             let idx = 2;
@@ -204,17 +203,15 @@ exports.findActivityEnd = async (iun, id, type) => {
               if (response.Item == null) {
                 // we didn't find the element: we stop the search
                 found = true;
+              } else if (
+                response.Item.details?.registeredLetterCode &&
+                response.Item.timestamp
+              ) {
+                // we found the element and the registeredLetterCode is present: we return the timestamp
+                return response.Item.timestamp;
               } else {
-                // we found the element: we check if the registeredLetterCode is present
-                if (
-                  response.Item.details?.registeredLetterCode &&
-                  response.Item.timestamp
-                ) {
-                  return response.Item.timestamp;
-                } else {
-                  // we continue the search
-                  idx++;
-                }
+                // we continue the search
+                idx++;
               }
             }
           }
