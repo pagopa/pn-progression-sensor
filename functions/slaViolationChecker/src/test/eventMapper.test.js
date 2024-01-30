@@ -393,7 +393,7 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       },
     });
     ddbMock.on(GetCommand, paramsCall2).resolves({
-      Item: null, // or also not present (undefined)
+      // Item undefined, or also "Item: null"
     });
 
     const processedItems = await mapEvents([kinesisEventAMR]);

@@ -128,6 +128,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
 exports.findActivityEnd = async (iun, id, type) => {
   const tableName = "pn-Timelines";
 
+  const maxIdxsInSendAmrSearch =
+    parseInt(process.env.MAX_IDXS_IN_SEND_AMR_SEARCH) || 50;
+
   // 1. get IUN directly and build timelineElementId from event id
   const params = {
     TableName: tableName,
@@ -201,7 +204,7 @@ exports.findActivityEnd = async (iun, id, type) => {
               "IDX_1",
               "IDX_"
             );
-            while (!found && idx < 50) {
+            while (!found && idx < maxIdxsInSendAmrSearch) {
               // we stop at 50, to avoid infinite loops
               params.Key.timelineElementId = partialTimelineElementID + idx;
               response = await dynamoDB.send(new GetCommand(params));
