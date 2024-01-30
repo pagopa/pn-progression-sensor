@@ -198,21 +198,21 @@ exports.findActivityEnd = async (iun, id, type) => {
             // we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
             // we start from 2, because we already checked idx 1
             let idx = 2;
-            let found = false;
+            let mustStop = false;
             // in this point timelineElementID is something like SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1:
             // we need to change it to SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_ and then add the idx variable
             let partialTimelineElementID = timelineElementID.replace(
               "IDX_1",
               "IDX_"
             );
-            while (!found && idx <= maxIdxsInSendAmrSearch) {
+            while (!mustStop && idx <= maxIdxsInSendAmrSearch) {
               // we stop at maxIdxsInSendAmrSearch, to avoid infinite loops
               params.Key.timelineElementId = partialTimelineElementID + idx;
               response = await dynamoDB.send(new GetCommand(params));
               if (response.Item == null) {
                 // including undefined
                 // we didn't find the element: we stop the search
-                found = true;
+                mustStop = true;
               } else if (
                 response.Item.details?.registeredLetterCode &&
                 response.Item.timestamp
