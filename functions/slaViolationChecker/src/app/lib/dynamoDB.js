@@ -170,8 +170,6 @@ exports.findActivityEnd = async (iun, id, type) => {
         // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
         // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
         // the timestamp instead of null, only for SEND_AMR type
-        //
-        // note: we only perform this for .IDX_1
         if (type === "SEND_AMR") {
           // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
           if (
@@ -196,9 +194,15 @@ exports.findActivityEnd = async (iun, id, type) => {
             // we start from 2, because we already checked idx 1
             let idx = 2;
             let found = false;
-            while (!found) {
-              params.Key.timelineElementId =
-                timelineElementID + sepChar + "IDX_" + idx;
+            // in this point timelineElementID is something like SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1:
+            // we need to change it to SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_ and then add the idx variable
+            let partialTimelineElementID = timelineElementID.replace(
+              "IDX_1",
+              "IDX_"
+            );
+            while (!found && idx < 50) {
+              // we stop at 50, to avoid infinite loops
+              params.Key.timelineElementId = partialTimelineElementID + idx;
               response = await dynamoDB.send(new GetCommand(params));
               if (response.Item == null) {
                 // we didn't find the element: we stop the search
