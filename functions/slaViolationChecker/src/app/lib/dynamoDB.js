@@ -99,7 +99,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
     }
     /* istanbul ignore next */
     case "SEND_AMR": {
-      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
+      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always start with IDX_1, and
+      // in the receiving function we eventually search for other IDXs)
       //
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
       const timelineBaseAMR = id
@@ -128,6 +129,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
 exports.findActivityEnd = async (iun, id, type) => {
   const tableName = "pn-Timelines";
 
+  const maxIdxsInSendAmrSearch =
+    parseInt(process.env.MAX_IDXS_IN_SEND_AMR_SEARCH) || 50;
+
   // 1. get IUN directly and build timelineElementId from event id
   const params = {
     TableName: tableName,
@@ -154,6 +158,7 @@ exports.findActivityEnd = async (iun, id, type) => {
       let response = await dynamoDB.send(new GetCommand(params));
 
       if (response.Item == null) {
+        // including undefined
         console.log(
           "Nothing found on GetItem with the sort key: " +
             params.Key.timelineElementId
@@ -170,8 +175,6 @@ exports.findActivityEnd = async (iun, id, type) => {
         // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
         // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
         // the timestamp instead of null, only for SEND_AMR type
-        //
-        // note: we only perform this for .IDX_1
         if (type === "SEND_AMR") {
           // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
           if (
@@ -186,13 +189,48 @@ exports.findActivityEnd = async (iun, id, type) => {
             );
           }
 
-          return response.Item.details?.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
-            ? response.Item.timestamp || null
-            : null;
+          if (
+            response.Item.details?.registeredLetterCode && // we're also excluding the empty string
+            response.Item.timestamp // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
+          ) {
+            return response.Item.timestamp;
+          } else {
+            // we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
+            // we start from 2, because we already checked idx 1
+            let idx = 2;
+            let mustStop = false;
+            // in this point timelineElementID is something like SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1:
+            // we need to change it to SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_ and then add the idx variable
+            let partialTimelineElementID = timelineElementID.replace(
+              "IDX_1",
+              "IDX_"
+            );
+            while (!mustStop && idx <= maxIdxsInSendAmrSearch) {
+              // we stop at maxIdxsInSendAmrSearch, to avoid infinite loops
+              params.Key.timelineElementId = partialTimelineElementID + idx;
+              response = await dynamoDB.send(new GetCommand(params));
+              if (response.Item == null) {
+                // including undefined
+                // we didn't find the element: we stop the search
+                mustStop = true;
+              } else if (
+                response.Item.details?.registeredLetterCode &&
+                response.Item.timestamp
+              ) {
+                // we found the element and the registeredLetterCode is present: we return the timestamp
+                return response.Item.timestamp;
+              } else {
+                // we continue the search
+                idx++;
+              }
+            }
+          }
         } else {
           // all other cases
           return response.Item.timestamp || null;
         }
+        // we examined all the timelineElementId, but we didn't find any result
+        return null;
       }
     } catch (error) {
       /* istanbul ignore next */

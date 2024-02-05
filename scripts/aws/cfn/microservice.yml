@@ -159,6 +159,11 @@ Parameters:
     Description: "TTL expiration for row in pn-TimelinesForInvoicing (in days)"
     Type: Number
 
+  MaxIDXsInSENDAMRSearch:
+    Default: 50
+    Description: "Max number of IDXs to search in SEND_AMR activity"
+    Type: Number
+
   SearchSLAViolationsLambdaName:
     Type: String
 
@@ -300,6 +305,7 @@ Resources:
           SLA_EXPIRATION_SEND_PAPER_AR_890: !Ref SlaExpirationSendPaperAr890
           SLA_EXPIRATION_SEND_AMR: !Ref SlaExpirationSendAmr
           INVOICING_TTL_DAYS: !Ref InvoicingTtlDays
+          MAX_IDXS_IN_SEND_AMR_SEARCH: !Ref MaxIDXsInSENDAMRSearch
       TracingConfig:
         Mode: Active
       Layers:
