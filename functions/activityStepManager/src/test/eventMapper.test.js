@@ -27,6 +27,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("VALIDATION");
     expect(res[0].opType).equal("INSERT");
   });
@@ -39,6 +41,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(2);
 
     expect(res[0].type).equal("VALIDATION");
     expect(res[0].opType).equal("DELETE");
@@ -74,6 +78,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(2);
 
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
@@ -136,6 +142,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(2);
+
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
     expect(res[1].opType).equal("BULK_INSERT_INVOICES");
@@ -163,6 +171,8 @@ describe("event mapper tests", function () {
 
     const events = [event];
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
     expect(res[0].type).equal("REFINEMENT");
     expect(res[0].opType).equal("DELETE");
     expect(res[1]).equal(undefined);
@@ -177,8 +187,28 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
-    expect(res[0].type).equal("REFINEMENT");
+    expect(res.length).equal(14);
+
+    expect(res[0].type).equal("REFINEMENT"); // used for creating the key for DynamoDB later: it must be REFINEMENT, not NOTIFICATION_VIEWED
     expect(res[0].opType).equal("DELETE");
+
+    expect(res[0].id).equal("01_REFIN##abcd##1");
+
+    // invoices
+    expect(res[1].opType).equal("BULK_INSERT_INVOICES");
+
+    // pec
+    for (let index = 2; index < res.length; index++) {
+      console.log("pec: ", res[index]);
+      expect(res[index].type).equal("SEND_PEC");
+      expect(res[index].opType).equal("DELETE");
+
+      // expect  res[index].id to start with
+      // 02_PEC__##SEND_DIGITAL.IUN_abcd.RECINDEX_
+      expect(
+        res[index].id.startsWith("02_PEC__##SEND_DIGITAL.IUN_abcd.RECINDEX_")
+      ).to.be.true;
+    }
   });
 
   it("test NOTIFICATION_CANCELLED", async () => {
@@ -267,6 +297,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("SEND_PEC");
     expect(res[0].opType).equal("INSERT");
   });
@@ -279,6 +311,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
 
     expect(res[0].type).equal("SEND_PEC");
     expect(res[0].opType).equal("DELETE");
@@ -293,6 +327,8 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("SEND_PAPER_AR_890");
     expect(res[0].opType).equal("INSERT");
   });
@@ -306,29 +342,11 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
+    expect(res.length).equal(1);
+
     expect(res[0].type).equal("SEND_PAPER_AR_890");
     expect(res[0].opType).equal("DELETE");
   });
-
-  // it("test DIGITAL_FAILURE_WORKFLOW", async () => {
-  //   const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
-  //   let event = JSON.parse(eventJSON);
-  //   event = setCategory(event, "DIGITAL_FAILURE_WORKFLOW");
-
-  //   event.dynamodb.NewImage.details = {
-  //     M: {
-  //       recIndex: {
-  //         N: 0,
-  //       },
-  //     },
-  //   };
-  //   const events = [event];
-
-  //   const res = await mapEvents(events);
-
-  //   expect(res[0].type).equal("SEND_AMR");
-  //   expect(res[0].opType).equal("INSERT");
-  // });
 
   it("test SEND_SIMPLE_REGISTERED_LETTER", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
@@ -345,6 +363,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
 
     expect(res[0].type).equal("SEND_AMR");
     expect(res[0].opType).equal("INSERT");
@@ -372,6 +392,8 @@ describe("event mapper tests", function () {
     const events = [event];
 
     const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
 
     expect(res[0].type).equal("SEND_AMR");
     expect(res[0].opType).equal("DELETE");

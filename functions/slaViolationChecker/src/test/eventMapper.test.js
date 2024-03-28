@@ -361,19 +361,39 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     expect(processedItems[0].id).equal("04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1");
 
     // must have been removed, because we're updating
-    // (it won't be undefined if registeredLetterCode is not present or deliveryDetailCode is not "CON080")
+    // (it won't be undefined if registeredLetterCode is not present
     expect(processedItems[0].active_sla_entityName_type).to.be.undefined;
     expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
   });
 
-  it("should be correct mapping with SEND_AMR - update, no registeredLetterCode", async () => {
+  it("should be correct mapping with SEND_AMR - update, no registeredLetterCode at idx 1, nothing found at idx 2", async () => {
     const foundTimestamp = "2023-07-03T15:06:12.470Z";
 
-    ddbMock.on(GetCommand).resolves({
+    const paramsCall1 = {
+      TableName: "pn-Timelines",
+      Key: {
+        iun: "XLDW-MQYJ-WUKA-202302-A-1",
+        timelineElementId:
+          "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1",
+      },
+    };
+    const paramsCall2 = {
+      TableName: "pn-Timelines",
+      Key: {
+        iun: "XLDW-MQYJ-WUKA-202302-A-1",
+        timelineElementId:
+          "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_2",
+      },
+    };
+
+    ddbMock.on(GetCommand, paramsCall1).resolves({
       Item: {
         timestamp: foundTimestamp,
         details: {},
       },
+    });
+    ddbMock.on(GetCommand, paramsCall2).resolves({
+      // Item undefined, or also "Item: null"
     });
 
     const processedItems = await mapEvents([kinesisEventAMR]);
@@ -390,6 +410,58 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     // not removed
     expect(processedItems[0].active_sla_entityName_type).not.to.be.undefined;
     expect(processedItems[0].endTimeStamp).to.be.undefined;
+  });
+
+  it("should be correct mapping with SEND_AMR - update, no registeredLetterCode at idx 1, actually found at ids 2", async () => {
+    const foundTimestamp = "2023-07-03T15:06:12.470Z";
+
+    const paramsCall1 = {
+      TableName: "pn-Timelines",
+      Key: {
+        iun: "XLDW-MQYJ-WUKA-202302-A-1",
+        timelineElementId:
+          "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1",
+      },
+    };
+    const paramsCall2 = {
+      TableName: "pn-Timelines",
+      Key: {
+        iun: "XLDW-MQYJ-WUKA-202302-A-1",
+        timelineElementId:
+          "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_2",
+      },
+    };
+
+    ddbMock.on(GetCommand, paramsCall1).resolves({
+      Item: {
+        timestamp: foundTimestamp,
+        details: {},
+      },
+    });
+    ddbMock.on(GetCommand, paramsCall2).resolves({
+      Item: {
+        timestamp: foundTimestamp,
+        details: {
+          registeredLetterCode: "abcd",
+          deliveryDetailCode: "CON080",
+        },
+      },
+    });
+
+    const processedItems = await mapEvents([kinesisEventAMR]);
+    console.log("processed items: ", processedItems);
+
+    expect(processedItems.length).equal(1);
+
+    // SEND_AMR
+    expect(processedItems[0].entityName_type_relatedEntityId).equal(
+      "XLDW-MQYJ-WUKA-202302-A-1"
+    );
+    expect(processedItems[0].id).equal("04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1");
+
+    // not removed
+    expect(processedItems[0].active_sla_entityName_type).to.be.undefined;
+    expect(processedItems[0].endTimeStamp).equal(foundTimestamp);
   });
 });
 

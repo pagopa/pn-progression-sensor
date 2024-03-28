@@ -17,7 +17,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
   const returnSearchArray = [];
 
   switch (type) {
-    case "VALIDATION":
+    case "VALIDATION": {
       // id: 00_VALID##WEUD-XHKG-ZHDN-202301-W-1 -> REQUEST_ACCEPTED.IUN_WEUD-XHKG-ZHDN-202301-W-1,
       // REQUEST_REFUSED.IUN_WEUD-XHKG-ZHDN-202301-W-1 and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1
       //
@@ -36,7 +36,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnSearchArray.push(timeLineIdRefused);
       returnSearchArray.push(timeLineIdCancelled);
       break;
-    case "REFINEMENT":
+    }
+    case "REFINEMENT": {
       // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> REFINEMENT.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0,
       // NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1 (NO RECINDEX)
       //
@@ -58,7 +59,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
       returnSearchArray.push(timelineBaseRefinementCancelled);
       // we will search, for multiple refinement (one for recidx), for the same notification cancelled element in timeline (that doesn't have recidx)
       break;
-    case "SEND_PEC":
+    }
+    case "SEND_PEC": {
       // id: 02_PEC__##SEND_DIGITAL.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0 -> SEND_DIGITAL_FEEDBACK.IUN_AWMX-HXYK-YDAH-202302-P-1.RECINDEX_0.SOURCE_SPECIAL.REPEAT_false.ATTEMPT_0
       //
       // SEND_PEC:
@@ -67,8 +69,24 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("02_PEC__##", "")
         .replace("SEND_DIGITAL", "SEND_DIGITAL_FEEDBACK");
       returnSearchArray.push(timeLineIdSendDigitalFeedback);
+
+      // PN-8703 - SEND_PEC SLA also closed by NOTIFICATION_VIEWED
+      let timeLineIdNotificationViewedSendDigitalFeedback =
+        timeLineIdSendDigitalFeedback.replace(
+          // we start with "02_..." already removed and "SEND_DIGITAL_FEEDBACK" already replaced
+          "SEND_DIGITAL_FEEDBACK",
+          "NOTIFICATION_VIEWED"
+        );
+      // remove everything after RECINDEX_* (included)
+      timeLineIdNotificationViewedSendDigitalFeedback =
+        timeLineIdNotificationViewedSendDigitalFeedback.replace(
+          /(\.RECINDEX_\d+)(\..*)$/,
+          "$1"
+        );
+      returnSearchArray.push(timeLineIdNotificationViewedSendDigitalFeedback);
       break;
-    case "SEND_PAPER_AR_890":
+    }
+    case "SEND_PAPER_AR_890": {
       // id: 03_PAPER##SEND_ANALOG_DOMICILE.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1 -> SEND_ANALOG_FEEDBACK.IUN_DNQZ-QUQN-202302-W-1.RECINDEX_1.ATTEMPT_1
       //
       // SEND_PAPER_AR_890
@@ -78,9 +96,11 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         .replace("SEND_ANALOG_DOMICILE", "SEND_ANALOG_FEEDBACK");
       returnSearchArray.push(timelineIdPaperAR890);
       break;
+    }
     /* istanbul ignore next */
-    case "SEND_AMR":
-      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always search for IDX_1)
+    case "SEND_AMR": {
+      // id: 04_AMR##XLDW-MQYJ-WUKA-202302-A-1##1 -> SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1 (we always start with IDX_1, and
+      // in the receiving function we eventually search for other IDXs)
       //
       // - INSERT in pn-Timelines of a record with category SEND_SIMPLE_REGISTERED_LETTER_PROGRESS with “registeredLetterCode“ attribute: SEND PAPER ARM activity end
       const timelineBaseAMR = id
@@ -94,6 +114,7 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "IDX_1";
       returnSearchArray.push(timelineIdPaperAMR);
       break;
+    }
     /* istanbul ignore next */
     default:
       break;
@@ -107,6 +128,9 @@ exports.closingElementIdFromIDAndType = (id, type) => {
  */
 exports.findActivityEnd = async (iun, id, type) => {
   const tableName = "pn-Timelines";
+
+  const maxIdxsInSendAmrSearch =
+    parseInt(process.env.MAX_IDXS_IN_SEND_AMR_SEARCH) || 50;
 
   // 1. get IUN directly and build timelineElementId from event id
   const params = {
@@ -134,6 +158,7 @@ exports.findActivityEnd = async (iun, id, type) => {
       let response = await dynamoDB.send(new GetCommand(params));
 
       if (response.Item == null) {
+        // including undefined
         console.log(
           "Nothing found on GetItem with the sort key: " +
             params.Key.timelineElementId
@@ -150,8 +175,6 @@ exports.findActivityEnd = async (iun, id, type) => {
         // when SEND_SIMPLE_REGISTERED_LETTER_PROGRESS is be present, we also need to check the presence of the
         // registeredLetterCode attribute (we no longer require that deliveryDetailCode is "CON080"), and only in that case return
         // the timestamp instead of null, only for SEND_AMR type
-        //
-        // note: we only perform this for .IDX_1
         if (type === "SEND_AMR") {
           // warning log in case we have registeredLetterCode but not deliveryDetailCode === "CON080"
           if (
@@ -166,13 +189,48 @@ exports.findActivityEnd = async (iun, id, type) => {
             );
           }
 
-          return response.Item.details?.registeredLetterCode // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
-            ? response.Item.timestamp || null
-            : null;
+          if (
+            response.Item.details?.registeredLetterCode && // we're also excluding the empty string
+            response.Item.timestamp // we no longer require that response.Item.details.deliveryDetailCode === "CON080"
+          ) {
+            return response.Item.timestamp;
+          } else {
+            // we must start a cicle incrementing the index until we find a idx where the registeredLetterCode is present, or until we don't find the element
+            // we start from 2, because we already checked idx 1
+            let idx = 2;
+            let mustStop = false;
+            // in this point timelineElementID is something like SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_1:
+            // we need to change it to SEND_SIMPLE_REGISTERED_LETTER_PROGRESS.IUN_XLDW-MQYJ-WUKA-202302-A-1.RECINDEX_1.IDX_ and then add the idx variable
+            let partialTimelineElementID = timelineElementID.replace(
+              "IDX_1",
+              "IDX_"
+            );
+            while (!mustStop && idx <= maxIdxsInSendAmrSearch) {
+              // we stop at maxIdxsInSendAmrSearch, to avoid infinite loops
+              params.Key.timelineElementId = partialTimelineElementID + idx;
+              response = await dynamoDB.send(new GetCommand(params));
+              if (response.Item == null) {
+                // including undefined
+                // we didn't find the element: we stop the search
+                mustStop = true;
+              } else if (
+                response.Item.details?.registeredLetterCode &&
+                response.Item.timestamp
+              ) {
+                // we found the element and the registeredLetterCode is present: we return the timestamp
+                return response.Item.timestamp;
+              } else {
+                // we continue the search
+                idx++;
+              }
+            }
+          }
         } else {
           // all other cases
           return response.Item.timestamp || null;
         }
+        // we examined all the timelineElementId, but we didn't find any result
+        return null;
       }
     } catch (error) {
       /* istanbul ignore next */

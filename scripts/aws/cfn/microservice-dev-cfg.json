@@ -13,6 +13,7 @@
     "SlaExpirationSendPec" : "2",
     "SlaExpirationSendPaperAr890" : "100",
     "SlaExpirationSendAmr" : "2",
-    "InvoicingTtlDays": "365"
+    "InvoicingTtlDays": "365",
+    "MaxIDXsInSENDAMRSearch": "50"
   }
 }
