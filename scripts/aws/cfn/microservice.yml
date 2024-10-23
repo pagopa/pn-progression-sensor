@@ -169,24 +169,24 @@ Parameters:
     Description: "Numeber of threshold for Sla Alarm validation"
     Type: Number
 
-  SLAViolationsRefinmentThreshold:
+  SLAViolationsRefinementThreshold:
     Default: 1
-    Description: "Numeber of threshold for Sla Alarm validation"
+    Description: "Numeber of threshold for Sla Alarm refinement"
     Type: Number
 
   SLAViolationsSendAmrThreshold:
     Default: 1
-    Description: "Numeber of threshold for Sla Alarm validation"
+    Description: "Numeber of threshold for Sla Alarm Send Amr"
     Type: Number
 
   SLAViolationsSendPaperAr890Threshold:
     Default: 1
-    Description: "Numeber of threshold for Sla Alarm validation"
+    Description: "Numeber of threshold for Sla Alarm Send Paper AR890"
     Type: Number
 
   SLAViolationsSendPecThreshold:
     Default: 1
-    Description: "Numeber of threshold for Sla Alarm validation"
+    Description: "Numeber of threshold for Sla Alarm Send PEC"
     Type: Number
 
   SearchSLAViolationsLambdaName:
@@ -767,26 +767,35 @@ Resources:
       Statistic: Maximum
       Threshold: !Ref SLAViolationsValidationThreshold
 
-  WorkDaySLAViolationsRefinmentAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmName: "workday-SLAViolations-Refinment-Alarm"
-      AlarmDescription: "CloudWatch alarm for SLAViolations-Refinment is too high."
-      TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref AlarmSNSTopicArn
-      OKActions:
-        - !Ref AlarmSNSTopicArn
-      Dimensions:
-        - Value: REFINEMENT
-          Name: type           
-      ComparisonOperator: GreaterThanOrEqualToThreshold
-      EvaluationPeriods: 1
-      Period: 60
-      Namespace: OER   
-      MetricName: pn-activeSLAViolations
-      Statistic: Maximum
-      Threshold: !Ref SLAViolationsRefinmentThreshold
+  WorkDaySLAViolationsRefinementAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: "workday-SLAViolations-Refinement-Alarm"
+        AlarmDescription: "CloudWatch alarm for SLAViolations-Refinement is too high."
+        TreatMissingData: notBreaching
+        AlarmActions:
+          - !Ref AlarmSNSTopicArn
+        OKActions:
+          - !Ref AlarmSNSTopicArn
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        EvaluationPeriods: 1
+        Threshold: !Ref SLAViolationsRefinementThreshold
+        Metrics:
+          - Id: "m1"
+            MetricStat:
+              Metric:
+                Namespace: "OER"
+                MetricName: "pn-activeSLAViolations"
+                Dimensions:
+                  - Name: "type"
+                    Value: "REFINEMENT"
+              Period: 60
+              Stat: "Maximum"
+          - Id: "r1"
+            Expression: "IF(HOUR(TIME())==16, 0, originalMetric)" 
+            Label: "Reset SLA Violations at certain hour"
+            ReturnData: true
+      
 
   WorkDaySLAViolationsSendAmrAlarm:
     Type: AWS::CloudWatch::Alarm
