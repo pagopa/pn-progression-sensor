@@ -165,7 +165,27 @@ Parameters:
     Type: Number
 
   SLAViolationsValidationThreshold:
-    Default: 5
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm validation"
+    Type: Number
+
+  SLAViolationsRefinmentThreshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm validation"
+    Type: Number
+
+  SLAViolationsSendAmrThreshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm validation"
+    Type: Number
+
+  SLAViolationsSendPaperAr890Threshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm validation"
+    Type: Number
+
+  SLAViolationsSendPecThreshold:
+    Default: 1
     Description: "Numeber of threshold for Sla Alarm validation"
     Type: Number
 
@@ -729,10 +749,12 @@ Resources:
   WorkDaySLAViolationsValidationAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
-      AlarmName: !Sub "workday-SLAViolations-Validation-Alarm"
+      AlarmName: "workday-SLAViolations-Validation-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-Validation is too high."
       TreatMissingData: notBreaching
       AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
         - !Ref AlarmSNSTopicArn
       Dimensions:
         - Value: VALIDATION
@@ -744,4 +766,88 @@ Resources:
       MetricName: pn-activeSLAViolations
       Statistic: Maximum
       Threshold: !Ref SLAViolationsValidationThreshold
+
+  WorkDaySLAViolationsRefinmentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-Refinment-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-Refinment is too high."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: REFINEMENT
+          Name: type           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 60
+      Namespace: OER   
+      MetricName: pn-activeSLAViolations
+      Statistic: Maximum
+      Threshold: !Ref SLAViolationsRefinmentThreshold
+
+  WorkDaySLAViolationsSendAmrAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-SendAmr-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-SendAmr is too high."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: SEND_AMR
+          Name: type           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 60
+      Namespace: OER   
+      MetricName: pn-activeSLAViolations
+      Statistic: Maximum
+      Threshold: !Ref SLAViolationsSendAmrThreshold
+
+  WorkDaySLAViolationsSendPaperAr890Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-SendPaperAr890-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-SendPaperAr890 is too high."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: SEND_PAPER_AR_890
+          Name: type           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 60
+      Namespace: OER   
+      MetricName: pn-activeSLAViolations
+      Statistic: Maximum
+      Threshold: !Ref SLAViolationsSendPaperAr890Threshold
+
+  WorkDaySLAViolationsSendPecAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-SendPec-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-SendPec is too high."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: SEND_PEC
+          Name: type           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 60
+      Namespace: OER   
+      MetricName: pn-activeSLAViolations
+      Statistic: Maximum
+      Threshold: !Ref SLAViolationsSendPecThreshold
 
