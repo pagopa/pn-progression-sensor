@@ -793,7 +793,7 @@ Resources:
               Stat: "Maximum"
             ReturnData: false  
           - Id: "resetMetric"
-            Expression: IF((hour() >= 1 && hour() < 2), 0, m1)
+            Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 2), 0, m1)
             Label: "Reset SLA Violations at 1:00 to 2:00 UTC"
             ReturnData: true
       
