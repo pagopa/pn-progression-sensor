@@ -791,8 +791,9 @@ Resources:
                     Value: "REFINEMENT"
               Period: 60
               Stat: "Maximum"
+            ReturnData: false 
           - Id: "r1"
-            Expression: "IF(HOUR(TIME())==16, 0, originalMetric)" 
+            Expression: "IF(HOUR(TIME())==17, 0, originalMetric)" 
             Label: "Reset SLA Violations at certain hour"
             ReturnData: true
       
