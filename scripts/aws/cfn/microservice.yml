@@ -793,7 +793,7 @@ Resources:
               Stat: "Maximum"
             ReturnData: false 
           - Id: "r1"
-            Expression: "IF(HOUR(TIME())==17, 0, originalMetric)" 
+            Expression: "IF(HOUR(TIME())==17, 0, m1)" 
             Label: "Reset SLA Violations at certain hour"
             ReturnData: true
       
