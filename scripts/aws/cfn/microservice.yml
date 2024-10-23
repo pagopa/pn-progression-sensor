@@ -164,6 +164,11 @@ Parameters:
     Description: "Max number of IDXs to search in SEND_AMR activity"
     Type: Number
 
+  SLAViolationsValidationThreshold:
+    Default: 5
+    Description: "Numeber of threshold for Sla Alarm validation"
+    Type: Number
+
   SearchSLAViolationsLambdaName:
     Type: String
 
@@ -720,3 +725,23 @@ Resources:
             - !Sub /aws/lambda/${SLAViolationCheckerLambdaName}
             - !Sub /aws/lambda/${SLAViolationCheckerLambdaSQSName}
             - !Sub /aws/lambda/${SLAViolationCloseSchedulingLambdaName}
+
+  WorkDaySLAViolationsValidationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "workday-SLAViolations-Validation-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-Validation is too high."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: VALIDATION
+          Name: type           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Period: 60
+      Namespace: OER   
+      MetricName: pn-activeSLAViolations
+      Statistic: Maximum
+      Threshold: !Ref SLAViolationsValidationThreshold
+

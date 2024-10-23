@@ -14,6 +14,7 @@
     "SlaExpirationSendPaperAr890" : "100",
     "SlaExpirationSendAmr" : "2",
     "InvoicingTtlDays": "365",
+    "SLAViolationsValidationThreshold": "1",
     "MaxIDXsInSENDAMRSearch": "50"
   }
 }
