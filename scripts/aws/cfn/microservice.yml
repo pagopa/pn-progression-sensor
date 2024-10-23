@@ -781,7 +781,7 @@ Resources:
         EvaluationPeriods: 1
         Threshold: !Ref SLAViolationsRefinementThreshold
         Metrics:
-          - Id: "m1"
+          - Id: "originalMetric"
             MetricStat:
               Metric:
                 Namespace: "OER"
@@ -791,10 +791,10 @@ Resources:
                     Value: "REFINEMENT"
               Period: 60
               Stat: "Maximum"
-            ReturnData: false 
-          - Id: "r1"
-            Expression: "IF(HOUR(TIME())==17, 0, m1)" 
-            Label: "Reset SLA Violations at certain hour"
+            ReturnData: false  
+          - Id: "resetMetric"
+            Expression: "IF(HOUR(TIME())==16, 0, originalMetric)" 
+            Label: "Reset SLA Violations at 16:00 UTC"
             ReturnData: true
       
 
