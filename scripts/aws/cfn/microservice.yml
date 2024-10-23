@@ -755,17 +755,26 @@ Resources:
       AlarmActions:
         - !Ref AlarmSNSTopicArn
       OKActions:
-        - !Ref AlarmSNSTopicArn
-      Dimensions:
-        - Value: VALIDATION
-          Name: type           
+        - !Ref AlarmSNSTopicArn    
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 1
-      Period: 60
-      Namespace: OER   
-      MetricName: pn-activeSLAViolations
-      Statistic: Maximum
       Threshold: !Ref SLAViolationsValidationThreshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "VALIDATION"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_Validation"
+          ReturnData: true
 
   WorkDaySLAViolationsRefinementAlarm:
       Type: AWS::CloudWatch::Alarm
@@ -789,12 +798,12 @@ Resources:
                 Dimensions:
                   - Name: "type"
                     Value: "REFINEMENT"
-              Period: 60
+              Period: 3600
               Stat: "Maximum"
             ReturnData: false  
-          - Id: "resetMetric"
-            Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 2), 0, m1)
-            Label: "Reset SLA Violations at 1:00 to 2:00 UTC"
+          - Id: "e1"
+            Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+            Label: "SLA_Violations_Refinement"
             ReturnData: true
       
 
@@ -807,17 +816,26 @@ Resources:
       AlarmActions:
         - !Ref AlarmSNSTopicArn
       OKActions:
-        - !Ref AlarmSNSTopicArn
-      Dimensions:
-        - Value: SEND_AMR
-          Name: type           
+        - !Ref AlarmSNSTopicArn      
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 1
-      Period: 60
-      Namespace: OER   
-      MetricName: pn-activeSLAViolations
-      Statistic: Maximum
       Threshold: !Ref SLAViolationsSendAmrThreshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "SEND_AMR"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_SendAmr"
+          ReturnData: true
 
   WorkDaySLAViolationsSendPaperAr890Alarm:
     Type: AWS::CloudWatch::Alarm
@@ -828,17 +846,26 @@ Resources:
       AlarmActions:
         - !Ref AlarmSNSTopicArn
       OKActions:
-        - !Ref AlarmSNSTopicArn
-      Dimensions:
-        - Value: SEND_PAPER_AR_890
-          Name: type           
+        - !Ref AlarmSNSTopicArn       
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 1
-      Period: 60
-      Namespace: OER   
-      MetricName: pn-activeSLAViolations
-      Statistic: Maximum
       Threshold: !Ref SLAViolationsSendPaperAr890Threshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "SEND_PAPER_AR_890"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_SendPaperAr890"
+          ReturnData: true
 
   WorkDaySLAViolationsSendPecAlarm:
     Type: AWS::CloudWatch::Alarm
@@ -849,15 +876,24 @@ Resources:
       AlarmActions:
         - !Ref AlarmSNSTopicArn
       OKActions:
-        - !Ref AlarmSNSTopicArn
-      Dimensions:
-        - Value: SEND_PEC
-          Name: type           
+        - !Ref AlarmSNSTopicArn     
       ComparisonOperator: GreaterThanOrEqualToThreshold
       EvaluationPeriods: 1
-      Period: 60
-      Namespace: OER   
-      MetricName: pn-activeSLAViolations
-      Statistic: Maximum
       Threshold: !Ref SLAViolationsSendPecThreshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "SEND_PEC"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_SendPec"
+          ReturnData: true
 
