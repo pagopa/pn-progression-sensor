@@ -164,6 +164,31 @@ Parameters:
     Description: "Max number of IDXs to search in SEND_AMR activity"
     Type: Number
 
+  SLAViolationsValidationThreshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm validation"
+    Type: Number
+
+  SLAViolationsRefinementThreshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm refinement"
+    Type: Number
+
+  SLAViolationsSendAmrThreshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm Send Amr"
+    Type: Number
+
+  SLAViolationsSendPaperAr890Threshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm Send Paper AR890"
+    Type: Number
+
+  SLAViolationsSendPecThreshold:
+    Default: 1
+    Description: "Numeber of threshold for Sla Alarm Send PEC"
+    Type: Number
+
   SearchSLAViolationsLambdaName:
     Type: String
 
@@ -720,3 +745,155 @@ Resources:
             - !Sub /aws/lambda/${SLAViolationCheckerLambdaName}
             - !Sub /aws/lambda/${SLAViolationCheckerLambdaSQSName}
             - !Sub /aws/lambda/${SLAViolationCloseSchedulingLambdaName}
+
+  WorkDaySLAViolationsValidationAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-Validation-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-Validation is too high."
+      TreatMissingData: ignore
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn    
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Threshold: !Ref SLAViolationsValidationThreshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "VALIDATION"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_Validation"
+          ReturnData: true
+
+  WorkDaySLAViolationsRefinementAlarm:
+      Type: AWS::CloudWatch::Alarm
+      Properties:
+        AlarmName: "workday-SLAViolations-Refinement-Alarm"
+        AlarmDescription: "CloudWatch alarm for SLAViolations-Refinement is too high."
+        TreatMissingData: ignore
+        AlarmActions:
+          - !Ref AlarmSNSTopicArn
+        OKActions:
+          - !Ref AlarmSNSTopicArn
+        ComparisonOperator: GreaterThanOrEqualToThreshold
+        EvaluationPeriods: 1
+        Threshold: !Ref SLAViolationsRefinementThreshold
+        Metrics:
+          - Id: "m1"
+            MetricStat:
+              Metric:
+                Namespace: "OER"
+                MetricName: "pn-activeSLAViolations"
+                Dimensions:
+                  - Name: "type"
+                    Value: "REFINEMENT"
+              Period: 3600
+              Stat: "Maximum"
+            ReturnData: false  
+          - Id: "e1"
+            Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+            Label: "SLA_Violations_Refinement"
+            ReturnData: true
+      
+
+  WorkDaySLAViolationsSendAmrAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-SendAmr-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-SendAmr is too high."
+      TreatMissingData: ignore
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn      
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Threshold: !Ref SLAViolationsSendAmrThreshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "SEND_AMR"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_SendAmr"
+          ReturnData: true
+
+  WorkDaySLAViolationsSendPaperAr890Alarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-SendPaperAr890-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-SendPaperAr890 is too high."
+      TreatMissingData: ignore
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn       
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Threshold: !Ref SLAViolationsSendPaperAr890Threshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "SEND_PAPER_AR_890"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_SendPaperAr890"
+          ReturnData: true
+
+  WorkDaySLAViolationsSendPecAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "workday-SLAViolations-SendPec-Alarm"
+      AlarmDescription: "CloudWatch alarm for SLAViolations-SendPec is too high."
+      TreatMissingData: ignore
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn     
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 1
+      Threshold: !Ref SLAViolationsSendPecThreshold
+      Metrics:
+        - Id: "m1"
+          MetricStat:
+            Metric:
+              Namespace: "OER"
+              MetricName: "pn-activeSLAViolations"
+              Dimensions:
+                - Name: "type"
+                  Value: "SEND_PEC"
+            Period: 3600
+            Stat: "Maximum"
+          ReturnData: false  
+        - Id: "e1"
+          Expression: IF((HOUR(m1) >= 1 && HOUR(m1) < 3), 0, m1) #reset metric
+          Label: "SLA_Violations_SendPec"
+          ReturnData: true
+
