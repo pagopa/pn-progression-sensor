@@ -95,10 +95,9 @@ module.exports.eventHandler = async (event) => {
         // Add Total result
         totalResultsProcessed += lambdaResponse.results.length;
 
-        // Condition for 20k elements
+        // Condition for max number of elements
         if (totalResultsProcessed >= max_results_per_type) {
           console.log(`Reached the read limit of ${max_results_per_type} for ${type} `);
-          completelyStop = true;
           payload.partialResults = true;
           break;
         }
