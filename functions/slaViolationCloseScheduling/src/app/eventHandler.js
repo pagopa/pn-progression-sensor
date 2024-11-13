@@ -41,8 +41,8 @@ module.exports.eventHandler = async (event) => {
   ];
   
   for (const type of types) {
-    let lastScannedKey = null;
 
+    let lastScannedKey = null;
     let recoveredTypeCount = 0;
 
     // Item processed Counter Reset
@@ -99,6 +99,7 @@ module.exports.eventHandler = async (event) => {
         if (totalResultsProcessed >= max_results_per_type) {
           console.log(`Reached the read limit of ${max_results_per_type} for ${type} `);
           payload.partialResults = true;
+          recoveredTypeCount = max_results_per_type;
           break;
         }
 
@@ -152,11 +153,7 @@ module.exports.eventHandler = async (event) => {
     if (currentTypeSlaViolations.length < 1) {
       console.log("No active SLA Violations for type: " + type);
     } else {
-      console.log(
-        currentTypeSlaViolations.length +
-          " active SLA Violations for type: " +
-          type
-      );
+      console.log(currentTypeSlaViolations.length + " active SLA Violations for type: " + type);
     }
 
     slaViolations = slaViolations.concat(currentTypeSlaViolations); // an array is added to the global array
@@ -164,7 +161,7 @@ module.exports.eventHandler = async (event) => {
     // communicate the metric if we were not forced to stop (and only have partials for the current type)
     if (!completelyStop) {
       await putMetricDataForType(recoveredTypeCount, type);
-      console.log("put metric data for type: ", recoveredTypeCount);
+      console.log("put metric data for type: " + type, recoveredTypeCount);
     }
   } // end types loop (for)
 
