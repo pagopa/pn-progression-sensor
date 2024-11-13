@@ -104,6 +104,11 @@ Parameters:
     Description: "Max execution time (in ms) for Close Schedululing Lambda: set less than SlaViolationCloseSchedulingLambdaTimeoutSeconds * 1000 for avoiding lambda timeout"
     Type: Number
   
+  SlaViolationCloseSchedulingLambdaMaxItem:
+    Default: 20000
+    Description: "Max Elements Allowed to read by lambda"
+    Type: Number
+
   AlarmTtlValidation:
     Default: 0.5
     Description: "Alarm TTL for activity VALIDATION (in days)"
