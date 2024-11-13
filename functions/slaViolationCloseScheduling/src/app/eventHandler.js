@@ -97,7 +97,7 @@ module.exports.eventHandler = async (event) => {
 
         // Condition for 20k elements
         if (totalResultsProcessed >= max_results_per_type) {
-          console.log(`Raggiunto il limite di ${max_results_per_type} risultati totali`);
+          console.log(`Reached the read limit of ${max_results_per_type} for ${type} `);
           completelyStop = true;
           payload.partialResults = true;
           break;
