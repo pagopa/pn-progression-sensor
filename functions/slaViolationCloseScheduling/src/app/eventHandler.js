@@ -13,7 +13,7 @@ module.exports.eventHandler = async (event) => {
   const max_allowed_time_ms = process.env.MAX_ALLOWED_TIME_MS || 10000; // default 10 seconds
 
   // read max elements for execution from env
-  const max_results_per_type = process.env.MAX_ALLOWED_BY_TYPE || 20000; // Elements limit default 20K
+  const max_results_for_type = process.env.MAX_ALLOWED_BY_TYPE || 20000; // Elements limit default 20K
 
   // determine start time
   const startTime = new Date().getTime();
@@ -96,10 +96,10 @@ module.exports.eventHandler = async (event) => {
         totalResultsProcessed += lambdaResponse.results.length;
 
         // Condition for max number of elements
-        if (totalResultsProcessed >= max_results_per_type) {
-          console.log(`Reached the read limit of ${max_results_per_type} for ${type} `);
+        if (totalResultsProcessed >= max_results_for_type) {
+          console.log(`Reached the read limit of ${max_results_for_type} for ${type} `);
           payload.partialResults = true;
-          recoveredTypeCount = max_results_per_type;
+          recoveredTypeCount = 10000;
           break;
         }
 
