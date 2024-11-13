@@ -99,7 +99,7 @@ module.exports.eventHandler = async (event) => {
         if (totalResultsProcessed >= max_results_for_type) {
           console.log(`Reached the read limit of ${max_results_for_type} for ${type} `);
           payload.partialResults = true;
-          recoveredTypeCount = 10000;
+          recoveredTypeCount = Number(max_results_for_type);
           break;
         }
 
