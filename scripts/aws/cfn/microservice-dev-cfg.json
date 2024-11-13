@@ -3,6 +3,7 @@
     "SlaViolationCheckRateExpression": "rate(5 minutes)",
     "SlaViolationCloseSchedulingLambdaTimeoutSeconds": "60",
     "SlaViolationCloseSchedulingLambdaMaxExecutionMs": "40000",
+    "SlaViolationCloseSchedulingLambdaMaxItem": "300",
     "AlarmTtlValidation" : "0.5",
     "AlarmTtlRefinement" : "110",
     "AlarmTtlSendPec" : "2",

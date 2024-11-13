@@ -618,6 +618,7 @@ Resources:
           SEARCH_SLA_VIOLATIONS_FUNCTION_ARN: !GetAtt SearchSLAViolationsLambda.Arn
           SEARCH_SLA_VIOLATIONS_QUEUE_URL: !Ref ProgressionSensorQueueURL
           MAX_ALLOWED_TIME_MS: !Ref SlaViolationCloseSchedulingLambdaMaxExecutionMs
+          MAX_ALLOWED_BY_TYPE: !Ref SlaViolationCloseSchedulingLambdaMaxItem
       TracingConfig:
         Mode: Active
       Layers:
