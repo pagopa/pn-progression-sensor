@@ -12,6 +12,9 @@ module.exports.eventHandler = async (event) => {
   // read max allowed execution time from env
   const max_allowed_time_ms = process.env.MAX_ALLOWED_TIME_MS || 10000; // default 10 seconds
 
+  // read max elements for execution from env
+  const max_results_for_type = process.env.MAX_ALLOWED_BY_TYPE || 20000; // Elements limit default 20K
+
   // determine start time
   const startTime = new Date().getTime();
 
@@ -36,11 +39,14 @@ module.exports.eventHandler = async (event) => {
     "SEND_PAPER_AR_890",
     "SEND_AMR",
   ];
-
+  
   for (const type of types) {
-    let lastScannedKey = null;
 
+    let lastScannedKey = null;
     let recoveredTypeCount = 0;
+
+    // Item processed Counter Reset
+    let totalResultsProcessed = 0;
 
     // check if we have a global last scanned key,
     // and if it is for the same type
@@ -85,6 +91,17 @@ module.exports.eventHandler = async (event) => {
           lambdaResponse.results
         ); // an array is added to the array for current type
         lastScannedKey = lambdaResponse.lastScannedKey || null;
+
+        // Add Total result
+        totalResultsProcessed += lambdaResponse.results.length;
+
+        // Condition for max number of elements
+        if (totalResultsProcessed >= max_results_for_type) {
+          console.log(`Reached the read limit of ${max_results_for_type} for ${type} `);
+          payload.partialResults = true;
+          recoveredTypeCount = Number(max_results_for_type);
+          break;
+        }
 
         // send active queue for checking/processing
         const queueResponse = await addActiveSLAToQueue(lambdaResponse.results);
@@ -136,11 +153,7 @@ module.exports.eventHandler = async (event) => {
     if (currentTypeSlaViolations.length < 1) {
       console.log("No active SLA Violations for type: " + type);
     } else {
-      console.log(
-        currentTypeSlaViolations.length +
-          " active SLA Violations for type: " +
-          type
-      );
+      console.log(currentTypeSlaViolations.length + " active SLA Violations for type: " + type);
     }
 
     slaViolations = slaViolations.concat(currentTypeSlaViolations); // an array is added to the global array
@@ -148,7 +161,7 @@ module.exports.eventHandler = async (event) => {
     // communicate the metric if we were not forced to stop (and only have partials for the current type)
     if (!completelyStop) {
       await putMetricDataForType(recoveredTypeCount, type);
-      console.log("put metric data for type: ", recoveredTypeCount);
+      console.log("put metric data for type: " + type, recoveredTypeCount);
     }
   } // end types loop (for)
 
