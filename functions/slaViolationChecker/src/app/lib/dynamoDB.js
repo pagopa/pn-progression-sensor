@@ -54,9 +54,12 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "NOTIFICATION_VIEWED" + sepChar + timelineBaseRefinement;
       const timelineBaseRefinementCancelled =
         "NOTIFICATION_CANCELLED" + sepChar + "IUN_" + id.split("##")[1]; // IUN remains
+      const timelineBaseRefinementDeceased =
+        "ANALOG_WORKFLOW_RECIPIENT_DECEASED" + sepChar + "IUN_" + id.split("##")[1]; // IUN remains
       returnSearchArray.push(timeLineIdRefinement);
       returnSearchArray.push(timeLineIdNotificationViewed);
       returnSearchArray.push(timelineBaseRefinementCancelled);
+      returnSearchArray.push(timelineBaseRefinementDeceased);
       // we will search, for multiple refinement (one for recidx), for the same notification cancelled element in timeline (that doesn't have recidx)
       break;
     }

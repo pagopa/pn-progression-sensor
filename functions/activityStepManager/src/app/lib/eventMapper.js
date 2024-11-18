@@ -244,6 +244,7 @@ async function mapPayload(event) {
         break;
       }
       case "REFINEMENT":
+      case "ANALOG_WORKFLOW_RECIPIENT_DECEASED":
       case "NOTIFICATION_VIEWED": {
         recIdx = extractRecIdsFromTimelineId(
           event.dynamodb.NewImage.timelineElementId.S
