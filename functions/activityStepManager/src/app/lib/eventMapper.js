@@ -20,6 +20,7 @@ const allowedTimelineCategories = [
   "DIGITAL_FAILURE_WORKFLOW",
   "SEND_SIMPLE_REGISTERED_LETTER",
   "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS",
+  "ANALOG_WORKFLOW_RECIPIENT_DECEASED",
 ];
 
 const ttlSlaTimes = initTtlSlaTimes();
