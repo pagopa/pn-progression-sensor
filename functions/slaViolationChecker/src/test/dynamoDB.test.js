@@ -140,7 +140,10 @@ describe("Find closingElementId tests by type", function () {
     expect(response[2]).equal(
       "NOTIFICATION_CANCELLED.IUN_REKD-NZRJ-NWQJ-202302-M-1"
     );
-    expect(response.length).equal(3);
+    expect(response[3]).equal(
+      "ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0"
+    );
+    expect(response.length).equal(4);
   });
 
   it("should match the SEND_PEC type, REPEAT false", () => {
