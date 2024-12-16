@@ -100,7 +100,7 @@ module.exports.eventHandler = async (event) => {
           console.log(`Reached the read limit of ${max_results_for_type} for ${type} `);
           payload.partialResults = true;
           recoveredTypeCount = Number(max_results_for_type);
-          break;
+          lastScannedKey = null;
         }
 
         // send active queue for checking/processing
