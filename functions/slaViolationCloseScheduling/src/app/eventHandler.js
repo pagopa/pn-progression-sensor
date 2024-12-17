@@ -100,7 +100,6 @@ module.exports.eventHandler = async (event) => {
           console.log(`Reached the read limit of ${max_results_for_type} for ${type} `);
           payload.partialResults = true;
           recoveredTypeCount = Number(max_results_for_type);
-
           // we make it stop for this sla type
           lastScannedKey = null;
         }
