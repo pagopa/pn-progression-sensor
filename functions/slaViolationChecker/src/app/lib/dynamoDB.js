@@ -39,7 +39,8 @@ exports.closingElementIdFromIDAndType = (id, type) => {
     }
     case "REFINEMENT": {
       // id: 01_REFIN##REKD-NZRJ-NWQJ-202302-M-1##0 -> REFINEMENT.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0,
-      // NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1 (NO RECINDEX)
+      // NOTIFICATION_VIEWED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0 and NOTIFICATION_CANCELLED.IUN_WEUD-XHKG-ZHDN-202301-W-1 (NO RECINDEX)
+      // and ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_REKD-NZRJ-NWQJ-202302-M-1.RECINDEX_0
       //
       // type REFINEMENT:
       // - INSERT in pn-Timelines of a record with category REFINEMENT: DELIVERY activity end for one of the recipients
@@ -54,9 +55,12 @@ exports.closingElementIdFromIDAndType = (id, type) => {
         "NOTIFICATION_VIEWED" + sepChar + timelineBaseRefinement;
       const timelineBaseRefinementCancelled =
         "NOTIFICATION_CANCELLED" + sepChar + "IUN_" + id.split("##")[1]; // IUN remains
+      const timelineBaseRefinementDeceased =
+        "ANALOG_WORKFLOW_RECIPIENT_DECEASED" + sepChar + timelineBaseRefinement;
       returnSearchArray.push(timeLineIdRefinement);
       returnSearchArray.push(timeLineIdNotificationViewed);
       returnSearchArray.push(timelineBaseRefinementCancelled);
+      returnSearchArray.push(timelineBaseRefinementDeceased);
       // we will search, for multiple refinement (one for recidx), for the same notification cancelled element in timeline (that doesn't have recidx)
       break;
     }
