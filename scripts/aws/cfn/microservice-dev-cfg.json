@@ -6,7 +6,7 @@
     "SlaViolationCloseSchedulingLambdaMaxItem": "4000",
     "AlarmTtlValidation" : "0.5",
     "AlarmTtlRefinement" : "110",
-    "AlarmTtlSendPec" : "2",
+    "AlarmTtlSendPec" : "1",
     "AlarmTtlSendPaperAr890" : "100",
     "AlarmTtlSendAmr" : "2",
     "SlaExpirationValidation" : "1",
