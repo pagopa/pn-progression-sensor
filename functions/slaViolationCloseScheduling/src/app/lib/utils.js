@@ -7,6 +7,7 @@
 exports.isValidType = (typeString) => {
   const knownTypes = [
     "VALIDATION",
+    "VALIDATION_WITH_VAS_ADDRESS",
     "REFINEMENT",
     "SEND_PEC",
     "SEND_PAPER_AR_890",

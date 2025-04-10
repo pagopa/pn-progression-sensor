@@ -58,6 +58,10 @@ function makeInsertCommandFromEvent(event) {
       "attribute_not_exists(entityName_type_relatedEntityId)",
   };
 
+  if(event.hasPhysicalAddressLookup) {
+    params.Item.hasPhysicalAddressLookup = event.hasPhysicalAddressLookup;
+  }
+
   console.log(params);
 
   return params;

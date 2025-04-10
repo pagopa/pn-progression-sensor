@@ -7,6 +7,7 @@ const { putMetricDataForType } = require("./lib/metrics");
 let globalLastScannedKey = null;
 let globalLastScannedKeyType = "";
 let globalLastScannedCount = 0;
+let globalLastScannedValidationCountWithLookupAddress = 0;
 
 module.exports.eventHandler = async (event) => {
   // read max allowed execution time from env
@@ -43,7 +44,9 @@ module.exports.eventHandler = async (event) => {
   for (const type of types) {
 
     let lastScannedKey = null;
+    // Counters to use for the metric data
     let recoveredTypeCount = 0;
+    let recoveredValidationWithVASAddressCount = 0; // Specific for VALIDATION type
 
     // Item processed Counter Reset
     let totalResultsProcessed = 0;
@@ -69,6 +72,10 @@ module.exports.eventHandler = async (event) => {
     // violations inner loop
     let currentTypeSlaViolations = [];
     do {
+      // Used only for VALIDATION type. Will contains the number of results from search sla lambda without lookupAddress
+      let innerValidationCounter = 0; 
+      // Used only for VALIDATION type. Will contains the number of results from search sla lambda with lookupAddress
+      let innerValidationWithVASAddressCounter = 0;
       const lambdaResponse = await getActiveSLAViolations(type, lastScannedKey);
 
       if (lambdaResponse && !lambdaResponse.success) {
@@ -93,13 +100,36 @@ module.exports.eventHandler = async (event) => {
         lastScannedKey = lambdaResponse.lastScannedKey || null;
 
         // Add Total result
+        if(type === "VALIDATION"){ 
+          lambdaResponse.results.forEach((item) => {
+            if(item.hasPhysicalAddressLookup === true) {
+              innerValidationWithVASAddressCounter++;
+            } else {
+              innerValidationCounter++;
+            }
+          });
+        }
+          
         totalResultsProcessed += lambdaResponse.results.length;
 
         // Condition for max number of elements
         if (totalResultsProcessed >= max_results_for_type) {
           console.log(`Reached the read limit of ${max_results_for_type} for ${type} `);
           payload.partialResults = true;
-          recoveredTypeCount = Number(max_results_for_type);
+          if(type === "VALIDATION"){ 
+            // Here we have only the inner counters that are updated with the counts of the results given in the last lambda invocation
+            // To set an appropriate value for the metric, we need to collect the sum of results from all the lambda invocations
+            // So we need to add the global last scanned count to the inner counters
+            let validationCounterOfAllSearches = globalLastScannedCount + innerValidationCounter;
+            let validationWithVASAddressCounterOfAllSearches = globalLastScannedValidationCountWithLookupAddress + innerValidationWithVASAddressCounter;
+            // Anyway we will not exceed the max_results_for_type value
+            // so we set the metric value to the min of the two values
+            recoveredValidationWithVASAddressCount = Math.min(validationCounterOfAllSearches, Number(max_results_for_type));
+            recoveredTypeCount = Math.min(validationWithVASAddressCounterOfAllSearches, Number(max_results_for_type));
+          } else {
+            recoveredTypeCount = Number(max_results_for_type);
+          }
+          
           // we make it stop for this sla type
           lastScannedKey = null;
         }
@@ -116,8 +146,13 @@ module.exports.eventHandler = async (event) => {
           // we could do this only if previously different...
           globalLastScannedKey = lastScannedKey;
           globalLastScannedKeyType = type;
-          globalLastScannedCount =
-            globalLastScannedCount + lambdaResponse.results.length;
+          if(type == "VALIDATION") { 
+            globalLastScannedCount = globalLastScannedCount + innerValidationCounter;
+            globalLastScannedValidationCountWithLookupAddress = globalLastScannedValidationCountWithLookupAddress + innerValidationWithVASAddressCounter;
+          } else {
+            globalLastScannedCount = globalLastScannedCount + lambdaResponse.results.length;
+          }
+          
           console.log(
             "global last scanned key: ",
             globalLastScannedKey,
@@ -125,8 +160,12 @@ module.exports.eventHandler = async (event) => {
             type
           );
         } else {
-          recoveredTypeCount =
-            globalLastScannedCount + lambdaResponse.results.length;
+          if(type == "VALIDATION") { 
+            recoveredTypeCount = globalLastScannedCount + innerValidationCounter;
+            recoveredValidationWithVASAddressCount = globalLastScannedValidationCountWithLookupAddress + innerValidationWithVASAddressCounter;
+          } else {
+            recoveredTypeCount = globalLastScannedCount + lambdaResponse.results.length;
+          }
           // reset global last scanned key
           globalLastScannedKey = null;
           globalLastScannedKeyType = "";
@@ -161,8 +200,17 @@ module.exports.eventHandler = async (event) => {
 
     // communicate the metric if we were not forced to stop (and only have partials for the current type)
     if (!completelyStop) {
-      await putMetricDataForType(recoveredTypeCount, type);
-      console.log("put metric data for type: " + type, recoveredTypeCount);
+      if(type === "VALIDATION") {
+        await putMetricDataForType(recoveredTypeCount, type);
+        console.log("put metric data for type: " + type, recoveredTypeCount);
+
+        let metricType = `${type}_WITH_VAS_ADDRESS`;
+        await putMetricDataForType(recoveredValidationWithVASAddressCount, metricType);
+        console.log("put metric data for type: " + metricType, recoveredValidationWithVASAddressCount);
+      } else {
+        await putMetricDataForType(recoveredTypeCount, type); 
+        console.log("put metric data for type: " + type, recoveredTypeCount);
+      }
     }
   } // end types loop (for)
 

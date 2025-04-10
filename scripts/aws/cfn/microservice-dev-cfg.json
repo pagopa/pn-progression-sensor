@@ -9,6 +9,7 @@
     "AlarmTtlSendPec" : "1",
     "AlarmTtlSendPaperAr890" : "100",
     "AlarmTtlSendAmr" : "2",
+    "AlarmTtlPhysicalAddressLookupValidation": "0.1",
     "SlaExpirationValidation" : "1",
     "SlaExpirationRefinement" : "120",
     "SlaExpirationSendPec" : "2",
@@ -20,6 +21,7 @@
     "SLAViolationsSendAmrThreshold": "1",
     "SLAViolationsSendPaperAr890Threshold": "1",
     "SLAViolationsSendPecThreshold": "1",
+    "SlaExpirationPhysicalAddressLookupValidation": "0.2",
     "MaxIDXsInSENDAMRSearch": "50"
   }
 }

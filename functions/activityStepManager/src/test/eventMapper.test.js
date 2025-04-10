@@ -30,6 +30,23 @@ describe("event mapper tests", function () {
     expect(res.length).equal(1);
 
     expect(res[0].type).equal("VALIDATION");
+    expect(res[0].hasPhysicalAddressLookup).equal(undefined);
+    expect(res[0].opType).equal("INSERT");
+  });
+
+  it("test VALIDATION with lookupAddress", async () => {
+    const eventJSON = fs.readFileSync(
+      "./src/test/eventMapper.notifications.withLookupAddress.json"
+    );
+    const event = JSON.parse(eventJSON);
+    const events = [event];
+
+    const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
+
+    expect(res[0].type).equal("VALIDATION");
+    expect(res[0].hasPhysicalAddressLookup).equal(true);
     expect(res[0].opType).equal("INSERT");
   });
 

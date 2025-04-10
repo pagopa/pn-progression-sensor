@@ -184,14 +184,30 @@ async function mapPayload(event) {
   const dynamoDbOps = [];
   /* istanbul ignore else */
   if (event.tableName == TABLES.NOTIFICATIONS) {
-    const op = makeInsertOp(
-      "00_VALID##" + event.dynamodb.NewImage.iun.S,
-      "VALIDATION",
-      event,
-      "sentAt",
-      ttlSlaTimes.ALARM_TTL_VALIDATION, // default 0.5
-      ttlSlaTimes.SLA_EXPIRATION_VALIDATION // default 1
-    );
+    let op;
+    
+    if (event.dynamodb.NewImage?.usedServices?.M?.physicalAddressLookup?.BOOL) {
+      op = makeInsertOp(
+        "00_VALID##" + event.dynamodb.NewImage.iun.S,
+        "VALIDATION",
+        event,
+        "sentAt",
+        ttlSlaTimes.ALARM_TTL_PHYSICAL_ADDRESS_LOOKUP_VALIDATION,
+        ttlSlaTimes.SLA_EXPIRATION_PHYSICAL_ADDRESS_LOOKUP_VALIDATION
+      );
+      op.hasPhysicalAddressLookup = true;
+    } else {
+      op = makeInsertOp(
+        "00_VALID##" + event.dynamodb.NewImage.iun.S,
+        "VALIDATION",
+        event,
+        "sentAt",
+        ttlSlaTimes.ALARM_TTL_VALIDATION,
+        ttlSlaTimes.SLA_EXPIRATION_VALIDATION
+      );
+    }
+
+    
     if (op) dynamoDbOps.push(op);
   } else if (event.tableName == TABLES.TIMELINES) {
     let op, recIdx;

@@ -139,6 +139,46 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     },
   };
 
+  const kinesisEventValidationWithLookupAddress = {
+    kinesisSeqNumber:
+      "49637329937448784559035416658086603608349162186672701458",
+    awsRegion: "eu-south-1",
+    eventID: "509b20a7-42f3-47af-b571-bfdb980d68f4",
+    eventName: "REMOVE",
+    userIdentity: {
+      type: "Service",
+      principalId: "dynamodb.amazonaws.com",
+    },
+    recordFormat: "application/json",
+    tableName: "pn-ProgressionSensorData",
+    dynamodb: {
+      ApproximateCreationDateTime: 1674576197043,
+      OldImage: {
+        entityName_type_relatedEntityId: {
+          S: "step##VALIDATION##MKUE-BGQW-XNDN-202302-T-3",
+        },
+        type: { S: "VALIDATION" },
+        id: {
+          S: "00_VALID##MKUE-BGQW-XNDN-202302-T-3",
+        },
+        relatedEntityId: { S: "MKUE-BGQW-XNDN-202302-T-3" },
+        startTimestamp: { S: "2023-01-24T15:06:12.470719211Z" },
+        slaExpiration: { S: "2023-07-17T15:06:12.470Z" },
+        step_alarmTTL: { N: 1688396772 },
+        alarmTTL: { S: "2023-07-03T15:06:12.470Z" },
+        hasPhysicalAddressLookup: { BOOL: true },
+      },
+      Keys: {
+        id: {
+          S: "00_VALID##MKUE-BGQW-XNDN-202302-T-3",
+        },
+        entityName_type_relatedEntityId: {
+          S: "step##VALIDATION##MKUE-BGQW-XNDN-202302-T-3",
+        },
+      },
+    }
+  }
+
   const kinesisEventPEC = {
     kinesisSeqNumber:
       "49637329937448784559035416658086603608349162186672701458",
@@ -263,12 +303,13 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
       kinesisEventRefinement,
       skippedKinesisEvent,
       kinesisEventValidation,
+      kinesisEventValidationWithLookupAddress,
       kinesisEventPEC,
       kinesisEventPaper,
     ]);
     console.log("processed items: ", processedItems);
 
-    expect(processedItems.length).equal(4);
+    expect(processedItems.length).equal(5);
 
     // 1: REFINEMENT
     expect(processedItems[0].step_alarmTTL).to.be.undefined;
@@ -300,16 +341,24 @@ describe("test Kinesis: create SLA Violation or storicize it", function () {
     expect(processedItems[1].sla_relatedEntityId).equal(
       "WEUD-XHKG-ZHDN-202301-W-1"
     );
+    expect(processedItems[1].hasPhysicalAddressLookup).equal(undefined);
+
+    // 2: VALIDATION WITH PHYSICAL ADDRESS LOOKUP
+    expect(processedItems[2].type).equal("VALIDATION");
+    expect(processedItems[2].sla_relatedEntityId).equal(
+      "MKUE-BGQW-XNDN-202302-T-3"
+    );
+    expect(processedItems[2].hasPhysicalAddressLookup).equal(true);
 
     // 3: SEND_PEC
-    expect(processedItems[2].type).equal("SEND_PEC");
-    expect(processedItems[2].sla_relatedEntityId).equal(
+    expect(processedItems[3].type).equal("SEND_PEC");
+    expect(processedItems[3].sla_relatedEntityId).equal(
       "PLDW-UWJP-ATLT-202301-R-1"
     );
 
     // 4: SEND_PAPER_AR_890
-    expect(processedItems[3].type).equal("SEND_PAPER_AR_890");
-    expect(processedItems[3].sla_relatedEntityId).equal(
+    expect(processedItems[4].type).equal("SEND_PAPER_AR_890");
+    expect(processedItems[4].sla_relatedEntityId).equal(
       "GEUY-TJTX-NDUA-202301-N-1"
     );
   });

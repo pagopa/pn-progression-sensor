@@ -4,6 +4,7 @@ const { isValidType } = require("../app/lib/utils");
 describe("test valid type string", () => {
   const knownTypes = [
     "VALIDATION",
+    "VALIDATION_WITH_VAS_ADDRESS",
     "REFINEMENT",
     "SEND_PEC",
     "SEND_PAPER_AR_890",

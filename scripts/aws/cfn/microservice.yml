@@ -134,6 +134,11 @@ Parameters:
     Description: "Alarm TTL for activity SEND AMR (in days)"
     Type: Number
 
+  AlarmTtlPhysicalAddressLookupValidation:
+    Default: 1
+    Description: "Alarm TTL for activity VALIDATION for function physicalAddressLookup (in days)"
+    Type: Number
+
   SlaExpirationValidation:
     Default: 1
     Description: "SLA expiration for activity VALIDATION (in days)"
@@ -157,6 +162,11 @@ Parameters:
   SlaExpirationSendAmr:
     Default: 2
     Description: "SLA expiration for activity SEND AMR (in days)"
+    Type: Number
+
+  SlaExpirationPhysicalAddressLookupValidation:
+    Default: 1
+    Description: "SLA expiration for activity VALIDATION for function physicalAddressLookup (in days)"
     Type: Number
 
   InvoicingTtlDays:
@@ -329,11 +339,13 @@ Resources:
           ALARM_TTL_SEND_PEC: !Ref AlarmTtlSendPec
           ALARM_TTL_SEND_PAPER_AR_890: !Ref AlarmTtlSendPaperAr890
           ALARM_TTL_SEND_AMR: !Ref AlarmTtlSendAmr
+          ALARM_TTL_PHYSICAL_ADDRESS_LOOKUP_VALIDATION: !Ref AlarmTtlPhysicalAddressLookupValidation
           SLA_EXPIRATION_VALIDATION: !Ref SlaExpirationValidation
           SLA_EXPIRATION_REFINEMENT: !Ref SlaExpirationRefinement
           SLA_EXPIRATION_SEND_PEC: !Ref SlaExpirationSendPec
           SLA_EXPIRATION_SEND_PAPER_AR_890: !Ref SlaExpirationSendPaperAr890
           SLA_EXPIRATION_SEND_AMR: !Ref SlaExpirationSendAmr
+          SLA_EXPIRATION_PHYSICAL_ADDRESS_LOOKUP_VALIDATION: !Ref SlaExpirationPhysicalAddressLookupValidation
           INVOICING_TTL_DAYS: !Ref InvoicingTtlDays
           MAX_IDXS_IN_SEND_AMR_SEARCH: !Ref MaxIDXsInSENDAMRSearch
       TracingConfig:

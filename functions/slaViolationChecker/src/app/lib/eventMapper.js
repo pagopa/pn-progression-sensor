@@ -22,6 +22,10 @@ const makeInsertOp = (event) => {
     kinesisSeqNumber: event.kinesisSeqNumber,
   };
 
+  if(event.dynamodb.OldImage?.hasPhysicalAddressLookup?.BOOL) {
+    op.hasPhysicalAddressLookup = event.dynamodb.OldImage.hasPhysicalAddressLookup.BOOL;
+  }
+
   return op;
 };
 
