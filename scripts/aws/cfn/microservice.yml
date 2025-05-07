@@ -244,7 +244,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref SearchSLAViolationsLambdaName
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
@@ -313,7 +313,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref ActivityStepManagerLambdaName
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
@@ -451,7 +451,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref SLAViolationCheckerLambdaName
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
@@ -473,7 +473,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub "${ProjectName}-slaViolationCheckerLambda-SQS"
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
@@ -605,7 +605,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref SLAViolationCloseSchedulingLambdaName
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x
       Handler: "index.handler"
       Code:
         S3Bucket: !Ref LambdasBucketName
