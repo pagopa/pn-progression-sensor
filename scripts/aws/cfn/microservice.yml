@@ -252,8 +252,8 @@ Resources:
       Role: !GetAtt SearchSLAViolationsLambdaRole.Arn
       TracingConfig:
         Mode: Active
-      Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      #Layers:
+      #  - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Environment:
         Variables:
           REGION: !Sub ${AWS::Region}
@@ -338,8 +338,8 @@ Resources:
           MAX_IDXS_IN_SEND_AMR_SEARCH: !Ref MaxIDXsInSENDAMRSearch
       TracingConfig:
         Mode: Active
-      Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      #Layers:
+      #  - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: 10
 
   # Lambda function role
@@ -464,8 +464,8 @@ Resources:
           INVOCATION_TYPE: "Kinesis"
       TracingConfig:
         Mode: Active
-      Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      #Layers:
+      #  - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: 10
 
   # Lambda function (from SQS)
@@ -486,8 +486,8 @@ Resources:
           INVOCATION_TYPE: "SQS"
       TracingConfig:
         Mode: Active
-      Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      #Layers:
+      #  - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: 10
 
   # Lambda function role
@@ -621,8 +621,8 @@ Resources:
           MAX_ALLOWED_BY_TYPE: !Ref SlaViolationCloseSchedulingLambdaMaxItem
       TracingConfig:
         Mode: Active
-      Layers:
-        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      #Layers:
+      #  - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
       Timeout: !Ref SlaViolationCloseSchedulingLambdaTimeoutSeconds # it should be longer than other functions, since this one calls the search lambda synchronously
 
   # Lambda function role
