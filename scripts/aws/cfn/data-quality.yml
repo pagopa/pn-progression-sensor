@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Data quality template, creates a nested stack for Glue Table and Crawler for pn-TimelinesForInvoicing
+Parameters:
+  TemplateBucketBaseUrl:
+    Type: String
+    Description: The S3 bucket from which to fetch the templates used by this stack.
+  GlueServiceRoleArn:
+    Type: String
+    Description: Service role for the Glue Crawler.
+  LogsBucketName:
+    Type: String
+    Description: Logs bucket name
+  GlueDatabaseName:
+    Description: Name of the Glue Database
+    Type: String
+  TimelinesForInvoicingDynamoTableName:
+    Type: String
+    Description: |
+      DynamoDb table name for pn-timelines-for-invoicing, valorized by the related output
+      in the storage.yaml template, used also for identifying the S3 bucket
+      directory where related CDC files are stored.
+  TimelinesForInvoicingGlueTableName:
+    Type: String
+    AllowedPattern: '^[a-z_]+$'
+    ConstraintDescription: | 
+       Glue table name for pn-timelines-for-invoicing, accept only lowercase values and underscores.
+    Default: pn_timelines_for_invoicing
+
+Resources:
+  PnTimelinesForInvoicingDataQualityStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/cdc-glue.yaml"
+      Parameters:
+        DynamoTableName: !Ref TimelinesForInvoicingDynamoTableName
+        GlueTableName: !Ref TimelinesForInvoicingGlueTableName
+        GlueServiceRoleArn: !Ref GlueServiceRoleArn
+        LogsBucketName: !Ref LogsBucketName
+        GlueDatabaseName: !Ref GlueDatabaseName
+        DynamoDBKeysStructure: |
+            struct<paId_invoicingDay:struct<S:string>,invoincingTimestamp_timelineElementId:struct<S:string>>
+        DynamoDBNewImageStructure: |
+            struct<
+              iun:struct<S:string>,
+              timelineElementId:struct<S:string>,
+              legalFactId:struct<L:array<struct<M:struct<category:struct<S:string>,key:struct<S:string>>>>>,
+              timestamp:struct<S:string>,
+              statusInfo:struct<M:struct<statusChangeTimestamp:struct<S:string>,actual:struct<S:string>,statusChanged:struct<BOOL:boolean>>>,
+              invoicingDay:struct<S:string>,
+              ttl:struct<N:string>,
+              notificationSentAt:struct<S:string>,
+              invoincingTimestamp:struct<S:string>,
+              paId:struct<S:string>,
+              businessTimestamp:struct<S:string>,
+              invoincingTimestamp_timelineElementId:struct<S:string>,
+              paId_invoicingDay:struct<S:string>,
+              category:struct<S:string>,
+              details:struct<M:struct<
+                recIndex:struct<N:string,S:string,NULL:boolean>,
+                sentAttemptMade:struct<N:string,NULL:boolean>,
+                numberOfPages:struct<N:string,NULL:boolean>,
+                categorizedAttachmentsResult:struct<M:struct<
+                  acceptedAttachments:struct<L:array<struct<M:struct<result:struct<S:string>,reasonDescription:struct<S:string,NULL:boolean>,fileKey:struct<S:string>,reasonCode:struct<S:string,NULL:boolean>>>>>,
+                  discardedAttachments:struct<L:array<struct<M:struct<result:struct<S:string>,reasonDescription:struct<S:string,NULL:boolean>,fileKey:struct<S:string>,reasonCode:struct<S:string,NULL:boolean>>>>>
+                >,NULL:boolean>,
+                nextSourceAttemptsMade:struct<N:string,S:string,NULL:boolean>,
+                physicalAddress:struct<M:struct<
+                  zip:struct<S:string,NULL:boolean>,
+                  foreignState:struct<S:string,NULL:boolean>,
+                  address:struct<S:string,NULL:boolean>,
+                  at:struct<S:string,NULL:boolean>,
+                  province:struct<S:string,NULL:boolean>,
+                  municipality:struct<S:string,NULL:boolean>,
+                  addressDetails:struct<S:string,NULL:boolean>,
+                  municipalityDetails:struct<S:string,NULL:boolean>
+                >,NULL:boolean>,
+                vat:struct<N:string,NULL:boolean>,
+                analogCost:struct<N:string,NULL:boolean>,
+                envelopeWeight:struct<N:string,NULL:boolean>,
+                prepareRequestId:struct<S:string,NULL:boolean>,
+                serviceLevel:struct<S:string,NULL:boolean>,
+                productType:struct<S:string,NULL:boolean>,
+                notificationCost:struct<S:string,NULL:boolean>,
+                eventTimestamp:struct<S:string,NULL:boolean>,
+                relatedRequestId:struct<S:string,NULL:boolean>
+              >>
+            >
