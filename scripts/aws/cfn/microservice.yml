@@ -54,6 +54,14 @@ Parameters:
     Type: String
     Description: Name of dynamodb table containing timelines invoicing metadata
 
+  ReworkedTimelinesForInvoicingDynamoTableArn:
+    Type: String
+    Description: ARN of dynamodb table containing timelines invoicing metadata
+
+  ReworkedTimelinesForInvoicingDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing timelines invoicing metadata
+
   CdcKinesisSourceStreamArn:
     Type: String
     Description: "Where to send CDC"
@@ -324,6 +332,7 @@ Resources:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
           INVOICING_DYNAMODB_TABLE: !Ref TimelinesForInvoicingDynamoTableName
+          REWORKED_INVOICING_DYNAMODB_TABLE: !Ref ReworkedTimelinesForInvoicingDynamoTableName
           ALARM_TTL_VALIDATION: !Ref AlarmTtlValidation
           ALARM_TTL_REFINEMENT: !Ref AlarmTtlRefinement
           ALARM_TTL_SEND_PEC: !Ref AlarmTtlSendPec
@@ -379,6 +388,8 @@ Resources:
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
               - !Ref TimelinesForInvoicingDynamoTableArn
               - !Sub "${TimelinesForInvoicingDynamoTableArn}/*"
+              - !Ref ReworkedTimelinesForInvoicingDynamoTableArn
+              - !Sub "${ReworkedTimelinesForInvoicingDynamoTableArn}/*"
           - Effect: Allow
             Action:
               - "dynamodb:GetItem"
@@ -397,6 +408,8 @@ Resources:
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing/*"
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-ReworkedTimelinesForInvoicing
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-ReworkedTimelinesForInvoicing/*"
           - Effect: Allow
             Action:
               - kinesis:DescribeStream
