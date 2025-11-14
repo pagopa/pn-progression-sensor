@@ -79,6 +79,22 @@ function makeBulkInsertInvoicesCommandFromEvent(event) {
   return params;
 }
 
+function makeBulkInsertReworkedInvoicesCommandFromEvent(event) {
+  const params = {
+    RequestItems: {
+      [process.env.REWORKED_INVOICING_DYNAMODB_TABLE]: event.payload.map((p) => ({
+        PutRequest: {
+          Item: p,
+        },
+      })),
+    },
+  };
+
+  console.log("Bulk insert reworked timeline:", JSON.stringify(params));
+
+  return params;
+}
+
 exports.persistEvents = async (events) => {
   const summary = {
     deletions: 0,
@@ -123,6 +139,18 @@ exports.persistEvents = async (events) => {
     } else if (evt.opType == "BULK_INSERT_INVOICES") {
       console.log("Save elements to invoicing table");
       const params = makeBulkInsertInvoicesCommandFromEvent(evt);
+      try {
+        await ddbDocClient.send(new BatchWriteCommand(params));
+        summary.insertions++;
+      } catch (e) {
+        console.error("Error on batch insert", evt);
+        console.error("Error details", e);
+        evt.exception = e;
+        summary.errors.push(evt);
+      }
+    } else if (evt.opType == "BULK_INSERT_REWORKED_INVOICES") {
+      console.log("Save elements to rework invoicing table");
+      const params = makeBulkInsertReworkedInvoicesCommandFromEvent(evt);
       try {
         await ddbDocClient.send(new BatchWriteCommand(params));
         summary.insertions++;

@@ -21,6 +21,7 @@ const allowedTimelineCategories = [
   "SEND_SIMPLE_REGISTERED_LETTER",
   "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS",
   "ANALOG_WORKFLOW_RECIPIENT_DECEASED",
+  "NOTIFICATION_TIMELINE_REWORKED",
 ];
 
 const ttlSlaTimes = initTtlSlaTimes();
@@ -41,6 +42,11 @@ function extractRecIdsFromTimelineId(timelineElementId) {
   return timelineElementId.split("RECINDEX_")[1];
   // used for REFINEMENT (refinement.IUN_123456789.RECINDEX_1)
   // or for NOTIFICATION_VIEWED (notification.viewed-IUN_123456789.RECINDEX_1)
+}
+
+function extractRecIdsFromTimelineIdOnRework(timelineElementId) {
+  const match = timelineElementId.match(/RECINDEX_(\d+)/);
+  return match ? match[1] : null;
 }
 
 function makeDeleteOp(id, type, event) {
@@ -94,7 +100,7 @@ function makeInsertOp(
   return op;
 }
 
-function makeBulkInsertOp(event, payload) {
+function makeBulkInsertOp(event, payload, opType = "BULK_INSERT_INVOICES") {
   if (!payload || payload.length === 0) {
     console.log("Missing payload", {
       event: JSON.stringify(event),
@@ -103,7 +109,7 @@ function makeBulkInsertOp(event, payload) {
   }
   const op = {
     payload,
-    opType: "BULK_INSERT_INVOICES",
+    opType,
   };
   return op;
 }
@@ -178,6 +184,36 @@ async function processInvoice(event, recIdxs) {
     } // if invoicedElement
   }
   return invoicedElements;
+}
+
+async function processInvalidatedInvoice(iun, timelineElementIds, reworkedTimestamp) {
+  console.log("Processing data for invalidated invoice...");
+
+  // Recupera tutti gli elementi timeline
+  const timelineElements = await getTimelineElements(iun, timelineElementIds);
+  if (!timelineElements?.length) {
+    return [];
+  }
+
+  // Processa gli elementi filtrando per categoria
+  return timelineElements
+    .filter(elem => shouldProcessElement(elem))
+    .map(elem => ({
+          ...processInvoicedElement(elem, reworkedTimestamp),
+          invoicingType: 'INVALIDATED'
+        }));
+}
+
+function shouldProcessElement(timelineElem) {
+  const { category, details } = timelineElem;
+
+  // Categorie speciali richiedono notificationCost definito
+  const requiresCost = category === "REFINEMENT" ||   category === "ANALOG_WORKFLOW_RECIPIENT_DECEASED";
+
+  if (requiresCost) {
+    return details?.notificationCost != null;
+  }
+  return true;
 }
 
 async function mapPayload(event) {
@@ -405,12 +441,50 @@ async function mapPayload(event) {
           dynamoDbOps.push(op);
         }
         break;
+      case "NOTIFICATION_TIMELINE_REWORKED":
+        const { iun, timelineElementId, timestamp: reworkedTimestamp, details } = extractDynamoDBFields(event.dynamodb.NewImage);
+        recIdx = extractRecIdsFromTimelineIdOnRework(timelineElementId);
+        // Estrai e filtra i timeline IDs invalidati
+        const invalidatedTimelineIds = getInvalidatedInvoicingTimelineIds(details.invalidatedTimelineAndStatusHistory,iun,recIdx);
+        if (invalidatedTimelineIds.length === 0) {
+          break;
+        }
+        const invalidatedInvoicedElements = await processInvalidatedInvoice(iun,invalidatedTimelineIds,reworkedTimestamp);
+        const bulkReworkedOp = makeBulkInsertOp(event,invalidatedInvoicedElements,"BULK_INSERT_REWORKED_INVOICES");
+        if (bulkReworkedOp) {
+          dynamoDbOps.push(bulkReworkedOp);
+        }
+        break;
       default:
     }
   }
 
   return dynamoDbOps;
 }
+
+function extractDynamoDBFields(newImage) {
+  return {
+    iun: newImage.iun.S,
+    timelineElementId: newImage.timelineElementId.S,
+    timestamp: newImage.timestamp.S,
+    details: newImage.details.M
+  };
+}
+
+function getInvalidatedInvoicingTimelineIds(invalidatedElements, iun, recIdx) {
+  const invoicingPatterns = [
+      `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+      `REFINEMENT.IUN_${iun}.RECINDEX_${recIdx}`,
+      `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`
+    ];
+
+    return invalidatedElements.L
+      .flatMap(elem => {
+        const relatedElements = elem.M?.relatedTimelineElements?.L || [];
+        return relatedElements.map(item => item.S);
+      })
+      .filter(id => invoicingPatterns.includes(id));
+ }
 
 exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {

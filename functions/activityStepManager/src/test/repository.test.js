@@ -209,4 +209,41 @@ describe("repository tests", function () {
     expect(res.deletions).equal(0);
     expect(res.errors.length).equal(0);
   });
+
+  it("test BULK_INSERT_REWORKED_INVOICES", async () => {
+    ddbMock.on(BatchWriteCommand).resolves();
+    const res = await persistEvents([
+      {
+        opType: "BULK_INSERT_REWORKED_INVOICES",
+        payload: [
+          {
+            paId_reworkedDay: "PA1_2024-01-01",
+            reworkedTimestamp_timelineElementId: "2024-01-01T09:00:00.000Z_ELEM1",
+            ttl: 1704061200,
+            paId: "PA1",
+            reworkedDay: "2024-01-01",
+            reworkedTimestamp: "2024-01-01T09:00:00.000Z",
+            invoicingType: "INVALIDATED",
+            timelineElementId: "ELEM1",
+            timestamp: "2024-01-01T09:00:00.000Z",
+            details: { notificationCost: 10 }
+          }
+        ]
+      }
+    ]);
+    expect(res.insertions).equal(1);
+    expect(res.errors.length).equal(0);
+  });
+
+  it("test BULK_INSERT_REWORKED_INVOICES ERROR", async () => {
+    ddbMock.on(BatchWriteCommand).rejects(new Error("abc"));
+    const res = await persistEvents([
+      {
+        opType: "BULK_INSERT_REWORKED_INVOICES",
+        payload: []
+      }
+    ]);
+    expect(res.insertions).equal(0);
+    expect(res.errors.length).equal(1);
+  });
 });

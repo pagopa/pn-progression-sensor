@@ -286,6 +286,7 @@ describe("event mapper tests", function () {
       res[4].payload[2].invoincingTimestamp
     );
     // we're simulating only for recindex 1
+    ddbMock.reset();
   });
 
   it("test SEND_DIGITAL_DOMICILE", async () => {
@@ -397,6 +398,75 @@ describe("event mapper tests", function () {
 
     expect(res[0].type).equal("SEND_AMR");
     expect(res[0].opType).equal("DELETE");
+  });
+
+  it("test NOTIFICATION_TIMELINE_REWORKED", async () => {
+    const batchGetJSON = fs.readFileSync(
+        "./src/test/batchGetRework.timeline.json",
+        "utf8"
+      );
+    const batchGet = JSON.parse(batchGetJSON);
+    ddbMock.on(BatchGetCommand).resolves(batchGet);
+    const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
+    let event = JSON.parse(eventJSON);
+    event.dynamodb.NewImage.iun = { S: "IUN1" };
+    event.dynamodb.NewImage.timelineElementId = { S: "NOTIFICATION_TIMELINE_REWORKED.IUN_IUN1.RECINDEX_0.ATTEMTPT_0" };
+    event = setCategory(event, "NOTIFICATION_TIMELINE_REWORKED");
+    event.dynamodb.NewImage.details = {
+        M: {
+          invalidatedTimelineAndStatusHistory: {
+            L: [
+              {
+                M: {
+                  relatedTimelineElements: {
+                    L: [
+                      { S: "ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_IUN1.RECINDEX_0" },
+                      { S: "REFINEMENT.IUN_IUN1.RECINDEX_1" },
+                      { S: "ELEM_X" }
+                    ]
+                  }
+                }
+              },
+              {
+                M: {
+                  relatedTimelineElements: {
+                    L: [
+                      { S: "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_1" },
+                      { S: "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_0" }
+                    ]
+                  }
+                }
+              },
+              {
+                M: {
+                  relatedTimelineElements: {
+                    L: [
+                      { S: "ELEM_J" },
+                      { S: "ELEM_P" },
+                      { S: "ELEM_Q" }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+    };
+    const events = [event];
+
+    const res = await mapEvents(events);
+
+    expect(res.length).equal(1);
+    expect(res[0].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+    expect(res[0].payload.length).equal(2);
+    res[0].payload.forEach(item => expect(item.invoicingType).equal("INVALIDATED"));
+    res[0].payload.forEach(item => expect(item.iun).equal("IUN1"));
+    res[0].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[0].payload[0].invoincingTimestamp));
+    const ids = res[0].payload.map(item => item.invoincingTimestamp_timelineElementId);
+    expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_1"))).to.be.true;
+    expect(ids.some(id => id.includes("ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_IUN1.RECINDEX_0"))).to.be.true;
+
+    ddbMock.reset();
   });
 });
 
