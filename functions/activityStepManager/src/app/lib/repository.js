@@ -5,6 +5,7 @@ const {
   GetCommand,
   BatchGetCommand,
   BatchWriteCommand,
+  QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { twoNumbersFromIUN } = require("./utils");
 
@@ -209,6 +210,28 @@ exports.getTimelineElements = async function (iun, timelineElementIds) {
     console.log("Get Timeline elements error " + iun, e);
   }
   return null;
+};
+
+exports.getLatestReworkedTimelineElement = async function (iun, timelineElementIdPrefix) {
+  try {
+  const params = {
+    TableName: TABLES.TIMELINES,
+    KeyConditionExpression: "iun = :iun AND begins_with(timelineElementId, :prefix)",
+    ExpressionAttributeValues: {
+      ":iun": iun,
+      ":prefix": timelineElementIdPrefix,
+    },
+    Limit: 1,
+    ScanIndexForward: false,
+  };
+
+  const response = await ddbDocClient.send(new QueryCommand(params));
+  return response.Items && response.Items.length > 0 ? response.Items[0] : null;
+
+} catch (e) {
+  console.error("Errore nella query DynamoDB:", e);
+  throw e;
+  }
 };
 
 const TABLES = {
