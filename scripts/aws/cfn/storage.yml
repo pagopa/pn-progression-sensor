@@ -197,6 +197,34 @@ Resources:
       StreamSpecification:
         StreamViewType: NEW_IMAGE
 
+  ReworkedTimelinesForInvoicingDataTable:
+    Type: AWS::DynamoDB::Table
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Sub "${ProjectName}-ReworkedTimelinesForInvoicing"
+      AttributeDefinitions:
+        # primary key
+        - AttributeName: "paId_invoicingDay" # paId concatenated to invoicingDay
+          AttributeType: "S"
+        - AttributeName: "invoincingTimestamp_timelineElementId" # invoincingTimestamp concatenated to timelineElementId
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "paId_invoicingDay"
+          KeyType: "HASH"
+        - AttributeName: "invoincingTimestamp_timelineElementId"
+          KeyType: "RANGE"
+      BillingMode: "PAY_PER_REQUEST"
+      TimeToLiveSpecification:
+        AttributeName: "ttl"
+        Enabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      KinesisStreamSpecification:
+        StreamArn: !Ref CdcKinesisSourceStreamArn
+      StreamSpecification:
+        StreamViewType: NEW_IMAGE
+
   # SQS Queue
   ProgressionSensorQueue:
     Type: AWS::CloudFormation::Stack
@@ -303,6 +331,12 @@ Outputs:
   TimelinesForInvoicingDynamoTableArn:
     Description: ARN of dynamodb table containing timelines invoicing metadata
     Value: !Sub "${TimelinesForInvoicingDataTable.Arn}"
+  ReworkedTimelinesForInvoicingDynamoTableName:
+    Description: Name of dynamodb table containing rework timelines invoicing metadata
+    Value: !Ref ReworkedTimelinesForInvoicingDataTable
+  ReworkedTimelinesForInvoicingDynamoTableArn:
+    Description: ARN of dynamodb table containing rework timelines invoicing metadata
+    Value: !Sub "${ReworkedTimelinesForInvoicingDataTable.Arn}"
 
   # Kinesis Source Stream containing the DynamoDB Change Data Capture events
   CdcProgressionSensorKinesisSourceStreamArn:
