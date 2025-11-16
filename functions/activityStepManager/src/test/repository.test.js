@@ -7,6 +7,7 @@ const {
   DeleteCommand,
   PutCommand,
   GetCommand,
+  QueryCommand,
   BatchGetCommand,
   BatchWriteCommand,
 } = require("@aws-sdk/lib-dynamodb");
@@ -16,6 +17,7 @@ const {
   persistEvents,
   getNotification,
   getTimelineElements,
+  getLatestReworkedTimelineElement,
   TABLES,
 } = require("../app/lib/repository");
 const { ddbDocClient } = require("../app/lib/ddbClient.js");
@@ -50,6 +52,25 @@ describe("repository tests", function () {
   after(() => {
     ddbMock.restore();
     ddbMock.reset();
+  });
+
+
+  it("getLatestReworkedTimelineElement FOUND", async () => {
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{
+            timelineElementId: "NOTIFICATION_TIMELINE_REWORKED.IUN_ABC.RECINDEX_0.ATTEMTPT_0.REWORK_0"
+        }]
+      });
+      const res = await getLatestReworkedTimelineElement("abc");
+      expect(res).deep.equals({timelineElementId: "NOTIFICATION_TIMELINE_REWORKED.IUN_ABC.RECINDEX_0.ATTEMTPT_0.REWORK_0"});
+  });
+
+  it("getLatestReworkedTimelineElement NOT FOUND", async () => {
+     ddbMock.on(QueryCommand).resolves({
+          Items: [],
+        });
+    const res = await getLatestReworkedTimelineElement("abc");
+    expect(res).deep.equals(null);
   });
 
   it("test GET ITEM FOUND", async () => {
