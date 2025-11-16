@@ -194,27 +194,31 @@ async function processInvoice(event, recIdxs) {
 
 async function evaluateNotificationReworkAndAdjustInvoicing(iun, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
     const reworkElementDetails = reworkedTimelineElement.details;
-    if(reworkElementDetails.sendAttemptMade == 0 && checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
+    if(reworkElementDetails.sendAttemptMade == 0 && !checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
         const timelineElements = await getTimelineElements(iun, [
             reworkedTimelineElement.timelineElementId.replace("NOTIFICATION_TIMELINE_REWORKED", "SEND_ANALOG_DOMICILE").replace(".ATTEMPT_0", ".ATTEMPT_1"),
         ]);
         if (timelineElements && timelineElements.length > 0) {
-              invoicedElements.push(timelineElements.map(elem => ({
+              const newElements = timelineElements.map(elem => ({
                         ...processInvoicedElement(elem, invoicingTimestamp),
                         invoicingType: 'NEW'
-                      })));
+                      }));
+              invoicedElements.push(...newElements);
         }
-        for (let i = 0; i < invoicedElements.length; i++) {
+    }
+     const length = invoicedElements.length;
+     const elementsToAdd = [];
+     for (let i = 0; i < length; i++) {
             const element = invoicedElements[i];
             const sk = element.invoincingTimestamp_timelineElementId;
             if (sk.includes('REFINEMENT') || sk.includes('ANALOG_WORKFLOW_RECIPIENT_DECEASED') || sk.includes('NOTIFICATION_VIEWED')) {
               element.invoicingType = 'NEW';
             } else if (sk.includes('NOTIFICATION_CANCELLED')) {
               const duplicatedElement = { ...element, invoicingType: 'NEW' };
-              invoicedElements.push(duplicatedElement);
+              elementsToAdd.push(duplicatedElement);
             }
         }
-    }
+     invoicedElements.push(...elementsToAdd);
     return invoicedElements;
 }
 
@@ -338,7 +342,7 @@ async function mapPayload(event) {
         // PN-4564 - process invoice data
         const invoicedElements = await processInvoice(event, [recIdx]);
         if(invoicedElements && invoicedElements.length > 0){
-          const newInvoices = invoicedElements.filter(elem => elem.invoicingType === 'NEW');
+          const newInvoices = invoicedElements.filter(elem => elem.invoicingType && elem.invoicingType === 'NEW');
           const standardInvoices = invoicedElements.filter(elem => !elem.invoicingType || elem.invoicingType !== 'NEW');
           const bulkOp = makeBulkInsertOp(event, standardInvoices);
           const bulkReworkedOp = makeBulkInsertOp(event,newInvoices,"BULK_INSERT_REWORKED_INVOICES");
@@ -414,12 +418,17 @@ async function mapPayload(event) {
           event,
           cleanRecIdxs
         );
-        const bulkOpCancelled = makeBulkInsertOp(
-          event,
-          invoicedElementsCancelled
-        );
-        if (bulkOpCancelled) {
-          dynamoDbOps.push(bulkOpCancelled);
+        if(invoicedElementsCancelled && invoicedElementsCancelled.length > 0){
+          const newInvoices = invoicedElementsCancelled.filter(elem => elem.invoicingType && elem.invoicingType === 'NEW');
+          const standardInvoices = invoicedElementsCancelled.filter(elem => !elem.invoicingType || elem.invoicingType !== 'NEW');
+          const bulkOpCancelled = makeBulkInsertOp(event, standardInvoices);
+          const bulkReworkedOp = makeBulkInsertOp(event,newInvoices,"BULK_INSERT_REWORKED_INVOICES");
+          if (bulkOpCancelled) {
+            dynamoDbOps.push(bulkOpCancelled);
+          }
+          if(bulkReworkedOp){
+            dynamoDbOps.push(bulkReworkedOp);
+          }
         }
         break;
       }

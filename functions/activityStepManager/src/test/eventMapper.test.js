@@ -18,7 +18,7 @@ describe("event mapper tests", function () {
     ddbMock.reset();
   });
 
-  it.skip("test VALIDATION", async () => {
+  it("test VALIDATION", async () => {
     const eventJSON = fs.readFileSync(
       "./src/test/eventMapper.notifications.json"
     );
@@ -33,7 +33,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("INSERT");
   });
 
-  it.skip("test REQUEST_REFUSED", async () => {
+  it("test REQUEST_REFUSED", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "REQUEST_REFUSED");
@@ -61,7 +61,7 @@ describe("event mapper tests", function () {
     );
   });
 
-  it.skip("test REFINEMENT", async () => {
+  it("test REFINEMENT", async () => {
     const batchGetJSON = fs.readFileSync(
       "./src/test/batchGet.timeline.json",
       "utf8"
@@ -136,7 +136,165 @@ describe("event mapper tests", function () {
     ddbMock.reset();
   });
 
-  it.skip("test REFINEMENT (batch get returns zero results)", async () => {
+  it("test REFINEMENT rework attempt 0 without old attempt 1", async () => {
+      const batchGetJSON = fs.readFileSync(
+        "./src/test/batchGetRework.timeline.json",
+        "utf8"
+      );
+      const batchGet = JSON.parse(batchGetJSON);
+      ddbMock.on(BatchGetCommand).resolves(batchGet);
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sendAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+            relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
+        }] }}],
+      });
+      const eventJSON = fs.readFileSync(
+        "./src/test/eventMapper.timeline.json",
+        "utf8"
+      );
+      let event = JSON.parse(eventJSON);
+      event = setCategory(event, "REFINEMENT");
+      setTimelineElementId(event, "REFINEMENT")
+
+      const events = [event];
+
+      const res = await mapEvents(events);
+
+      expect(res.length).equal(2);
+
+      expect(res[0].type).equal("REFINEMENT");
+      expect(res[0].opType).equal("DELETE");
+      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+      expect(res[1].payload[0].invoicingType).equal("NEW");
+      // element 0 - refinement - invoice
+      expect(res[1].payload[0].paId_invoicingDay).equal(
+        "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
+      );
+      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+        "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_0"
+      );
+      expect(res[1].payload[0].ttl).equal(1705762080);
+      expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
+      expect(res[1].payload[0].timestamp).equal(
+        res[1].payload[0].invoincingTimestamp
+      );
+
+      expect(res[1].payload[1].invoicingType).equal("NEW");
+      // element 0 - refinement - invoice
+      expect(res[1].payload[1].paId_invoicingDay).equal(
+        "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
+      );
+      expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
+        "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"
+      );
+      expect(res[1].payload[1].ttl).equal(1705762080);
+      expect(res[1].payload[1].invoicingDay).equal("2023-01-20");
+    
+      // reset mock
+      ddbMock.reset();
+    });
+
+    it("test REFINEMENT rework attempt 0 with old attempt 1", async () => {
+      const batchGetJSON = fs.readFileSync(
+        "./src/test/batchGet.timeline.json",
+        "utf8"
+      );
+      const batchGet = JSON.parse(batchGetJSON);
+      ddbMock.on(BatchGetCommand).resolves(batchGet);
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sendAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+            relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
+        }] }}],
+      });
+      const eventJSON = fs.readFileSync(
+        "./src/test/eventMapper.timeline.json",
+        "utf8"
+      );
+      let event = JSON.parse(eventJSON);
+      event = setCategory(event, "REFINEMENT");
+      setTimelineElementId(event, "REFINEMENT")
+
+      const events = [event];
+
+      const res = await mapEvents(events);
+
+      expect(res.length).equal(2);
+
+      expect(res[0].type).equal("REFINEMENT");
+      expect(res[0].opType).equal("DELETE");
+      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+      expect(res[1].payload[0].invoicingType).equal("NEW");
+      // element 0 - refinement - invoice
+      expect(res[1].payload[0].paId_invoicingDay).equal(
+        "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
+      );
+      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+        "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_0"
+      );
+      expect(res[1].payload[0].ttl).equal(1705762080);
+      expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
+      expect(res[1].payload[0].invoincingTimestamp).equal(
+        "2023-01-20T14:48:00.000Z"
+      );
+      expect(res[1].payload[0].timestamp).equal(
+        res[1].payload[0].invoincingTimestamp
+      );
+    
+      // reset mock
+      ddbMock.reset();
+    });
+
+  it("test REFINEMENT rework attempt 1", async () => {
+      const batchGetJSON = fs.readFileSync(
+        "./src/test/batchGet.timeline.json",
+        "utf8"
+      );
+      const batchGet = JSON.parse(batchGetJSON);
+      ddbMock.on(BatchGetCommand).resolves(batchGet);
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sendAttemptMade:1, invalidatedTimelineAndStatusHistory:[{
+            relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
+        }] }}],
+      });
+      const eventJSON = fs.readFileSync(
+        "./src/test/eventMapper.timeline.json",
+        "utf8"
+      );
+      let event = JSON.parse(eventJSON);
+      event = setCategory(event, "REFINEMENT");
+      setTimelineElementId(event, "REFINEMENT")
+
+      const events = [event];
+
+      const res = await mapEvents(events);
+
+      expect(res.length).equal(2);
+
+      expect(res[0].type).equal("REFINEMENT");
+      expect(res[0].opType).equal("DELETE");
+      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+      expect(res[1].payload[0].invoicingType).equal("NEW");
+      // element 0 - refinement - invoice
+      expect(res[1].payload[0].paId_invoicingDay).equal(
+        "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
+      );
+      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+        "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_0"
+      );
+      expect(res[1].payload[0].ttl).equal(1705762080);
+      expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
+      expect(res[1].payload[0].invoincingTimestamp).equal(
+        "2023-01-20T14:48:00.000Z"
+      );
+      expect(res[1].payload[0].timestamp).equal(
+        res[1].payload[0].invoincingTimestamp
+      );
+    
+      // reset mock
+      ddbMock.reset();
+    });
+
+  it("test REFINEMENT (batch get returns zero results)", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "REFINEMENT");
@@ -169,14 +327,11 @@ describe("event mapper tests", function () {
     );
   });
 
-  it   ("test REFINEMENT (no notificationCost)", async () => {
+  it("test REFINEMENT (no notificationCost)", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "REFINEMENT");
     event.dynamodb.NewImage.details = null;
-     ddbMock.on(QueryCommand).resolves({
-                  Items: [],
-                });
 
     const events = [event];
     const res = await mapEvents(events);
@@ -187,7 +342,7 @@ describe("event mapper tests", function () {
     expect(res[1]).equal(undefined);
   });
 
-  it.skip("test NOTIFICATION_VIEWED", async () => {
+  it("test NOTIFICATION_VIEWED", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
      ddbMock.on(QueryCommand).resolves({
@@ -223,7 +378,7 @@ describe("event mapper tests", function () {
     }
   });
 
-  it.skip("test NOTIFICATION_CANCELLED", async () => {
+  it("test NOTIFICATION_CANCELLED", async () => {
     const batchGetJSON = fs.readFileSync(
       "./src/test/batchGet.timeline.json",
       "utf8"
@@ -251,60 +406,129 @@ describe("event mapper tests", function () {
     expect(res[1].opType).equal("DELETE");
     expect(res[2].type).equal("REFINEMENT");
     expect(res[2].opType).equal("DELETE");
-    expect(res[3].type).equal("REFINEMENT");
-    expect(res[3].opType).equal("DELETE");
 
     // payloads
     // element 0
-    expect(res[4].payload[0].paId_invoicingDay).equal(
+    expect(res[3].payload[0].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[4].payload[0].invoincingTimestamp_timelineElementId).equal(
+    expect(res[3].payload[0].invoincingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_notification_viewed_creation_request;IUN_XLDW-MQYJ-WUKA-202302-A-1;RECINDEX_1"
     );
-    expect(res[4].payload[0].ttl).equal(1705762080);
-    expect(res[4].payload[0].invoicingDay).equal("2023-01-20");
-    expect(res[4].payload[0].invoincingTimestamp).equal(
+    expect(res[3].payload[0].ttl).equal(1705762080);
+    expect(res[3].payload[0].invoicingDay).equal("2023-01-20");
+    expect(res[3].payload[0].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
-    expect(res[4].payload[0].timestamp).equal(
-      res[4].payload[0].invoincingTimestamp
+    expect(res[3].payload[0].timestamp).equal(
+      res[3].payload[0].invoincingTimestamp
     );
     // element 1
-    expect(res[4].payload[1].paId_invoicingDay).equal(
+    expect(res[3].payload[1].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[4].payload[1].invoincingTimestamp_timelineElementId).equal(
+    expect(res[3].payload[1].invoincingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_1.ATTEMPT_0"
     );
-    expect(res[4].payload[1].ttl).equal(1705762080);
-    expect(res[4].payload[1].invoicingDay).equal("2023-01-20");
-    expect(res[4].payload[1].invoincingTimestamp).equal(
+    expect(res[3].payload[1].ttl).equal(1705762080);
+    expect(res[3].payload[1].invoicingDay).equal("2023-01-20");
+    expect(res[3].payload[1].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
-    expect(res[4].payload[1].timestamp).not.equal(
-      res[4].payload[1].invoincingTimestamp
+    expect(res[3].payload[1].timestamp).not.equal(
+      res[3].payload[1].invoincingTimestamp
     );
     // element 2
-    expect(res[4].payload[2].paId_invoicingDay).equal(
+    expect(res[3].payload[2].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[4].payload[2].invoincingTimestamp_timelineElementId).equal(
+    expect(res[3].payload[2].invoincingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_1"
     );
-    expect(res[4].payload[2].ttl).equal(1705762080);
-    expect(res[4].payload[2].invoicingDay).equal("2023-01-20");
-    expect(res[4].payload[2].invoincingTimestamp).equal(
+    expect(res[3].payload[2].ttl).equal(1705762080);
+    expect(res[3].payload[2].invoicingDay).equal("2023-01-20");
+    expect(res[3].payload[2].invoincingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
-    expect(res[4].payload[2].timestamp).not.equal(
-      res[4].payload[2].invoincingTimestamp
+    expect(res[3].payload[2].timestamp).not.equal(
+      res[3].payload[2].invoincingTimestamp
     );
     // we're simulating only for recindex 1
     ddbMock.reset();
   });
 
-  it.skip("test SEND_DIGITAL_DOMICILE", async () => {
+  it("test CANCELLED with rework attempt 0 without old attempt 1", async () => {
+      ddbMock.on(QueryCommand).resolvesOnce({
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sendAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+          relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
+        }] }}],
+        }).resolves({
+        Items: [],
+        });
+
+    const batchGetReworkJSON = fs.readFileSync(
+             "./src/test/batchGetRework.timeline.json",
+             "utf8"
+           );
+      const batchGetJSON = fs.readFileSync(
+             "./src/test/batchGet.timeline.json",
+             "utf8"
+           );
+
+     const batchGet = JSON.parse(batchGetJSON);
+     const batchGetRework = JSON.parse(batchGetReworkJSON);
+     ddbMock.on(BatchGetCommand).resolvesOnce(batchGetRework).resolves(batchGet);
+     const eventJSON = fs.readFileSync(
+       "./src/test/eventMapper.timeline.json",
+       "utf8"
+     );
+     let event = JSON.parse(eventJSON);
+     event = setCategory(event, "NOTIFICATION_CANCELLED");
+     event.dynamodb.NewImage.timelineElementId = {
+      S: "NOTIFICATION_CANCELLED.IUN_abcd"
+    }
+
+     const events = [event];
+
+     const res = await mapEvents(events);
+
+     // we expect 4 events: 1 validation and 3 refinements to delete(validation can already have been deleted)
+     expect(res[0].type).equal("VALIDATION");
+     expect(res[0].opType).equal("DELETE");
+     expect(res[1].type).equal("REFINEMENT");
+     expect(res[1].opType).equal("DELETE");
+     expect(res[2].type).equal("REFINEMENT");
+     expect(res[2].opType).equal("DELETE");
+     expect(res[4].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+     expect(res[3].opType).equal("BULK_INSERT_INVOICES");
+
+     expect(res[3].payload[0].invoincingTimestamp_timelineElementId).contain(
+       "NOTIFICATION_CANCELLED"
+     );
+     expect(res[3].payload[1].invoincingTimestamp_timelineElementId).contain(
+       "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_1.ATTEMPT_0"
+     );
+     expect(res[3].payload[2].invoincingTimestamp_timelineElementId).contain(
+       "SEND_SIMPLE_REGISTERED_LETTER"
+     );
+     expect(res[4].payload[1].invoincingTimestamp_timelineElementId).contain(
+       "NOTIFICATION_CANCELLED"
+     );
+     expect(res[4].payload[0].invoincingTimestamp_timelineElementId).contain(
+       "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"
+     );
+
+     expect(res[3].payload[0].invoicingType).to.be.undefined;
+     expect(res[3].payload[1].invoicingType).to.be.undefined;
+     expect(res[3].payload[2].invoicingType).to.be.undefined;
+     expect(res[4].payload[0].invoicingType).equal("NEW");
+     expect(res[4].payload[1].invoicingType).equal("NEW");
+     
+     // we're simulating only for recindex 1
+     ddbMock.reset();
+    });
+
+  it("test SEND_DIGITAL_DOMICILE", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_DIGITAL_DOMICILE");
@@ -319,7 +543,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("INSERT");
   });
 
-  it.skip("test SEND_DIGITAL_FEEDBACK", async () => {
+  it("test SEND_DIGITAL_FEEDBACK", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_DIGITAL_FEEDBACK");
@@ -334,7 +558,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
-  it.skip("test SEND_ANALOG_DOMICILE", async () => {
+  it("test SEND_ANALOG_DOMICILE", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_ANALOG_DOMICILE");
@@ -349,7 +573,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("INSERT");
   });
 
-  it.skip("test SEND_ANALOG_FEEDBACK", async () => {
+  it("test SEND_ANALOG_FEEDBACK", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_ANALOG_FEEDBACK");
@@ -364,7 +588,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
-  it.skip("test SEND_SIMPLE_REGISTERED_LETTER", async () => {
+  it("test SEND_SIMPLE_REGISTERED_LETTER", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_SIMPLE_REGISTERED_LETTER");
@@ -386,7 +610,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("INSERT");
   });
 
-  it.skip("test SEND_SIMPLE_REGISTERED_LETTER_PROGRESS", async () => {
+  it("test SEND_SIMPLE_REGISTERED_LETTER_PROGRESS", async () => {
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event = setCategory(event, "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS");
@@ -415,7 +639,7 @@ describe("event mapper tests", function () {
     expect(res[0].opType).equal("DELETE");
   });
 
-  it.skip("test NOTIFICATION_TIMELINE_REWORKED", async () => {
+  it("test NOTIFICATION_TIMELINE_REWORKED", async () => {
     const batchGetJSON = fs.readFileSync(
         "./src/test/batchGetRework.timeline.json",
         "utf8"
@@ -473,14 +697,12 @@ describe("event mapper tests", function () {
 
     expect(res.length).equal(1);
     expect(res[0].opType).equal("BULK_INSERT_REWORKED_INVOICES");
-    expect(res[0].payload.length).equal(2);
+    expect(res[0].payload.length).equal(1);
     res[0].payload.forEach(item => expect(item.invoicingType).equal("INVALIDATED"));
     res[0].payload.forEach(item => expect(item.iun).equal("IUN1"));
     res[0].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[0].payload[0].invoincingTimestamp));
     const ids = res[0].payload.map(item => item.invoincingTimestamp_timelineElementId);
-    expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_1"))).to.be.true;
-    expect(ids.some(id => id.includes("ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_IUN1.RECINDEX_0"))).to.be.true;
-
+    expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"))).to.be.true;
     ddbMock.reset();
   });
 });
@@ -490,4 +712,9 @@ function setCategory(event, category) {
     S: category,
   };
   return event;
+}
+function setTimelineElementId(event, category) {
+  event.dynamodb.NewImage.timelineElementId = {
+      S: category + ".IUN_abcd.RECINDEX_0"
+    };
 }
