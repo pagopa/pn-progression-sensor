@@ -444,8 +444,9 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         break;
       case "SEND_DIGITAL_FEEDBACK":
+        const sendDigitalDomicileTimelineElementId = event.dynamodb.NewImage.timelineElementId.S.replace("SEND_DIGITAL_FEEDBACK", "SEND_DIGITAL_DOMICILE");
         op = makeDeleteOp(
-          "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S,
+          "02_PEC__##" + sendDigitalDomicileTimelineElementId,
           "SEND_PEC",
           event
         );
@@ -463,8 +464,9 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         break;
       case "SEND_ANALOG_FEEDBACK":
+        const sendAnalogDomicileTimelineElementId = event.dynamodb.NewImage.timelineElementId.S.replace("SEND_ANALOG_FEEDBACK", "SEND_ANALOG_DOMICILE");
         op = makeDeleteOp(
-          "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S,
+          "03_PAPER##" + sendAnalogDomicileTimelineElementId,
           "SEND_PAPER_AR_890",
           event
         );
