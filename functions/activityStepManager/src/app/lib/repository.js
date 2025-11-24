@@ -5,6 +5,7 @@ const {
   GetCommand,
   BatchGetCommand,
   BatchWriteCommand,
+  QueryCommand,
 } = require("@aws-sdk/lib-dynamodb");
 const { twoNumbersFromIUN } = require("./utils");
 
@@ -79,6 +80,22 @@ function makeBulkInsertInvoicesCommandFromEvent(event) {
   return params;
 }
 
+function makeBulkInsertReworkedInvoicesCommandFromEvent(event) {
+  const params = {
+    RequestItems: {
+      [process.env.REWORKED_INVOICING_DYNAMODB_TABLE]: event.payload.map((p) => ({
+        PutRequest: {
+          Item: p,
+        },
+      })),
+    },
+  };
+
+  console.log("Bulk insert reworked timeline:", JSON.stringify(params));
+
+  return params;
+}
+
 exports.persistEvents = async (events) => {
   const summary = {
     deletions: 0,
@@ -123,6 +140,18 @@ exports.persistEvents = async (events) => {
     } else if (evt.opType == "BULK_INSERT_INVOICES") {
       console.log("Save elements to invoicing table");
       const params = makeBulkInsertInvoicesCommandFromEvent(evt);
+      try {
+        await ddbDocClient.send(new BatchWriteCommand(params));
+        summary.insertions++;
+      } catch (e) {
+        console.error("Error on batch insert", evt);
+        console.error("Error details", e);
+        evt.exception = e;
+        summary.errors.push(evt);
+      }
+    } else if (evt.opType == "BULK_INSERT_REWORKED_INVOICES") {
+      console.log("Save elements to rework invoicing table");
+      const params = makeBulkInsertReworkedInvoicesCommandFromEvent(evt);
       try {
         await ddbDocClient.send(new BatchWriteCommand(params));
         summary.insertions++;
@@ -181,6 +210,28 @@ exports.getTimelineElements = async function (iun, timelineElementIds) {
     console.log("Get Timeline elements error " + iun, e);
   }
   return null;
+};
+
+exports.getLatestReworkedTimelineElement = async function (iun, timelineElementIdPrefix) {
+  try {
+  const params = {
+    TableName: TABLES.TIMELINES,
+    KeyConditionExpression: "iun = :iun AND begins_with(timelineElementId, :prefix)",
+    ExpressionAttributeValues: {
+      ":iun": iun,
+      ":prefix": timelineElementIdPrefix,
+    },
+    Limit: 1,
+    ScanIndexForward: false,
+  };
+
+  const response = await ddbDocClient.send(new QueryCommand(params));
+  return response.Items && response.Items.length > 0 ? response.Items[0] : null;
+
+} catch (e) {
+  console.error("Errore nella query DynamoDB:", e);
+  throw e;
+  }
 };
 
 const TABLES = {

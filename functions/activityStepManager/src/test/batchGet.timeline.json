@@ -6,7 +6,7 @@
                 "timelineElementId": "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_1.ATTEMPT_0",
                 "legalFactId": [],
                 "timestamp": "2023-02-16T09:12:05.283425635Z",
-                "category": "AAR_GENERATION",
+                "category": "SEND_ANALOG_DOMICILE",
                 "statusInfo": {
                     "statusChangeTimestamp": "2023-02-16T09:11:10.452932995Z",
                     "actual": "ACCEPTED",
@@ -25,7 +25,7 @@
                 "timelineElementId": "SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_1",
                 "legalFactId": [],
                 "timestamp": "2023-02-16T09:11:38.619808042Z",
-                "category": "AAR_CREATION_REQUEST",
+                "category": "SEND_SIMPLE_REGISTERED_LETTER",
                 "statusInfo": {
                     "statusChangeTimestamp": "2023-02-16T09:11:10.452932995Z",
                     "actual": "ACCEPTED",

@@ -7,6 +7,7 @@ const {
   DeleteCommand,
   PutCommand,
   GetCommand,
+  QueryCommand,
   BatchGetCommand,
   BatchWriteCommand,
 } = require("@aws-sdk/lib-dynamodb");
@@ -16,6 +17,7 @@ const {
   persistEvents,
   getNotification,
   getTimelineElements,
+  getLatestReworkedTimelineElement,
   TABLES,
 } = require("../app/lib/repository");
 const { ddbDocClient } = require("../app/lib/ddbClient.js");
@@ -50,6 +52,25 @@ describe("repository tests", function () {
   after(() => {
     ddbMock.restore();
     ddbMock.reset();
+  });
+
+
+  it("getLatestReworkedTimelineElement FOUND", async () => {
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{
+            timelineElementId: "NOTIFICATION_TIMELINE_REWORKED.IUN_ABC.RECINDEX_0.ATTEMTPT_0.REWORK_0"
+        }]
+      });
+      const res = await getLatestReworkedTimelineElement("abc");
+      expect(res).deep.equals({timelineElementId: "NOTIFICATION_TIMELINE_REWORKED.IUN_ABC.RECINDEX_0.ATTEMTPT_0.REWORK_0"});
+  });
+
+  it("getLatestReworkedTimelineElement NOT FOUND", async () => {
+     ddbMock.on(QueryCommand).resolves({
+          Items: [],
+        });
+    const res = await getLatestReworkedTimelineElement("abc");
+    expect(res).deep.equals(null);
   });
 
   it("test GET ITEM FOUND", async () => {
@@ -208,5 +229,42 @@ describe("repository tests", function () {
     expect(res.insertions).equal(1);
     expect(res.deletions).equal(0);
     expect(res.errors.length).equal(0);
+  });
+
+  it("test BULK_INSERT_REWORKED_INVOICES", async () => {
+    ddbMock.on(BatchWriteCommand).resolves();
+    const res = await persistEvents([
+      {
+        opType: "BULK_INSERT_REWORKED_INVOICES",
+        payload: [
+          {
+            paId_reworkedDay: "PA1_2024-01-01",
+            reworkedTimestamp_timelineElementId: "2024-01-01T09:00:00.000Z_ELEM1",
+            ttl: 1704061200,
+            paId: "PA1",
+            reworkedDay: "2024-01-01",
+            reworkedTimestamp: "2024-01-01T09:00:00.000Z",
+            invoicingType: "INVALIDATED",
+            timelineElementId: "ELEM1",
+            timestamp: "2024-01-01T09:00:00.000Z",
+            details: { notificationCost: 10 }
+          }
+        ]
+      }
+    ]);
+    expect(res.insertions).equal(1);
+    expect(res.errors.length).equal(0);
+  });
+
+  it("test BULK_INSERT_REWORKED_INVOICES ERROR", async () => {
+    ddbMock.on(BatchWriteCommand).rejects(new Error("abc"));
+    const res = await persistEvents([
+      {
+        opType: "BULK_INSERT_REWORKED_INVOICES",
+        payload: []
+      }
+    ]);
+    expect(res.insertions).equal(0);
+    expect(res.errors.length).equal(1);
   });
 });
