@@ -40,9 +40,9 @@ function calculateNextDate(startTS, days) {
 }
 
 function extractRecIdsFromTimelineId(timelineElementId) {
-  return timelineElementId.split("RECINDEX_")[1];
-  // used for REFINEMENT (refinement.IUN_123456789.RECINDEX_1)
-  // or for NOTIFICATION_VIEWED (notification.viewed-IUN_123456789.RECINDEX_1)
+  const match = timelineElementId.match(/RECINDEX_(\d+)(?:\.|$)/);
+  return match ? match[1] : null;
+  // Handles both RECINDEX_0 and RECINDEX_0.REWORK
 }
 
 function extractRecIdsFromTimelineIdOnRework(timelineElementId) {
@@ -165,6 +165,7 @@ async function processInvoice(event, recIdxs) {
           const iun = timelineObj.iun;
           const reworkedTimelineElement = await getLatestReworkedTimelineElement(event.dynamodb.NewImage.iun.S, "NOTIFICATION_TIMELINE_REWORKED.IUN_" + event.dynamodb.NewImage.iun.S + ".RECINDEX_" + recIdx);
           if(reworkedTimelineElement){
+            console.log("Found reworked timeline element for iun " + iun + " and recIdx " + recIdx);
             await evaluateNotificationReworkAndAdjustInvoicing(iun, invoicedElements, reworkedTimelineElement, invoicedElement.invoincingTimestamp);
           }else{
             // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
@@ -344,12 +345,12 @@ async function mapPayload(event) {
         if(invoicedElements && invoicedElements.length > 0){
           const newInvoices = invoicedElements.filter(elem => elem.invoicingType && elem.invoicingType === 'NEW');
           const standardInvoices = invoicedElements.filter(elem => !elem.invoicingType || elem.invoicingType !== 'NEW');
-          const bulkOp = makeBulkInsertOp(event, standardInvoices);
-          const bulkReworkedOp = makeBulkInsertOp(event,newInvoices,"BULK_INSERT_REWORKED_INVOICES");
-          if (bulkOp) {
+          if (standardInvoices.length > 0) {
+            const bulkOp = makeBulkInsertOp(event, standardInvoices);
             dynamoDbOps.push(bulkOp);
           }
-          if(bulkReworkedOp){
+          if(newInvoices.length > 0){
+            const bulkReworkedOp = makeBulkInsertOp(event,newInvoices,"BULK_INSERT_REWORKED_INVOICES");
             dynamoDbOps.push(bulkReworkedOp);
           }
         }
