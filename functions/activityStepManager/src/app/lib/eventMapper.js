@@ -166,7 +166,7 @@ async function processInvoice(event, recIdxs) {
           const reworkedTimelineElement = await getLatestReworkedTimelineElement(event.dynamodb.NewImage.iun.S, "NOTIFICATION_TIMELINE_REWORKED.IUN_" + event.dynamodb.NewImage.iun.S + ".RECINDEX_" + recIdx);
           if(reworkedTimelineElement){
             console.log("Found reworked timeline element for iun " + iun + " and recIdx " + recIdx);
-            await evaluateNotificationReworkAndAdjustInvoicing(iun, invoicedElements, reworkedTimelineElement, invoicedElement.invoincingTimestamp);
+            await evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicedElement.invoincingTimestamp);
           }else{
             // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
             const timelineElements = await getTimelineElements(iun, [
@@ -193,11 +193,11 @@ async function processInvoice(event, recIdxs) {
 }
 }
 
-async function evaluateNotificationReworkAndAdjustInvoicing(iun, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
+async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
     const reworkElementDetails = reworkedTimelineElement.details;
     if(reworkElementDetails.sendAttemptMade == 0 && !checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
         const timelineElements = await getTimelineElements(iun, [
-            reworkedTimelineElement.timelineElementId.replace("NOTIFICATION_TIMELINE_REWORKED", "SEND_ANALOG_DOMICILE").replace(".ATTEMPT_0", ".ATTEMPT_1"),
+            `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
         ]);
         if (timelineElements && timelineElements.length > 0) {
               const newElements = timelineElements.map(elem => ({
