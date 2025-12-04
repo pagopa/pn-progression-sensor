@@ -405,6 +405,8 @@ Resources:
           - Effect: Allow
             Action:
               - "dynamodb:BatchGetItem"
+              - "dynamodb:Query"
+              - "dynamodb:GetItem"
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
