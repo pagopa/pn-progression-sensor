@@ -185,8 +185,8 @@ async function processInvoice(event, recIdxs) {
                 );
               }
             }
-          } 
-        } 
+          }
+        }
       }
     } // if invoicedElement
   return invoicedElements;
@@ -195,7 +195,7 @@ async function processInvoice(event, recIdxs) {
 
 async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
     const reworkElementDetails = reworkedTimelineElement.details;
-    if(reworkElementDetails.sendAttemptMade == 0 && !checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
+    if(reworkElementDetails.sentAttemptMade == 0 && !checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
         const timelineElements = await getTimelineElements(iun, [
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
         ]);
