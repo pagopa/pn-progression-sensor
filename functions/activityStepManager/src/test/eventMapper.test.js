@@ -695,13 +695,14 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents(events);
 
-    expect(res.length).equal(1);
-    expect(res[0].opType).equal("BULK_INSERT_REWORKED_INVOICES");
-    expect(res[0].payload.length).equal(1);
-    res[0].payload.forEach(item => expect(item.invoicingType).equal("INVALIDATED"));
-    res[0].payload.forEach(item => expect(item.iun).equal("IUN1"));
-    res[0].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[0].payload[0].invoincingTimestamp));
-    const ids = res[0].payload.map(item => item.invoincingTimestamp_timelineElementId);
+    expect(res.length).equal(2);
+    expect(res[0].type).equal("REFINEMENT");
+    expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+    expect(res[1].payload.length).equal(1);
+    res[1].payload.forEach(item => expect(item.invoicingType).equal("INVALIDATED"));
+    res[1].payload.forEach(item => expect(item.iun).equal("IUN1"));
+    res[1].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[1].payload[0].invoincingTimestamp));
+    const ids = res[1].payload.map(item => item.invoincingTimestamp_timelineElementId);
     expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"))).to.be.true;
     ddbMock.reset();
   });
