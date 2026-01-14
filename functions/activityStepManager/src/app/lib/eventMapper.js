@@ -506,6 +506,15 @@ async function mapPayload(event) {
       case "NOTIFICATION_TIMELINE_REWORKED":
         const { iun, timelineElementId, timestamp: reworkedTimestamp, details } = extractDynamoDBFields(event.dynamodb.NewImage);
         recIdx = extractRecIdsFromTimelineIdOnRework(timelineElementId);
+        const op1 = makeInsertOp(
+          "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
+          "REFINEMENT",
+          event,
+          "timestamp",
+          ttlSlaTimes.ALARM_TTL_REFINEMENT, // default 110
+          ttlSlaTimes.SLA_EXPIRATION_REFINEMENT // default 120
+        );
+        dynamoDbOps.push(op1);
         // Estrai e filtra i timeline IDs invalidati
         const invalidatedTimelineIds = getInvalidatedInvoicingTimelineIds(details.invalidatedTimelineAndStatusHistory,iun,recIdx);
         if (invalidatedTimelineIds.length === 0) {
@@ -561,7 +570,7 @@ exports.mapEvents = async (events) => {
   });
 
   let ops = [];
-  for (let i = 0; i < filteredEvents.length; i++) {
+      for (let i = 0; i < filteredEvents.length; i++) {
     const dynamoDbOps = await mapPayload(filteredEvents[i]);
     ops = ops.concat(dynamoDbOps);
   }
