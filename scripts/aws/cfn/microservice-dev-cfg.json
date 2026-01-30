@@ -20,6 +20,7 @@
     "SLAViolationsSendAmrThreshold": "1",
     "SLAViolationsSendPaperAr890Threshold": "1",
     "SLAViolationsSendPecThreshold": "1",
-    "MaxIDXsInSENDAMRSearch": "50"
+    "MaxIDXsInSENDAMRSearch": "50",
+    "ReworkedInvoicingTtlDays": "365"
   }
 }
