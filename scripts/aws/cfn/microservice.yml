@@ -440,6 +440,8 @@ Resources:
   # CDC to Activity Step Manager
   ActivityStepManagerLambdaKinesisSource:
     Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - ActivityStepManagerLambdaPolicy
     Properties:
       BatchSize: 20
       BisectBatchOnFunctionError: true
@@ -618,6 +620,8 @@ Resources:
   # CDC to SLA Violation Checker
   SLAViolationCheckerLambdaKinesisSource:
     Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - SLAViolationCheckerLambdaPolicy
     Properties:
       BatchSize: 20
       BisectBatchOnFunctionError: true
