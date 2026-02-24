@@ -66,6 +66,10 @@ Parameters:
     Type: String
     Description: "Where to send CDC"
 
+  CdcKinesisSourceStreamName:
+    Type: String
+    Description: "Kinesis stream name to send CDC logs to"
+
   CdcKinesisSourceStreamKeyArn:
     Description: "Kinesis source CDC stream crypto key ARN"
     Type: String
@@ -213,20 +217,12 @@ Parameters:
   ActivityStepManagerLambdaName:
     Type: String
 
-  ActivityStepManagerDLQARN:
-    Type: String
-    Description: 'DLQ ARN for ActivityStepManagerLambda'
-
   ActivityStepManagerDLQAlarmARN:
     Type: String
     Description: 'DLQ Alarm ARN for ActivityStepManagerLambda'
 
   SLAViolationCheckerLambdaName:
     Type: String
-
-  SLAViolationCheckerDLQARN:
-    Type: String
-    Description: 'DLQ ARN for SLAViolationCheckerLambda'
 
   SLAViolationCheckerDLQAlarmARN:
     Type: String
@@ -433,11 +429,13 @@ Resources:
             Resource: !Ref CdcKinesisSourceStreamKeyArn
           - Effect: Allow
             Action:
-              - sqs:ChangeMessageVisibility
-              - sqs:GetQueueAttributes
-              - sqs:GetQueueUrl
-              - sqs:SendMessage
-            Resource: !Ref ActivityStepManagerDLQARN
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}/*
 
   # CDC to Activity Step Manager
   ActivityStepManagerLambdaKinesisSource:
@@ -453,7 +451,31 @@ Resources:
       StartingPosition: TRIM_HORIZON
       DestinationConfig:
         OnFailure:
-          Destination: !Ref ActivityStepManagerDLQARN
+          Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
+
+  ActivityStepManagerKinesisFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-ActivityStepManager-ESM-Alarm"
+      AlarmDescription: "CloudWatch alarm for when ActivityStepManagerLambda has Kinesis stream read failures, which can indicate problems with the function processing or with the stream itself."
+      TreatMissingData: notBreaching        
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: !Ref ActivityStepManagerLambda
+          Name: FunctionName
+        - Value: !Ref CdcKinesisSourceStreamName
+          Name: StreamName
+      DatapointsToAlarm: 1           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Period: 600
+      Namespace: ESM/Kinesis   
+      MetricName: ProcessingFailures
+      Statistic: Maximum
+      Threshold: 1
 
   ActivityStepManagerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -573,7 +595,15 @@ Resources:
               - sqs:SendMessage
             Resource:
               - !Ref ProgressionSensorQueueARN
-              - !Ref SLAViolationCheckerDLQARN
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}/*
 
   SLAViolationCheckerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
@@ -599,7 +629,31 @@ Resources:
       StartingPosition: TRIM_HORIZON
       DestinationConfig:
         OnFailure:
-          Destination: !Ref SLAViolationCheckerDLQARN
+          Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
+
+  SLAViolationCheckerKinesisFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-SLAViolationChecker-ESM-Alarm"
+      AlarmDescription: "CloudWatch alarm for when SLAViolationCheckerLambda has Kinesis stream read failures, which can indicate problems with the function processing or with the stream itself."
+      TreatMissingData: notBreaching        
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: !Ref SLAViolationCheckerLambda
+          Name: FunctionName
+        - Value: !Ref CdcProgressionSensorKinesisStreamName
+          Name: StreamName
+      DatapointsToAlarm: 1           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Period: 600
+      Namespace: ESM/Kinesis   
+      MetricName: ProcessingFailures
+      Statistic: Maximum      
+      Threshold: 1
 
   SLAViolationCheckerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
