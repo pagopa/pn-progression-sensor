@@ -21,6 +21,8 @@
     "SLAViolationsSendPaperAr890Threshold": "1",
     "SLAViolationsSendPecThreshold": "1",
     "MaxIDXsInSENDAMRSearch": "50",
-    "ReworkedInvoicingTtlDays": "365"
+    "ReworkedInvoicingTtlDays": "365",
+    "ActivityStepManagerLambdaKinesisMaxAgeInSeconds": "600",
+    "SlaViolationCheckerLambdaKinesisMaxAgeInSeconds": "600"
   }
 }
