@@ -243,6 +243,16 @@ Parameters:
     Default: 129600000 # 36 hours
     Description: 'MaxAgeInMilliseconds for Kinesis Cdc GetRecords'
 
+  ActivityStepManagerLambdaKinesisMaxAgeInSeconds:
+    Type: Number
+    Default: 604800 # 7 days
+    Description: 'MaxRecordAgeInSeconds for ActivityStepManagerLambda Kinesis Event Source Mapping'
+
+  SlaViolationCheckerLambdaKinesisMaxAgeInSeconds:
+    Type: Number
+    Default: 604800 # 7 days
+    Description: 'MaxRecordAgeInSeconds for SLAViolationCheckerLambda Kinesis Event Source Mapping'
+
 Resources:
   #########################################################
   ###              SearchSLAViolationsLambda            ###
@@ -450,6 +460,7 @@ Resources:
       FunctionResponseTypes:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
+      MaximumRecordAgeInSeconds: !Ref ActivityStepManagerLambdaKinesisMaxAgeInSeconds
       StartingPosition: TRIM_HORIZON
       DestinationConfig:
         OnFailure:
@@ -630,6 +641,7 @@ Resources:
       FunctionResponseTypes:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
+      MaximumRecordAgeInSeconds: !Ref SlaViolationCheckerLambdaKinesisMaxAgeInSeconds
       StartingPosition: TRIM_HORIZON
       DestinationConfig:
         OnFailure:
