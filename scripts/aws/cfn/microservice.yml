@@ -217,16 +217,8 @@ Parameters:
   ActivityStepManagerLambdaName:
     Type: String
 
-  ActivityStepManagerDLQAlarmARN:
-    Type: String
-    Description: 'DLQ Alarm ARN for ActivityStepManagerLambda'
-
   SLAViolationCheckerLambdaName:
     Type: String
-
-  SLAViolationCheckerDLQAlarmARN:
-    Type: String
-    Description: 'DLQ Alarm ARN for SLAViolationCheckerLambda'
 
   SLAViolationCheckerLambdaSQSName:
     Type: String
@@ -833,8 +825,6 @@ Resources:
             - !GetAtt CdcKinesisGetRecordsIteratorAgeAlarm.Arn
             - !Ref ProgressionSensorQueueAgeAlarmARN
             - !Ref ProgressionSensorQueueAlarmARN
-            - !Ref ActivityStepManagerDLQAlarmARN
-            - !Ref SLAViolationCheckerDLQAlarmARN
         LogGroupsNames: !Join
           - ","
           - - !Sub /aws/lambda/${SearchSLAViolationsLambdaName}
