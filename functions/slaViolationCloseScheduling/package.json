@@ -10,9 +10,9 @@
     "sonar": "node sonarqube-scanner.js -Dsonar.login=${SONAR_TOKEN}"
   },
   "devDependencies": {
-    "@aws-sdk/client-cloudwatch": "^3.266.0",
-    "@aws-sdk/client-lambda": "^3.262.0",
-    "@aws-sdk/client-sqs": "^3.262.0",
+    "@aws-sdk/client-cloudwatch": "^3.1005.0",
+    "@aws-sdk/client-lambda": "^3.1005.0",
+    "@aws-sdk/client-sqs": "^3.1005.0",
     "aws-sdk-client-mock": "^2.0.1",
     "chai": "^4.3.6",
     "eslint": "^8.23.1",
