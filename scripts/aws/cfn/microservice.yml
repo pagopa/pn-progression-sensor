@@ -457,6 +457,9 @@ Resources:
       DestinationConfig:
         OnFailure:
           Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
+      FilterCriteria:
+        Filters:
+          - Pattern: '{"data": {"eventName": ["INSERT"], "tableName": ["pn-Notifications"], "dynamodb": { "NewImage": {"type": [{ "exists": false }]} }}}'
 
   ActivityStepManagerKinesisFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
