@@ -710,7 +710,7 @@ describe("event mapper tests", function () {
   it("should skip NOTIFICATIONS records with communicationType present", async () => {
     const event = {
       eventName: "INSERT",
-      tableName: "NOTIFICATIONS",
+      tableName: "pn-Notifications",
       dynamodb: {
         NewImage: {
           iun: { S: "testIUN" },
