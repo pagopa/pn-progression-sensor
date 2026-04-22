@@ -561,7 +561,7 @@ exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
-      (e.tableName == TABLES.NOTIFICATIONS ||
+      (e.tableName == TABLES.NOTIFICATIONS && !e.dynamodb.NewImage.communicationType||
         (e.tableName == TABLES.TIMELINES &&
           e.dynamodb.NewImage.category &&
           allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S) >=
