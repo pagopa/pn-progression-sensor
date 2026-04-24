@@ -706,6 +706,23 @@ describe("event mapper tests", function () {
     expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"))).to.be.true;
     ddbMock.reset();
   });
+
+  it("should skip NOTIFICATIONS records with communicationType present", async () => {
+    const event = {
+      eventName: "INSERT",
+      tableName: "pn-Notifications",
+      dynamodb: {
+        NewImage: {
+          iun: { S: "testIUN" },
+          communicationType: { S: "EMAIL" }
+        }
+      },
+      kinesisSeqNumber: "seq123"
+    };
+
+    const res = await mapEvents([event]);
+    expect(res).to.be.an("array").that.is.empty;
+  });
 });
 
 function setCategory(event, category) {
