@@ -50,6 +50,11 @@ function extractRecIdsFromTimelineIdOnRework(timelineElementId) {
   return match ? match[1] : null;
 }
 
+function extractLastReworkSuffix(timelineElementId) {
+  const match = timelineElementId?.match(/(\.REWORK_\d+)$/);
+  return match ? match[1] : "";
+}
+
 function makeDeleteOp(id, type, event) {
   const op = {
     type: type,
@@ -195,7 +200,37 @@ async function processInvoice(event, recIdxs) {
 
 async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
     const reworkElementDetails = reworkedTimelineElement.details;
-    if(reworkElementDetails.sentAttemptMade == 0 && !checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
+    const invalidatedSendAnalogDomicileElements = checkIfSendAnalogDomicileIsInvalidated(
+      reworkElementDetails.invalidatedTimelineAndStatusHistory
+    );
+    const attempt0Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
+      id.includes(".ATTEMPT_0")
+    );
+    const attempt1Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
+      id.includes(".ATTEMPT_1")
+    );
+    const lastReworkSuffix = extractLastReworkSuffix(
+      reworkedTimelineElement.timelineElementId
+    );
+
+    let timelineElementIdsToFetch = [];
+    if (attempt0Invalidated && attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0${lastReworkSuffix}`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1${lastReworkSuffix}`,
+      ];
+    } else if (attempt0Invalidated && !attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0${lastReworkSuffix}`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+      ];
+    } else if (!attempt0Invalidated && attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1${lastReworkSuffix}`,
+      ];
+    }
+
+    if(reworkElementDetails.sentAttemptMade == 0 && !(invalidatedSendAnalogDomicileElements.length > 0)) {
         const timelineElements = await getTimelineElements(iun, [
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
         ]);
@@ -206,6 +241,29 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
                       }));
               invoicedElements.push(...newElements);
         }
+    }
+
+    if (timelineElementIdsToFetch.length > 0) {
+      const timelineElements = await getTimelineElements(iun, timelineElementIdsToFetch);
+      if (timelineElements && timelineElements.length > 0) {
+        const existingTimelineElementIds = new Set(
+          invoicedElements
+            .map((e) => e.timelineElementId)
+            .filter((id) => typeof id === "string" && id.length > 0)
+        );
+        for (const elem of timelineElements) {
+          if (elem?.timelineElementId && existingTimelineElementIds.has(elem.timelineElementId)) {
+            continue;
+          }
+          const processed = processInvoicedElement(elem, invoicingTimestamp);
+          if (processed) {
+            invoicedElements.push({ ...processed, invoicingType: "NEW" });
+            if (elem?.timelineElementId) {
+              existingTimelineElementIds.add(elem.timelineElementId);
+            }
+          }
+        }
+      }
     }
      const length = invoicedElements.length;
      const elementsToAdd = [];
@@ -223,14 +281,39 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
     return invoicedElements;
 }
 
-function checkIfSendAnalogDomicileIsInvalidated(invalidatedTimelineAndStatusHistory){
-    let relatedTimelineElementIds = [];
-    if (invalidatedTimelineAndStatusHistory && invalidatedTimelineAndStatusHistory.length > 0) {
-        for (const invalidatedElement of invalidatedTimelineAndStatusHistory) {
-            relatedTimelineElementIds.push(...invalidatedElement.relatedTimelineElements);
-        }
+function checkIfSendAnalogDomicileIsInvalidated(invalidatedTimelineAndStatusHistory) {
+  const relatedTimelineElementIds = [];
+  if (!invalidatedTimelineAndStatusHistory) {
+    return [];
+  }
+
+  const historyItems = Array.isArray(invalidatedTimelineAndStatusHistory)
+    ? invalidatedTimelineAndStatusHistory
+    : invalidatedTimelineAndStatusHistory.L
+      ? invalidatedTimelineAndStatusHistory.L
+      : [];
+
+  for (const invalidatedElement of historyItems) {
+    if (!invalidatedElement) {
+      continue;
     }
-    return relatedTimelineElementIds.some(id => id.startsWith("SEND_ANALOG_DOMICILE"));
+    if (Array.isArray(invalidatedElement.relatedTimelineElements)) {
+      relatedTimelineElementIds.push(...invalidatedElement.relatedTimelineElements);
+      continue;
+    }
+    const relatedTimelineElements = invalidatedElement.M?.relatedTimelineElements?.L;
+    if (Array.isArray(relatedTimelineElements)) {
+      relatedTimelineElementIds.push(
+        ...relatedTimelineElements
+          .map((item) => item?.S)
+          .filter((id) => typeof id === "string")
+      );
+    }
+  }
+
+  return relatedTimelineElementIds.filter(
+    (id) => typeof id === "string" && id.startsWith("SEND_ANALOG_DOMICILE")
+  );
 }
 
 async function processInvalidatedInvoice(iun, timelineElementIds, reworkedTimestamp) {
@@ -544,17 +627,36 @@ function extractDynamoDBFields(newImage) {
 
 function getInvalidatedInvoicingTimelineIds(invalidatedElements, iun, recIdx) {
   const invoicingPatterns = [
-      `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-      `REFINEMENT.IUN_${iun}.RECINDEX_${recIdx}`,
-      `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`
-    ];
+    `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+    `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+    `REFINEMENT.IUN_${iun}.RECINDEX_${recIdx}`,
+    `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`,
+  ];
 
-    return invalidatedElements.L
-      .flatMap(elem => {
-        const relatedElements = elem.M?.relatedTimelineElements?.L || [];
-        return relatedElements.map(item => item.S);
-      })
-      .filter(id => invoicingPatterns.includes(id));
+  if (!invalidatedElements) {
+    return [];
+  }
+
+  const historyItems = Array.isArray(invalidatedElements)
+    ? invalidatedElements
+    : invalidatedElements.L
+      ? invalidatedElements.L
+      : [];
+
+  const relatedTimelineIds = historyItems.flatMap((elem) => {
+    if (!elem) {
+      return [];
+    }
+    if (Array.isArray(elem.relatedTimelineElements)) {
+      return elem.relatedTimelineElements;
+    }
+    const relatedElements = elem.M?.relatedTimelineElements?.L || [];
+    return relatedElements.map((item) => item?.S).filter((s) => typeof s === "string");
+  });
+
+  return relatedTimelineIds.filter((id) =>
+    invoicingPatterns.some((pattern) => id.startsWith(pattern))
+  );
  }
 
 exports.mapEvents = async (events) => {
