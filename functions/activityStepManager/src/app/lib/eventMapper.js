@@ -55,6 +55,13 @@ function extractLastReworkSuffix(timelineElementId) {
   return match ? match[1] : "";
 }
 
+function matchesTimelineElementPattern(timelineElementId, pattern) {
+  return (
+    typeof timelineElementId === "string" &&
+    (timelineElementId === pattern || timelineElementId.startsWith(`${pattern}.`))
+  );
+}
+
 function makeDeleteOp(id, type, event) {
   const op = {
     type: type,
@@ -200,14 +207,20 @@ async function processInvoice(event, recIdxs) {
 
 async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
     const reworkElementDetails = reworkedTimelineElement.details;
+    const attempt0Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`;
+    const attempt1Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`;
     const invalidatedSendAnalogDomicileElements = checkIfSendAnalogDomicileIsInvalidated(
       reworkElementDetails.invalidatedTimelineAndStatusHistory
+    ).filter(
+      (id) =>
+        matchesTimelineElementPattern(id, attempt0Pattern) ||
+        matchesTimelineElementPattern(id, attempt1Pattern)
     );
     const attempt0Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
-      id.includes(".ATTEMPT_0")
+      matchesTimelineElementPattern(id, attempt0Pattern)
     );
     const attempt1Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
-      id.includes(".ATTEMPT_1")
+      matchesTimelineElementPattern(id, attempt1Pattern)
     );
     const lastReworkSuffix = extractLastReworkSuffix(
       reworkedTimelineElement.timelineElementId
@@ -230,7 +243,7 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
       ];
     }
 
-    if(reworkElementDetails.sentAttemptMade == 0 && !(invalidatedSendAnalogDomicileElements.length > 0)) {
+    if(reworkElementDetails.sentAttemptMade == 0 && invalidatedSendAnalogDomicileElements.length === 0) {
         const timelineElements = await getTimelineElements(iun, [
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
         ]);
@@ -655,7 +668,7 @@ function getInvalidatedInvoicingTimelineIds(invalidatedElements, iun, recIdx) {
   });
 
   return relatedTimelineIds.filter((id) =>
-    invoicingPatterns.some((pattern) => id.startsWith(pattern))
+    invoicingPatterns.some((pattern) => matchesTimelineElementPattern(id, pattern))
   );
  }
 

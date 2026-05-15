@@ -465,6 +465,50 @@ describe("event mapper tests", function () {
       ddbMock.reset();
     });
 
+    it("test REFINEMENT rework ignores invalidated SEND_ANALOG for other recipient indexes", async () => {
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          {
+            iun: "abcd",
+            timelineElementId:
+              "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_1.ATTEMPT_1.REWORK_0",
+            details: {
+              recIndex: 1,
+              sentAttemptMade: 1,
+              invalidatedTimelineAndStatusHistory: [
+                {
+                  relatedTimelineElements: [
+                    "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_10.ATTEMPT_1",
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const eventJSON = fs.readFileSync(
+        "./src/test/eventMapper.timeline.json",
+        "utf8"
+      );
+      let event = JSON.parse(eventJSON);
+      event = setCategory(event, "REFINEMENT");
+      event.dynamodb.NewImage.timelineElementId = {
+        S: "REFINEMENT.IUN_abcd.RECINDEX_1",
+      };
+
+      const res = await mapEvents([event]);
+
+      expect(res.length).equal(2);
+      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+      expect(res[1].payload.length).equal(1);
+      expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
+        "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_1"
+      );
+      expect(ddbMock.commandCalls(BatchGetCommand)).to.have.length(0);
+      ddbMock.reset();
+    });
+
   it("test REFINEMENT rework attempt 1", async () => {
       const batchGetJSON = fs.readFileSync(
         "./src/test/batchGetRework.timeline.json",
@@ -931,6 +975,67 @@ describe("event mapper tests", function () {
     res[1].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[1].payload[0].invoincingTimestamp));
     const ids = res[1].payload.map(item => item.invoincingTimestamp_timelineElementId);
     expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"))).to.be.true;
+    ddbMock.reset();
+  });
+
+  it("test NOTIFICATION_TIMELINE_REWORKED does not match RECINDEX_10 for recipient 1", async () => {
+    ddbMock.on(BatchGetCommand).resolves({
+      Responses: {
+        "pn-Timelines": [
+          {
+            iun: "IUN1",
+            timelineElementId: "REFINEMENT.IUN_IUN1.RECINDEX_1",
+            timestamp: "2023-02-16T09:11:38.619808042Z",
+            category: "REFINEMENT",
+            details: { notificationCost: 100 },
+            paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
+          },
+        ],
+      },
+    });
+
+    const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
+    let event = JSON.parse(eventJSON);
+    event.dynamodb.NewImage.iun = { S: "IUN1" };
+    event.dynamodb.NewImage.timelineElementId = {
+      S: "NOTIFICATION_TIMELINE_REWORKED.IUN_IUN1.RECINDEX_1.ATTEMTPT_0",
+    };
+    event = setCategory(event, "NOTIFICATION_TIMELINE_REWORKED");
+    event.dynamodb.NewImage.details = {
+      M: {
+        invalidatedTimelineAndStatusHistory: {
+          L: [
+            {
+              M: {
+                relatedTimelineElements: {
+                  L: [
+                    { S: "REFINEMENT.IUN_IUN1.RECINDEX_10" },
+                    { S: "REFINEMENT.IUN_IUN1.RECINDEX_1" },
+                    { S: "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_10.ATTEMPT_1" },
+                  ],
+                },
+              },
+            },
+          ],
+        },
+      },
+    };
+
+    const res = await mapEvents([event]);
+
+    expect(res.length).equal(2);
+    expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+    expect(res[1].payload.length).equal(1);
+    expect(res[1].payload[0].timelineElementId).equal(
+      "REFINEMENT.IUN_IUN1.RECINDEX_1"
+    );
+
+    const batchGetCalls = ddbMock.commandCalls(BatchGetCommand);
+    expect(batchGetCalls).to.have.length(1);
+    const requestedIds = batchGetCalls[0].args[0].input.RequestItems["pn-Timelines"].Keys.map(
+      (key) => key.timelineElementId
+    );
+    expect(requestedIds).to.deep.equal(["REFINEMENT.IUN_IUN1.RECINDEX_1"]);
     ddbMock.reset();
   });
 
