@@ -55,10 +55,21 @@ function extractLastReworkSuffix(timelineElementId) {
   return match ? match[1] : "";
 }
 
+function normalizeTimelineElementId(timelineElementId) {
+  if (typeof timelineElementId === "string") {
+    return timelineElementId;
+  }
+  if (timelineElementId && typeof timelineElementId.S === "string") {
+    return timelineElementId.S;
+  }
+  return null;
+}
+
 function matchesTimelineElementPattern(timelineElementId, pattern) {
+  const normalizedTimelineElementId = normalizeTimelineElementId(timelineElementId);
   return (
-    typeof timelineElementId === "string" &&
-    (timelineElementId === pattern || timelineElementId.startsWith(`${pattern}.`))
+    typeof normalizedTimelineElementId === "string" &&
+    (normalizedTimelineElementId === pattern || normalizedTimelineElementId.startsWith(`${pattern}.`))
   );
 }
 
@@ -138,6 +149,9 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
     .tz("Europe/Rome")
     .format("YYYY-MM-DD");
   const paId = timelineObj.paId;
+  const normalizedTimelineElementId = normalizeTimelineElementId(
+    timelineObj.timelineElementId
+  );
   // ttl = invoicingTimestamp + 1 year default (in seconds)
   const days = ttlSlaTimes.INVOICING_TTL_DAYS; // default 365
   const ttl = Math.floor(
@@ -145,12 +159,13 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
   );
   return {
     paId_invoicingDay: `${paId}_${invoicingDay}`,
-    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
+    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${normalizedTimelineElementId ?? timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
     ttl,
     paId,
     invoicingDay,
     invoincingTimestamp, // typo, but left
     ...timelineObj,
+    timelineElementId: normalizedTimelineElementId ?? timelineObj.timelineElementId,
   };
 }
 
@@ -261,18 +276,19 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
       if (timelineElements && timelineElements.length > 0) {
         const existingTimelineElementIds = new Set(
           invoicedElements
-            .map((e) => e.timelineElementId)
+            .map((e) => normalizeTimelineElementId(e.timelineElementId))
             .filter((id) => typeof id === "string" && id.length > 0)
         );
         for (const elem of timelineElements) {
-          if (elem?.timelineElementId && existingTimelineElementIds.has(elem.timelineElementId)) {
+          const timelineElementId = normalizeTimelineElementId(elem?.timelineElementId);
+          if (timelineElementId && existingTimelineElementIds.has(timelineElementId)) {
             continue;
           }
           const processed = processInvoicedElement(elem, invoicingTimestamp);
           if (processed) {
             invoicedElements.push({ ...processed, invoicingType: "NEW" });
-            if (elem?.timelineElementId) {
-              existingTimelineElementIds.add(elem.timelineElementId);
+            if (timelineElementId) {
+              existingTimelineElementIds.add(timelineElementId);
             }
           }
         }

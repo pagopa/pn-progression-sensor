@@ -502,10 +502,79 @@ describe("event mapper tests", function () {
       expect(res.length).equal(2);
       expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
       expect(res[1].payload.length).equal(1);
-      expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_1"
       );
       expect(ddbMock.commandCalls(BatchGetCommand)).to.have.length(0);
+      ddbMock.reset();
+    });
+
+    it("test REFINEMENT rework dedups timelineElementId across string and DynamoDB shapes", async () => {
+      ddbMock.on(BatchGetCommand).resolves({
+        Responses: {
+          "pn-Timelines": [
+            {
+              iun: "abcd",
+              timelineElementId: {
+                S: "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
+              },
+              timestamp: "2023-02-16T09:11:38.619808042Z",
+              category: "SEND_ANALOG_DOMICILE",
+              details: { recIndex: 0 },
+              paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
+            },
+            {
+              iun: "abcd",
+              timelineElementId: "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
+              timestamp: "2023-02-16T09:11:38.619808042Z",
+              category: "SEND_ANALOG_DOMICILE",
+              details: { recIndex: 0 },
+              paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
+            },
+          ],
+        },
+      });
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          {
+            iun: "abcd",
+            timelineElementId:
+              "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
+            details: {
+              recIndex: 0,
+              sentAttemptMade: 1,
+              invalidatedTimelineAndStatusHistory: [
+                {
+                  relatedTimelineElements: [
+                    "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1",
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const eventJSON = fs.readFileSync(
+        "./src/test/eventMapper.timeline.json",
+        "utf8"
+      );
+      let event = JSON.parse(eventJSON);
+      event = setCategory(event, "REFINEMENT");
+      setTimelineElementId(event, "REFINEMENT");
+
+      const res = await mapEvents([event]);
+
+      expect(res.length).equal(2);
+      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+      expect(res[1].payload.length).equal(2);
+      expect(
+        res[1].payload.filter(
+          (p) =>
+            p.timelineElementId ===
+            "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0"
+        )
+      ).to.have.length(1);
       ddbMock.reset();
     });
 
