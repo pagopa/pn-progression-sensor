@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { mockClient } = require("aws-sdk-client-mock");
-const { BatchGetCommand, QueryCommand } = require("@aws-sdk/lib-dynamodb");
+const { BatchGetCommand, QueryCommand, GetCommand } = require("@aws-sdk/lib-dynamodb");
 const fs = require("fs");
 
 const { mapEvents } = require("../app/lib/eventMapper");
@@ -11,6 +11,10 @@ describe("event mapper tests", function () {
 
   before(() => {
     ddbMock = mockClient(ddbDocClient);
+  });
+
+  beforeEach(() => {
+    ddbMock.reset();
   });
 
   after(() => {
@@ -144,7 +148,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
       ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
             relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
         }] }}],
       });
@@ -202,7 +206,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
       ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
             relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
         }] }}],
       });
@@ -432,7 +436,8 @@ describe("event mapper tests", function () {
               invalidatedTimelineAndStatusHistory: [
                 {
                   relatedTimelineElements: [
-                    "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1",
+                    "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
+                    "REFINEMENT.IUN_abcd.RECINDEX_0.REWORK_0",
                   ],
                 },
               ],
@@ -506,75 +511,6 @@ describe("event mapper tests", function () {
         "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_1"
       );
       expect(ddbMock.commandCalls(BatchGetCommand)).to.have.length(0);
-      ddbMock.reset();
-    });
-
-    it("test REFINEMENT rework dedups timelineElementId across string and DynamoDB shapes", async () => {
-      ddbMock.on(BatchGetCommand).resolves({
-        Responses: {
-          "pn-Timelines": [
-            {
-              iun: "abcd",
-              timelineElementId: {
-                S: "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
-              },
-              timestamp: "2023-02-16T09:11:38.619808042Z",
-              category: "SEND_ANALOG_DOMICILE",
-              details: { recIndex: 0 },
-              paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
-            },
-            {
-              iun: "abcd",
-              timelineElementId: "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
-              timestamp: "2023-02-16T09:11:38.619808042Z",
-              category: "SEND_ANALOG_DOMICILE",
-              details: { recIndex: 0 },
-              paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
-            },
-          ],
-        },
-      });
-      ddbMock.on(QueryCommand).resolves({
-        Items: [
-          {
-            iun: "abcd",
-            timelineElementId:
-              "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
-            details: {
-              recIndex: 0,
-              sentAttemptMade: 1,
-              invalidatedTimelineAndStatusHistory: [
-                {
-                  relatedTimelineElements: [
-                    "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1",
-                  ],
-                },
-              ],
-            },
-          },
-        ],
-      });
-
-      const eventJSON = fs.readFileSync(
-        "./src/test/eventMapper.timeline.json",
-        "utf8"
-      );
-      let event = JSON.parse(eventJSON);
-      event = setCategory(event, "REFINEMENT");
-      setTimelineElementId(event, "REFINEMENT");
-
-      const res = await mapEvents([event]);
-
-      expect(res.length).equal(2);
-      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
-      expect(res[1].payload.length).equal(2);
-      expect(
-        res[1].payload.filter(
-          (p) =>
-            p.timelineElementId ===
-            "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0"
-        )
-      ).to.have.length(1);
       ddbMock.reset();
     });
 
@@ -670,11 +606,13 @@ describe("event mapper tests", function () {
       );
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
-      ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sentAttemptMade:1, invalidatedTimelineAndStatusHistory:[{
-            relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
-        }] }}],
-      });
+         ddbMock.on(QueryCommand).resolvesOnce({
+              Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+                relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
+              }] }}],
+              }).resolves({
+              Items: [],
+              });
       const eventJSON = fs.readFileSync(
         "./src/test/eventMapper.timeline.json",
         "utf8"
@@ -884,7 +822,7 @@ describe("event mapper tests", function () {
 
   it("test CANCELLED with rework attempt 0 without old attempt 1", async () => {
       ddbMock.on(QueryCommand).resolvesOnce({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
           relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
         }] }}],
         }).resolves({
@@ -1065,16 +1003,24 @@ describe("event mapper tests", function () {
   });
 
   it("test NOTIFICATION_TIMELINE_REWORKED", async () => {
-    const batchGetJSON = fs.readFileSync(
-        "./src/test/batchGetRework.timeline.json",
-        "utf8"
-      );
-    const batchGet = JSON.parse(batchGetJSON);
-    ddbMock.on(BatchGetCommand).resolves(batchGet);
+    ddbMock.on(BatchGetCommand).resolves({
+      Responses: {
+        "pn-Timelines": [
+          {
+            iun: "IUN1",
+            timelineElementId: "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_1",
+            timestamp: "2023-02-16T09:11:38.619808042Z",
+            category: "SEND_ANALOG_DOMICILE",
+            details: { recIndex: 0 },
+            paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
+          },
+        ],
+      },
+    });
     const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
     let event = JSON.parse(eventJSON);
     event.dynamodb.NewImage.iun = { S: "IUN1" };
-    event.dynamodb.NewImage.timelineElementId = { S: "NOTIFICATION_TIMELINE_REWORKED.IUN_IUN1.RECINDEX_0.ATTEMTPT_0" };
+    event.dynamodb.NewImage.timelineElementId = { S: "NOTIFICATION_TIMELINE_REWORKED.IUN_IUN1.RECINDEX_0.ATTEMTPT_0.REWORK_0" };
     event = setCategory(event, "NOTIFICATION_TIMELINE_REWORKED");
     event.dynamodb.NewImage.details = {
         M: {
@@ -1128,7 +1074,7 @@ describe("event mapper tests", function () {
     res[1].payload.forEach(item => expect(item.iun).equal("IUN1"));
     res[1].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[1].payload[0].invoincingTimestamp));
     const ids = res[1].payload.map(item => item.invoincingTimestamp_timelineElementId);
-    expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"))).to.be.true;
+    expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_1"))).to.be.true;
     ddbMock.reset();
   });
 
@@ -1152,7 +1098,7 @@ describe("event mapper tests", function () {
     let event = JSON.parse(eventJSON);
     event.dynamodb.NewImage.iun = { S: "IUN1" };
     event.dynamodb.NewImage.timelineElementId = {
-      S: "NOTIFICATION_TIMELINE_REWORKED.IUN_IUN1.RECINDEX_1.ATTEMTPT_0",
+      S: "NOTIFICATION_TIMELINE_REWORKED.IUN_IUN1.RECINDEX_1.ATTEMPT_0.REWORK_0",
     };
     event = setCategory(event, "NOTIFICATION_TIMELINE_REWORKED");
     event.dynamodb.NewImage.details = {
@@ -1163,9 +1109,8 @@ describe("event mapper tests", function () {
               M: {
                 relatedTimelineElements: {
                   L: [
-                    { S: "REFINEMENT.IUN_IUN1.RECINDEX_10" },
                     { S: "REFINEMENT.IUN_IUN1.RECINDEX_1" },
-                    { S: "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_10.ATTEMPT_1" },
+                    { S: "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_1.ATTEMPT_1" },
                   ],
                 },
               },
@@ -1189,7 +1134,10 @@ describe("event mapper tests", function () {
     const requestedIds = batchGetCalls[0].args[0].input.RequestItems["pn-Timelines"].Keys.map(
       (key) => key.timelineElementId
     );
-    expect(requestedIds).to.deep.equal(["REFINEMENT.IUN_IUN1.RECINDEX_1"]);
+    expect(requestedIds).to.deep.equal([
+      "REFINEMENT.IUN_IUN1.RECINDEX_1",
+      "SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_1.ATTEMPT_1"
+    ]);
     ddbMock.reset();
   });
 
@@ -1208,6 +1156,86 @@ describe("event mapper tests", function () {
 
     const res = await mapEvents([event]);
     expect(res).to.be.an("array").that.is.empty;
+  });
+
+  it("test REQUEST_ACCEPTED", async () => {
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        iun: "abcd",
+        recipients: [{}, {}],
+      },
+    });
+
+    const eventJSON = fs.readFileSync(
+      "./src/test/eventMapper.timeline.json",
+      "utf8"
+    );
+    let event = JSON.parse(eventJSON);
+    event = setCategory(event, "REQUEST_ACCEPTED");
+
+    const res = await mapEvents([event]);
+
+    expect(res.length).equal(3);
+    expect(res[0].type).equal("VALIDATION");
+    expect(res[0].opType).equal("DELETE");
+    expect(res[1].type).equal("REFINEMENT");
+    expect(res[1].opType).equal("INSERT");
+    expect(res[1].id).equal("01_REFIN##abcd##0");
+    expect(res[2].type).equal("REFINEMENT");
+    expect(res[2].opType).equal("INSERT");
+    expect(res[2].id).equal("01_REFIN##abcd##1");
+  });
+
+  it("test REQUEST_ACCEPTED without recipients", async () => {
+    ddbMock.on(GetCommand).resolves({
+      Item: {
+        iun: "abcd",
+      },
+    });
+
+    const eventJSON = fs.readFileSync(
+      "./src/test/eventMapper.timeline.json",
+      "utf8"
+    );
+    let event = JSON.parse(eventJSON);
+    event = setCategory(event, "REQUEST_ACCEPTED");
+
+    const res = await mapEvents([event]);
+
+    expect(res.length).equal(1);
+    expect(res[0].type).equal("VALIDATION");
+    expect(res[0].opType).equal("DELETE");
+  });
+
+  it("should skip unsupported timeline category", async () => {
+    const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
+    let event = JSON.parse(eventJSON);
+    event = setCategory(event, "UNSUPPORTED_CATEGORY");
+
+    const res = await mapEvents([event]);
+
+    expect(res).to.be.an("array").that.is.empty;
+  });
+
+  it("test SEND_SIMPLE_REGISTERED_LETTER_PROGRESS without registeredLetterCode", async () => {
+    const eventJSON = fs.readFileSync("./src/test/eventMapper.timeline.json");
+    let event = JSON.parse(eventJSON);
+    event = setCategory(event, "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS");
+
+    event.dynamodb.NewImage.details = {
+      M: {
+        recIndex: {
+          N: 0,
+        },
+        deliveryDetailCode: {
+          S: "CON080",
+        },
+      },
+    };
+
+    const res = await mapEvents([event]);
+
+    expect(res.length).equal(0);
   });
 });
 

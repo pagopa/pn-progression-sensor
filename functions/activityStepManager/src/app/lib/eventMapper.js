@@ -45,32 +45,13 @@ function extractRecIdsFromTimelineId(timelineElementId) {
   // Handles both RECINDEX_0 and RECINDEX_0.REWORK
 }
 
-function extractRecIdsFromTimelineIdOnRework(timelineElementId) {
-  const match = timelineElementId.match(/RECINDEX_(\d+)/);
-  return match ? match[1] : null;
-}
-
 function extractLastReworkSuffix(timelineElementId) {
   const match = timelineElementId?.match(/(\.REWORK_\d+)$/);
   return match ? match[1] : "";
 }
 
-function normalizeTimelineElementId(timelineElementId) {
-  if (typeof timelineElementId === "string") {
-    return timelineElementId;
-  }
-  if (timelineElementId && typeof timelineElementId.S === "string") {
-    return timelineElementId.S;
-  }
-  return null;
-}
-
 function matchesTimelineElementPattern(timelineElementId, pattern) {
-  const normalizedTimelineElementId = normalizeTimelineElementId(timelineElementId);
-  return (
-    typeof normalizedTimelineElementId === "string" &&
-    (normalizedTimelineElementId === pattern || normalizedTimelineElementId.startsWith(`${pattern}.`))
-  );
+  return timelineElementId === pattern || timelineElementId.startsWith(`${pattern}.`);
 }
 
 function makeDeleteOp(id, type, event) {
@@ -149,9 +130,6 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
     .tz("Europe/Rome")
     .format("YYYY-MM-DD");
   const paId = timelineObj.paId;
-  const normalizedTimelineElementId = normalizeTimelineElementId(
-    timelineObj.timelineElementId
-  );
   // ttl = invoicingTimestamp + 1 year default (in seconds)
   const days = ttlSlaTimes.INVOICING_TTL_DAYS; // default 365
   const ttl = Math.floor(
@@ -159,13 +137,12 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
   );
   return {
     paId_invoicingDay: `${paId}_${invoicingDay}`,
-    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${normalizedTimelineElementId ?? timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
+    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
     ttl,
     paId,
     invoicingDay,
     invoincingTimestamp, // typo, but left
-    ...timelineObj,
-    timelineElementId: normalizedTimelineElementId ?? timelineObj.timelineElementId,
+    ...timelineObj
   };
 }
 
@@ -224,7 +201,7 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
     const reworkElementDetails = reworkedTimelineElement.details;
     const attempt0Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`;
     const attempt1Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`;
-    const invalidatedSendAnalogDomicileElements = checkIfSendAnalogDomicileIsInvalidated(
+    const invalidatedSendAnalogDomicileElements = getInvalidatedSendAnalogDomicileIds(
       reworkElementDetails.invalidatedTimelineAndStatusHistory
     ).filter(
       (id) =>
@@ -258,41 +235,22 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
       ];
     }
 
+    let timelineElements = [];
     if(reworkElementDetails.sentAttemptMade == 0 && invalidatedSendAnalogDomicileElements.length === 0) {
-        const timelineElements = await getTimelineElements(iun, [
+        timelineElements.push(...await getTimelineElements(iun, [
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-        ]);
-        if (timelineElements && timelineElements.length > 0) {
-              const newElements = timelineElements.map(elem => ({
-                        ...processInvoicedElement(elem, invoicingTimestamp),
-                        invoicingType: 'NEW'
-                      }));
-              invoicedElements.push(...newElements);
-        }
+        ]));
+    }
+    else if(timelineElementIdsToFetch.length > 0){
+      timelineElements.push(...await getTimelineElements(iun, timelineElementIdsToFetch));
     }
 
-    if (timelineElementIdsToFetch.length > 0) {
-      const timelineElements = await getTimelineElements(iun, timelineElementIdsToFetch);
-      if (timelineElements && timelineElements.length > 0) {
-        const existingTimelineElementIds = new Set(
-          invoicedElements
-            .map((e) => normalizeTimelineElementId(e.timelineElementId))
-            .filter((id) => typeof id === "string" && id.length > 0)
-        );
-        for (const elem of timelineElements) {
-          const timelineElementId = normalizeTimelineElementId(elem?.timelineElementId);
-          if (timelineElementId && existingTimelineElementIds.has(timelineElementId)) {
-            continue;
-          }
-          const processed = processInvoicedElement(elem, invoicingTimestamp);
-          if (processed) {
-            invoicedElements.push({ ...processed, invoicingType: "NEW" });
-            if (timelineElementId) {
-              existingTimelineElementIds.add(timelineElementId);
-            }
-          }
-        }
-      }
+    if (timelineElements && timelineElements.length > 0) {
+        const newElements = timelineElements.map(elem => ({
+                  ...processInvoicedElement(elem, invoicingTimestamp),
+                  invoicingType: 'NEW'
+                }));
+        invoicedElements.push(...newElements);
     }
      const length = invoicedElements.length;
      const elementsToAdd = [];
@@ -310,39 +268,14 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
     return invoicedElements;
 }
 
-function checkIfSendAnalogDomicileIsInvalidated(invalidatedTimelineAndStatusHistory) {
-  const relatedTimelineElementIds = [];
-  if (!invalidatedTimelineAndStatusHistory) {
-    return [];
-  }
-
-  const historyItems = Array.isArray(invalidatedTimelineAndStatusHistory)
-    ? invalidatedTimelineAndStatusHistory
-    : invalidatedTimelineAndStatusHistory.L
-      ? invalidatedTimelineAndStatusHistory.L
-      : [];
-
-  for (const invalidatedElement of historyItems) {
-    if (!invalidatedElement) {
-      continue;
+function getInvalidatedSendAnalogDomicileIds(invalidatedTimelineAndStatusHistory){
+    let relatedTimelineElementIds = [];
+    if (invalidatedTimelineAndStatusHistory && invalidatedTimelineAndStatusHistory.length > 0) {
+        for (const invalidatedElement of invalidatedTimelineAndStatusHistory) {
+            relatedTimelineElementIds.push(...invalidatedElement.relatedTimelineElements);
+        }
     }
-    if (Array.isArray(invalidatedElement.relatedTimelineElements)) {
-      relatedTimelineElementIds.push(...invalidatedElement.relatedTimelineElements);
-      continue;
-    }
-    const relatedTimelineElements = invalidatedElement.M?.relatedTimelineElements?.L;
-    if (Array.isArray(relatedTimelineElements)) {
-      relatedTimelineElementIds.push(
-        ...relatedTimelineElements
-          .map((item) => item?.S)
-          .filter((id) => typeof id === "string")
-      );
-    }
-  }
-
-  return relatedTimelineElementIds.filter(
-    (id) => typeof id === "string" && id.startsWith("SEND_ANALOG_DOMICILE")
-  );
+    return relatedTimelineElementIds.filter(id => id.startsWith("SEND_ANALOG_DOMICILE"));
 }
 
 async function processInvalidatedInvoice(iun, timelineElementIds, reworkedTimestamp) {
@@ -617,7 +550,7 @@ async function mapPayload(event) {
         break;
       case "NOTIFICATION_TIMELINE_REWORKED":
         const { iun, timelineElementId, timestamp: reworkedTimestamp, details } = extractDynamoDBFields(event.dynamodb.NewImage);
-        recIdx = extractRecIdsFromTimelineIdOnRework(timelineElementId);
+        recIdx = extractRecIdsFromTimelineId(timelineElementId);
         const op1 = makeInsertOp(
           "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
           "REFINEMENT",
@@ -662,30 +595,14 @@ function getInvalidatedInvoicingTimelineIds(invalidatedElements, iun, recIdx) {
     `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`,
   ];
 
-  if (!invalidatedElements) {
-    return [];
-  }
-
-  const historyItems = Array.isArray(invalidatedElements)
-    ? invalidatedElements
-    : invalidatedElements.L
-      ? invalidatedElements.L
-      : [];
-
-  const relatedTimelineIds = historyItems.flatMap((elem) => {
-    if (!elem) {
-      return [];
-    }
-    if (Array.isArray(elem.relatedTimelineElements)) {
-      return elem.relatedTimelineElements;
-    }
-    const relatedElements = elem.M?.relatedTimelineElements?.L || [];
-    return relatedElements.map((item) => item?.S).filter((s) => typeof s === "string");
-  });
-
-  return relatedTimelineIds.filter((id) =>
-    invoicingPatterns.some((pattern) => matchesTimelineElementPattern(id, pattern))
-  );
+    return invalidatedElements.L
+      .flatMap(elem => {
+        const relatedElements = elem.M?.relatedTimelineElements?.L || [];
+        return relatedElements.map(item => item.S);
+      })
+      .filter(id =>
+        invoicingPatterns.some(pattern => matchesTimelineElementPattern(id, pattern))
+      );
  }
 
 exports.mapEvents = async (events) => {
