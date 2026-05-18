@@ -45,9 +45,13 @@ function extractRecIdsFromTimelineId(timelineElementId) {
   // Handles both RECINDEX_0 and RECINDEX_0.REWORK
 }
 
-function extractRecIdsFromTimelineIdOnRework(timelineElementId) {
-  const match = timelineElementId.match(/RECINDEX_(\d+)/);
-  return match ? match[1] : null;
+function extractLastReworkSuffix(timelineElementId) {
+  const match = timelineElementId?.match(/(\.REWORK_\d+)$/);
+  return match ? match[1] : "";
+}
+
+function matchesTimelineElementPattern(timelineElementId, pattern) {
+  return timelineElementId === pattern || timelineElementId.startsWith(`${pattern}.`);
 }
 
 function makeDeleteOp(id, type, event) {
@@ -138,7 +142,7 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
     paId,
     invoicingDay,
     invoincingTimestamp, // typo, but left
-    ...timelineObj,
+    ...timelineObj
   };
 }
 
@@ -195,17 +199,58 @@ async function processInvoice(event, recIdxs) {
 
 async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
     const reworkElementDetails = reworkedTimelineElement.details;
-    if(reworkElementDetails.sentAttemptMade == 0 && !checkIfSendAnalogDomicileIsInvalidated(reworkElementDetails.invalidatedTimelineAndStatusHistory)) {
-        const timelineElements = await getTimelineElements(iun, [
+    const attempt0Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`;
+    const attempt1Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`;
+    const invalidatedSendAnalogDomicileElements = getInvalidatedSendAnalogDomicileIds(
+      reworkElementDetails.invalidatedTimelineAndStatusHistory
+    ).filter(
+      (id) =>
+        matchesTimelineElementPattern(id, attempt0Pattern) ||
+        matchesTimelineElementPattern(id, attempt1Pattern)
+    );
+    const attempt0Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
+      matchesTimelineElementPattern(id, attempt0Pattern)
+    );
+    const attempt1Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
+      matchesTimelineElementPattern(id, attempt1Pattern)
+    );
+    const lastReworkSuffix = extractLastReworkSuffix(
+      reworkedTimelineElement.timelineElementId
+    );
+
+    let timelineElementIdsToFetch = [];
+    if (attempt0Invalidated && attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0${lastReworkSuffix}`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1${lastReworkSuffix}`,
+      ];
+    } else if (attempt0Invalidated && !attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0${lastReworkSuffix}`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+      ];
+    } else if (!attempt0Invalidated && attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1${lastReworkSuffix}`,
+      ];
+    }
+
+    let timelineElements = [];
+    if(reworkElementDetails.sentAttemptMade == 0 && invalidatedSendAnalogDomicileElements.length === 0) {
+        timelineElements.push(...await getTimelineElements(iun, [
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-        ]);
-        if (timelineElements && timelineElements.length > 0) {
-              const newElements = timelineElements.map(elem => ({
-                        ...processInvoicedElement(elem, invoicingTimestamp),
-                        invoicingType: 'NEW'
-                      }));
-              invoicedElements.push(...newElements);
-        }
+        ]));
+    }
+    else if(timelineElementIdsToFetch.length > 0){
+      timelineElements.push(...await getTimelineElements(iun, timelineElementIdsToFetch));
+    }
+
+    if (timelineElements && timelineElements.length > 0) {
+        const newElements = timelineElements.map(elem => ({
+                  ...processInvoicedElement(elem, invoicingTimestamp),
+                  invoicingType: 'NEW'
+                }));
+        invoicedElements.push(...newElements);
     }
      const length = invoicedElements.length;
      const elementsToAdd = [];
@@ -223,14 +268,14 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
     return invoicedElements;
 }
 
-function checkIfSendAnalogDomicileIsInvalidated(invalidatedTimelineAndStatusHistory){
+function getInvalidatedSendAnalogDomicileIds(invalidatedTimelineAndStatusHistory){
     let relatedTimelineElementIds = [];
     if (invalidatedTimelineAndStatusHistory && invalidatedTimelineAndStatusHistory.length > 0) {
         for (const invalidatedElement of invalidatedTimelineAndStatusHistory) {
             relatedTimelineElementIds.push(...invalidatedElement.relatedTimelineElements);
         }
     }
-    return relatedTimelineElementIds.some(id => id.startsWith("SEND_ANALOG_DOMICILE"));
+    return relatedTimelineElementIds.filter(id => id.startsWith("SEND_ANALOG_DOMICILE"));
 }
 
 async function processInvalidatedInvoice(iun, timelineElementIds, reworkedTimestamp) {
@@ -505,7 +550,7 @@ async function mapPayload(event) {
         break;
       case "NOTIFICATION_TIMELINE_REWORKED":
         const { iun, timelineElementId, timestamp: reworkedTimestamp, details } = extractDynamoDBFields(event.dynamodb.NewImage);
-        recIdx = extractRecIdsFromTimelineIdOnRework(timelineElementId);
+        recIdx = extractRecIdsFromTimelineId(timelineElementId);
         const op1 = makeInsertOp(
           "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
           "REFINEMENT",
@@ -544,17 +589,20 @@ function extractDynamoDBFields(newImage) {
 
 function getInvalidatedInvoicingTimelineIds(invalidatedElements, iun, recIdx) {
   const invoicingPatterns = [
-      `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
-      `REFINEMENT.IUN_${iun}.RECINDEX_${recIdx}`,
-      `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`
-    ];
+    `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+    `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+    `REFINEMENT.IUN_${iun}.RECINDEX_${recIdx}`,
+    `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`,
+  ];
 
     return invalidatedElements.L
       .flatMap(elem => {
         const relatedElements = elem.M?.relatedTimelineElements?.L || [];
         return relatedElements.map(item => item.S);
       })
-      .filter(id => invoicingPatterns.includes(id));
+      .filter(id =>
+        invoicingPatterns.some(pattern => matchesTimelineElementPattern(id, pattern))
+      );
  }
 
 exports.mapEvents = async (events) => {
