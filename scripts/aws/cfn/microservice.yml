@@ -460,7 +460,7 @@ Resources:
       FilterCriteria:
         Filters:
           - Pattern: !Sub '{"data": {"eventName": ["INSERT"], "tableName": ["pn-Notifications"], "dynamodb": { "NewImage": {"communicationType": {"S": [{ "exists": false }]}} }}}'
-          - Pattern: !Sub '{"data": {"eventName": ["INSERT"], "tableName": ["pn-Timelines"]}}'
+          - Pattern: !Sub '{"data": {"eventName": ["INSERT"], "tableName": ["pn-Timelines"], "dynamodb": { "NewImage": {"communicationType": {"S": [{ "exists": false }]}} }}}'
 
   ActivityStepManagerKinesisFailuresAlarm:
     Type: AWS::CloudWatch::Alarm
