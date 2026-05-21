@@ -611,7 +611,8 @@ exports.mapEvents = async (events) => {
       e.eventName == "INSERT" &&
       (e.tableName == TABLES.NOTIFICATIONS && !e.dynamodb.NewImage.communicationType ||
         (e.tableName == TABLES.TIMELINES &&
-          e.dynamodb.NewImage.category && !e.dynamodb.NewImage.communicationType
+          !e.dynamodb.NewImage.communicationType &&
+          e.dynamodb.NewImage.category &&
           allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S) >=
             0))
     );
