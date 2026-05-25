@@ -124,24 +124,24 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
   //
   // if invoicingTimestamp is defined use it, otherwise take it from timelineObj
   const timestamp = passedInvoicingTimestamp ?? timelineObj.timestamp;
-  const invoincingTimestampMs = moment(timestamp).valueOf(); // milliseconds
-  const invoincingTimestamp = moment(invoincingTimestampMs).toISOString(); // ISO string 8601
-  const invoicingDay = moment(invoincingTimestamp)
+  const invoicingTimestampMs = moment(timestamp).valueOf(); // milliseconds
+  const invoicingTimestamp = moment(invoicingTimestampMs).toISOString(); // ISO string 8601
+  const invoicingDay = moment(invoicingTimestamp)
     .tz("Europe/Rome")
     .format("YYYY-MM-DD");
   const paId = timelineObj.paId;
   // ttl = invoicingTimestamp + 1 year default (in seconds)
   const days = ttlSlaTimes.INVOICING_TTL_DAYS; // default 365
   const ttl = Math.floor(
-    moment(invoincingTimestamp).add(days, "days").valueOf() / 1000
+    moment(invoicingTimestamp).add(days, "days").valueOf() / 1000
   );
   return {
     paId_invoicingDay: `${paId}_${invoicingDay}`,
-    invoincingTimestamp_timelineElementId: `${invoincingTimestamp}_${timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
+    invoicingTimestamp_timelineElementId: `${invoicingTimestamp}_${timelineObj.timelineElementId}`, // typo but left (it's also sort key for the primary key)
     ttl,
     paId,
     invoicingDay,
-    invoincingTimestamp, // typo, but left
+    invoicingTimestamp, // typo, but left
     ...timelineObj
   };
 }
@@ -168,9 +168,9 @@ async function processInvoice(event, recIdxs) {
         for (let recIdx of recIdxs) {
           const iun = timelineObj.iun;
           const reworkedTimelineElement = await getLatestReworkedTimelineElement(event.dynamodb.NewImage.iun.S, "NOTIFICATION_TIMELINE_REWORKED.IUN_" + event.dynamodb.NewImage.iun.S + ".RECINDEX_" + recIdx);
-          if(reworkedTimelineElement){
+          if(reworkedTimelineElement && reworkedTimelineElement.timestamp > timelineObj.timestamp){
             console.log("Found reworked timeline element for iun " + iun + " and recIdx " + recIdx);
-            await evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicedElement.invoincingTimestamp);
+            await evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicedElement.invoicingTimestamp);
           }else{
             // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
             const timelineElements = await getTimelineElements(iun, [
@@ -184,7 +184,7 @@ async function processInvoice(event, recIdxs) {
                   processInvoicedElement(
                     timelineElem,
                     // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
-                    invoicedElement.invoincingTimestamp // typo, but left
+                    invoicedElement.invoicingTimestamp
                   )
                 );
               }
@@ -256,7 +256,7 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
      const elementsToAdd = [];
      for (let i = 0; i < length; i++) {
             const element = invoicedElements[i];
-            const sk = element.invoincingTimestamp_timelineElementId;
+            const sk = element.invoicingTimestamp_timelineElementId;
             if (sk.includes('REFINEMENT') || sk.includes('ANALOG_WORKFLOW_RECIPIENT_DECEASED') || sk.includes('NOTIFICATION_VIEWED')) {
               element.invoicingType = 'NEW';
             } else if (sk.includes('NOTIFICATION_CANCELLED')) {

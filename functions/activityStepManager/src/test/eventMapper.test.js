@@ -55,12 +55,12 @@ describe("event mapper tests", function () {
     expect(res[1].payload[0].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+    expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_notification_viewed_creation_request;IUN_XLDW-MQYJ-WUKA-202302-A-1;RECINDEX_1"
     );
     expect(res[1].payload[0].ttl).equal(1705762080);
     expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
-    expect(res[1].payload[0].invoincingTimestamp).equal(
+    expect(res[1].payload[0].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
   });
@@ -95,45 +95,45 @@ describe("event mapper tests", function () {
     expect(res[1].payload[0].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+    expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_notification_viewed_creation_request;IUN_XLDW-MQYJ-WUKA-202302-A-1;RECINDEX_1"
     );
     expect(res[1].payload[0].ttl).equal(1705762080);
     expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
-    expect(res[1].payload[0].invoincingTimestamp).equal(
+    expect(res[1].payload[0].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
     expect(res[1].payload[0].timestamp).equal(
-      res[1].payload[0].invoincingTimestamp
+      res[1].payload[0].invoicingTimestamp
     );
     // element 1 - paper invoice - the timestamp from the first element, not the one from this element
     expect(res[1].payload[1].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
+    expect(res[1].payload[1].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_1.ATTEMPT_0"
     );
     expect(res[1].payload[1].ttl).equal(1705762080);
     expect(res[1].payload[1].invoicingDay).equal("2023-01-20");
-    expect(res[1].payload[1].invoincingTimestamp).equal(
+    expect(res[1].payload[1].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
-    expect(res[1].payload[1].invoincingTimestamp).not.equal(
+    expect(res[1].payload[1].invoicingTimestamp).not.equal(
       res[1].payload[1].timestamp
     );
     // element 2 - paper invoice
     expect(res[1].payload[2].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[1].payload[2].invoincingTimestamp_timelineElementId).equal(
+    expect(res[1].payload[2].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_1"
     );
     expect(res[1].payload[2].ttl).equal(1705762080);
     expect(res[1].payload[2].invoicingDay).equal("2023-01-20");
-    expect(res[1].payload[2].invoincingTimestamp).equal(
+    expect(res[1].payload[2].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
-    expect(res[1].payload[2].invoincingTimestamp).not.equal(
+    expect(res[1].payload[2].invoicingTimestamp).not.equal(
       res[1].payload[2].timestamp
     );
     // reset mock
@@ -148,7 +148,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
       ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
             relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
         }] }}],
       });
@@ -174,13 +174,13 @@ describe("event mapper tests", function () {
       expect(res[1].payload[0].paId_invoicingDay).equal(
         "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
       );
-      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_0"
       );
       expect(res[1].payload[0].ttl).equal(1705762080);
       expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
       expect(res[1].payload[0].timestamp).equal(
-        res[1].payload[0].invoincingTimestamp
+        res[1].payload[0].invoicingTimestamp
       );
 
       expect(res[1].payload[1].invoicingType).equal("NEW");
@@ -188,7 +188,7 @@ describe("event mapper tests", function () {
       expect(res[1].payload[1].paId_invoicingDay).equal(
         "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
       );
-      expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[1].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"
       );
       expect(res[1].payload[1].ttl).equal(1705762080);
@@ -206,7 +206,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
       ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z',  timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
             relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
         }] }}],
       });
@@ -233,20 +233,20 @@ describe("event mapper tests", function () {
       expect(res[1].payload[0].paId_invoicingDay).equal(
         "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
       );
-      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_0"
       );
       expect(res[1].payload[0].ttl).equal(1705762080);
       expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
-      expect(res[1].payload[0].invoincingTimestamp).equal(
+      expect(res[1].payload[0].invoicingTimestamp).equal(
         "2023-01-20T14:48:00.000Z"
       );
       expect(res[1].payload[0].timestamp).equal(
-        res[1].payload[0].invoincingTimestamp
+        res[1].payload[0].invoicingTimestamp
       );
 
       expect(res[1].payload[1].invoicingType).equal("NEW");
-      expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[1].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"
       );
     
@@ -283,6 +283,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
+            timestamp: '2025-05-02T00:00:00Z' ,
             details: {
               recIndex: 0,
               sentAttemptMade: 0,
@@ -316,7 +317,7 @@ describe("event mapper tests", function () {
 
       // refinement + 2 SEND_ANALOG_DOMICILE fetched
       expect(res[1].payload.length).equal(3);
-      const ids = res[1].payload.map((p) => p.invoincingTimestamp_timelineElementId);
+      const ids = res[1].payload.map((p) => p.invoicingTimestamp_timelineElementId);
       expect(ids.some((id) => id.includes("REFINEMENT.IUN_abcd.RECINDEX_0"))).to.be.true;
       expect(
         ids.some((id) =>
@@ -363,6 +364,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
+            timestamp: '2025-05-02T00:00:00Z',
             details: {
               recIndex: 0,
               sentAttemptMade: 0,
@@ -392,7 +394,7 @@ describe("event mapper tests", function () {
       expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
       expect(res[1].payload.length).equal(3);
 
-      const ids = res[1].payload.map((p) => p.invoincingTimestamp_timelineElementId);
+      const ids = res[1].payload.map((p) => p.invoicingTimestamp_timelineElementId);
       expect(
         ids.some((id) =>
           id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0")
@@ -430,6 +432,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
+            timestamp: '2025-05-02T00:00:00Z',
             details: {
               recIndex: 0,
               sentAttemptMade: 1,
@@ -460,7 +463,7 @@ describe("event mapper tests", function () {
       expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
       expect(res[1].payload.length).equal(2);
 
-      const ids = res[1].payload.map((p) => p.invoincingTimestamp_timelineElementId);
+      const ids = res[1].payload.map((p) => p.invoicingTimestamp_timelineElementId);
       expect(
         ids.some((id) =>
           id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0")
@@ -477,6 +480,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_1.ATTEMPT_1.REWORK_0",
+            timestamp: '2025-05-02T00:00:00Z',
             details: {
               recIndex: 1,
               sentAttemptMade: 1,
@@ -507,7 +511,7 @@ describe("event mapper tests", function () {
       expect(res.length).equal(2);
       expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
       expect(res[1].payload.length).equal(1);
-      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_1"
       );
       expect(ddbMock.commandCalls(BatchGetCommand)).to.have.length(0);
@@ -543,6 +547,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
+            timestamp: '2025-05-02T00:00:00Z',
             details: {
               recIndex: 0,
               sentAttemptMade: 0,
@@ -584,7 +589,7 @@ describe("event mapper tests", function () {
       expect(res[1].payload.length).equal(3);
 
       const ids = res[1].payload.map(
-        (p) => p.invoincingTimestamp_timelineElementId
+        (p) => p.invoicingTimestamp_timelineElementId
       );
       expect(
         ids.some((id) =>
@@ -607,7 +612,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
          ddbMock.on(QueryCommand).resolvesOnce({
-              Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+              Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
                 relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
               }] }}],
               }).resolves({
@@ -636,20 +641,20 @@ describe("event mapper tests", function () {
       expect(res[1].payload[0].paId_invoicingDay).equal(
         "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
       );
-      expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_REFINEMENT.IUN_abcd.RECINDEX_0"
       );
       expect(res[1].payload[0].ttl).equal(1705762080);
       expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
-      expect(res[1].payload[0].invoincingTimestamp).equal(
+      expect(res[1].payload[0].invoicingTimestamp).equal(
         "2023-01-20T14:48:00.000Z"
       );
       expect(res[1].payload[0].timestamp).equal(
-        res[1].payload[0].invoincingTimestamp
+        res[1].payload[0].invoicingTimestamp
       );
 
       expect(res[1].payload[1].invoicingType).equal("NEW");
-      expect(res[1].payload[1].invoincingTimestamp_timelineElementId).equal(
+      expect(res[1].payload[1].invoicingTimestamp_timelineElementId).equal(
         "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"
       );
     
@@ -677,16 +682,16 @@ describe("event mapper tests", function () {
     expect(res[1].payload[0].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[1].payload[0].invoincingTimestamp_timelineElementId).equal(
+    expect(res[1].payload[0].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_notification_viewed_creation_request;IUN_XLDW-MQYJ-WUKA-202302-A-1;RECINDEX_1"
     );
     expect(res[1].payload[0].ttl).equal(1705762080);
     expect(res[1].payload[0].invoicingDay).equal("2023-01-20");
-    expect(res[1].payload[0].invoincingTimestamp).equal(
+    expect(res[1].payload[0].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
     expect(res[1].payload[0].timestamp).equal(
-      res[1].payload[0].invoincingTimestamp
+      res[1].payload[0].invoicingTimestamp
     );
   });
 
@@ -775,46 +780,46 @@ describe("event mapper tests", function () {
     expect(res[3].payload[0].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[3].payload[0].invoincingTimestamp_timelineElementId).equal(
+    expect(res[3].payload[0].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_notification_viewed_creation_request;IUN_XLDW-MQYJ-WUKA-202302-A-1;RECINDEX_1"
     );
     expect(res[3].payload[0].ttl).equal(1705762080);
     expect(res[3].payload[0].invoicingDay).equal("2023-01-20");
-    expect(res[3].payload[0].invoincingTimestamp).equal(
+    expect(res[3].payload[0].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
     expect(res[3].payload[0].timestamp).equal(
-      res[3].payload[0].invoincingTimestamp
+      res[3].payload[0].invoicingTimestamp
     );
     // element 1
     expect(res[3].payload[1].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[3].payload[1].invoincingTimestamp_timelineElementId).equal(
+    expect(res[3].payload[1].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_1.ATTEMPT_0"
     );
     expect(res[3].payload[1].ttl).equal(1705762080);
     expect(res[3].payload[1].invoicingDay).equal("2023-01-20");
-    expect(res[3].payload[1].invoincingTimestamp).equal(
+    expect(res[3].payload[1].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
     expect(res[3].payload[1].timestamp).not.equal(
-      res[3].payload[1].invoincingTimestamp
+      res[3].payload[1].invoicingTimestamp
     );
     // element 2
     expect(res[3].payload[2].paId_invoicingDay).equal(
       "026e8c72-7944-4dcd-8668-f596447fec6d_2023-01-20"
     );
-    expect(res[3].payload[2].invoincingTimestamp_timelineElementId).equal(
+    expect(res[3].payload[2].invoicingTimestamp_timelineElementId).equal(
       "2023-01-20T14:48:00.000Z_SEND_SIMPLE_REGISTERED_LETTER.IUN_abcd.RECINDEX_1"
     );
     expect(res[3].payload[2].ttl).equal(1705762080);
     expect(res[3].payload[2].invoicingDay).equal("2023-01-20");
-    expect(res[3].payload[2].invoincingTimestamp).equal(
+    expect(res[3].payload[2].invoicingTimestamp).equal(
       "2023-01-20T14:48:00.000Z"
     );
     expect(res[3].payload[2].timestamp).not.equal(
-      res[3].payload[2].invoincingTimestamp
+      res[3].payload[2].invoicingTimestamp
     );
     // we're simulating only for recindex 1
     ddbMock.reset();
@@ -822,7 +827,7 @@ describe("event mapper tests", function () {
 
   it("test CANCELLED with rework attempt 0 without old attempt 1", async () => {
       ddbMock.on(QueryCommand).resolvesOnce({
-        Items: [{iun: 'abcd', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
           relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
         }] }}],
         }).resolves({
@@ -865,19 +870,19 @@ describe("event mapper tests", function () {
      expect(res[4].opType).equal("BULK_INSERT_REWORKED_INVOICES");
      expect(res[3].opType).equal("BULK_INSERT_INVOICES");
 
-     expect(res[3].payload[0].invoincingTimestamp_timelineElementId).contain(
+     expect(res[3].payload[0].invoicingTimestamp_timelineElementId).contain(
        "NOTIFICATION_CANCELLED"
      );
-     expect(res[3].payload[1].invoincingTimestamp_timelineElementId).contain(
+     expect(res[3].payload[1].invoicingTimestamp_timelineElementId).contain(
        "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_1.ATTEMPT_0"
      );
-     expect(res[3].payload[2].invoincingTimestamp_timelineElementId).contain(
+     expect(res[3].payload[2].invoicingTimestamp_timelineElementId).contain(
        "SEND_SIMPLE_REGISTERED_LETTER"
      );
-     expect(res[4].payload[1].invoincingTimestamp_timelineElementId).contain(
+     expect(res[4].payload[1].invoicingTimestamp_timelineElementId).contain(
        "NOTIFICATION_CANCELLED"
      );
-     expect(res[4].payload[0].invoincingTimestamp_timelineElementId).contain(
+     expect(res[4].payload[0].invoicingTimestamp_timelineElementId).contain(
        "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"
      );
 
@@ -1072,8 +1077,8 @@ describe("event mapper tests", function () {
     expect(res[1].payload.length).equal(1);
     res[1].payload.forEach(item => expect(item.invoicingType).equal("INVALIDATED"));
     res[1].payload.forEach(item => expect(item.iun).equal("IUN1"));
-    res[1].payload.forEach(item => expect(item.invoincingTimestamp).equal(res[1].payload[0].invoincingTimestamp));
-    const ids = res[1].payload.map(item => item.invoincingTimestamp_timelineElementId);
+    res[1].payload.forEach(item => expect(item.invoicingTimestamp).equal(res[1].payload[0].invoicingTimestamp));
+    const ids = res[1].payload.map(item => item.invoicingTimestamp_timelineElementId);
     expect(ids.some(id => id.includes("SEND_ANALOG_DOMICILE.IUN_IUN1.RECINDEX_0.ATTEMPT_1"))).to.be.true;
     ddbMock.reset();
   });
