@@ -168,7 +168,8 @@ async function processInvoice(event, recIdxs) {
         for (let recIdx of recIdxs) {
           const iun = timelineObj.iun;
           const reworkedTimelineElement = await getLatestReworkedTimelineElement(event.dynamodb.NewImage.iun.S, "NOTIFICATION_TIMELINE_REWORKED.IUN_" + event.dynamodb.NewImage.iun.S + ".RECINDEX_" + recIdx);
-          if(reworkedTimelineElement){
+          const timelineTs = new Date(timelineObj.timestamp).getTime();
+          if (reworkedTimelineElement && new Date(reworkedTimelineElement.timestamp).getTime() > timelineTs) {
             console.log("Found reworked timeline element for iun " + iun + " and recIdx " + recIdx);
             await evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicedElement.invoincingTimestamp);
           }else{
