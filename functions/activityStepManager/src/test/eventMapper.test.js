@@ -148,7 +148,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
       ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timestamp: '2022-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
             relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
         }] }}],
       });
@@ -206,7 +206,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
       ddbMock.on(QueryCommand).resolves({
-        Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z',  timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timestamp: '2022-05-02T00:00:00Z',  timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
             relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
         }] }}],
       });
@@ -283,7 +283,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
-            timestamp: '2025-05-02T00:00:00Z' ,
+            timestamp: '2022-05-02T00:00:00Z' ,
             details: {
               recIndex: 0,
               sentAttemptMade: 0,
@@ -364,7 +364,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
-            timestamp: '2025-05-02T00:00:00Z',
+            timestamp: '2022-05-02T00:00:00Z',
             details: {
               recIndex: 0,
               sentAttemptMade: 0,
@@ -432,7 +432,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_1.REWORK_0",
-            timestamp: '2025-05-02T00:00:00Z',
+            timestamp: '2022-05-02T00:00:00Z',
             details: {
               recIndex: 0,
               sentAttemptMade: 1,
@@ -480,7 +480,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_1.ATTEMPT_1.REWORK_0",
-            timestamp: '2025-05-02T00:00:00Z',
+            timestamp: '2022-05-02T00:00:00Z',
             details: {
               recIndex: 1,
               sentAttemptMade: 1,
@@ -547,7 +547,7 @@ describe("event mapper tests", function () {
             iun: "abcd",
             timelineElementId:
               "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
-            timestamp: '2025-05-02T00:00:00Z',
+            timestamp: '2022-05-02T00:00:00Z',
             details: {
               recIndex: 0,
               sentAttemptMade: 0,
@@ -612,7 +612,7 @@ describe("event mapper tests", function () {
       const batchGet = JSON.parse(batchGetJSON);
       ddbMock.on(BatchGetCommand).resolves(batchGet);
          ddbMock.on(QueryCommand).resolvesOnce({
-              Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+              Items: [{iun: 'abcd', timestamp: '2022-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
                 relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0", "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1"]
               }] }}],
               }).resolves({
@@ -827,7 +827,7 @@ describe("event mapper tests", function () {
 
   it("test CANCELLED with rework attempt 0 without old attempt 1", async () => {
       ddbMock.on(QueryCommand).resolvesOnce({
-        Items: [{iun: 'abcd', timestamp: '2025-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
+        Items: [{iun: 'abcd', timestamp: '2022-05-02T00:00:00Z', timelineElementId: 'NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0', details: {recIndex:0, sentAttemptMade:0, invalidatedTimelineAndStatusHistory:[{
           relatedTimelineElements: ["REFINEMENT.IUN_abcd.RECINDEX_0.ATTEMPT_0"]
         }] }}],
         }).resolves({
