@@ -245,6 +245,16 @@ Parameters:
     Default: 604800 # 7 days
     Description: 'MaxRecordAgeInSeconds for SLAViolationCheckerLambda Kinesis Event Source Mapping'
 
+  SLAViolationCheckerSQSBatchSize:
+    Type: Number
+    Default: 5
+    Description: 'BatchSize for SLAViolationCheckerLambdaSQS SQS Event Source Mapping'
+
+  SLAViolationCheckerSQSMaxConcurrency:
+    Type: Number
+    Default: 10
+    Description: 'MaximumConcurrency for SLAViolationCheckerLambdaSQS SQS Event Source Mapping'
+
 Resources:
   #########################################################
   ###              SearchSLAViolationsLambda            ###
@@ -617,12 +627,14 @@ Resources:
   SLAViolationCheckerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 10
+      BatchSize: !Ref SLAViolationCheckerSQSBatchSize
       Enabled: true
       FunctionResponseTypes:
         - ReportBatchItemFailures
       EventSourceArn: !Ref ProgressionSensorQueueARN
       FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
+      ScalingConfig:
+        MaximumConcurrency: !Ref SLAViolationCheckerSQSMaxConcurrency
 
   # CDC to SLA Violation Checker
   SLAViolationCheckerLambdaKinesisSource:
