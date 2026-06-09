@@ -25,6 +25,7 @@
     "ActivityStepManagerLambdaKinesisMaxAgeInSeconds": "600",
     "SlaViolationCheckerLambdaKinesisMaxAgeInSeconds": "600",
     "SLAViolationCheckerSQSBatchSize": "5",
-    "SLAViolationCheckerSQSMaxConcurrency": "10"
+    "SLAViolationCheckerSQSMaxConcurrency": "10",
+    "WorkDaySLAViolationsAlarmsEnabled": "true"
   }
 }
