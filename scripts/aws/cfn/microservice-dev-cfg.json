@@ -23,6 +23,13 @@
     "MaxIDXsInSENDAMRSearch": "50",
     "ReworkedInvoicingTtlDays": "365",
     "ActivityStepManagerLambdaKinesisMaxAgeInSeconds": "600",
-    "SlaViolationCheckerLambdaKinesisMaxAgeInSeconds": "600"
+    "SlaViolationCheckerLambdaKinesisMaxAgeInSeconds": "600",
+    "SLAViolationCheckerSQSBatchSize": "5",
+    "SLAViolationCheckerSQSMaxConcurrency": "10",
+    "WorkDaySLAViolationsValidationAlarmEnabled": "true",
+    "WorkDaySLAViolationsRefinementAlarmEnabled": "false",
+    "WorkDaySLAViolationsSendAmrAlarmEnabled": "false",
+    "WorkDaySLAViolationsSendPaperAr890AlarmEnabled": "false",
+    "WorkDaySLAViolationsSendPecAlarmEnabled": "false"
   }
 }

@@ -245,6 +245,73 @@ Parameters:
     Default: 604800 # 7 days
     Description: 'MaxRecordAgeInSeconds for SLAViolationCheckerLambda Kinesis Event Source Mapping'
 
+  SLAViolationCheckerSQSBatchSize:
+    Type: Number
+    Default: 5
+    Description: 'BatchSize for SLAViolationCheckerLambdaSQS SQS Event Source Mapping'
+
+  SLAViolationCheckerSQSMaxConcurrency:
+    Type: Number
+    Default: 10
+    Description: 'MaximumConcurrency for SLAViolationCheckerLambdaSQS SQS Event Source Mapping'
+
+  WorkDaySLAViolationsValidationAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations Validation alarm'
+
+  WorkDaySLAViolationsRefinementAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations Refinement alarm'
+
+  WorkDaySLAViolationsSendAmrAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations SendAmr alarm'
+
+  WorkDaySLAViolationsSendPaperAr890AlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations SendPaperAr890 alarm'
+
+  WorkDaySLAViolationsSendPecAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations SendPec alarm'
+
+Conditions:
+  IsWorkDaySLAViolationsValidationAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsValidationAlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsRefinementAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsRefinementAlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsSendAmrAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsSendAmrAlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsSendPaperAr890AlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsSendPaperAr890AlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsSendPecAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsSendPecAlarmEnabled
+    - 'true'
+
 Resources:
   #########################################################
   ###              SearchSLAViolationsLambda            ###
@@ -617,12 +684,14 @@ Resources:
   SLAViolationCheckerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 10
+      BatchSize: !Ref SLAViolationCheckerSQSBatchSize
       Enabled: true
       FunctionResponseTypes:
         - ReportBatchItemFailures
       EventSourceArn: !Ref ProgressionSensorQueueARN
       FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
+      ScalingConfig:
+        MaximumConcurrency: !Ref SLAViolationCheckerSQSMaxConcurrency
 
   # CDC to SLA Violation Checker
   SLAViolationCheckerLambdaKinesisSource:
@@ -839,6 +908,7 @@ Resources:
 
   WorkDaySLAViolationsValidationAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsValidationAlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-Validation-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-Validation is too high."
@@ -869,6 +939,7 @@ Resources:
 
   WorkDaySLAViolationsRefinementAlarm:
       Type: AWS::CloudWatch::Alarm
+      Condition: IsWorkDaySLAViolationsRefinementAlarmEnabled
       Properties:
         AlarmName: "workday-SLAViolations-Refinement-Alarm"
         AlarmDescription: "CloudWatch alarm for SLAViolations-Refinement is too high."
@@ -900,6 +971,7 @@ Resources:
 
   WorkDaySLAViolationsSendAmrAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsSendAmrAlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-SendAmr-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-SendAmr is too high."
@@ -930,6 +1002,7 @@ Resources:
 
   WorkDaySLAViolationsSendPaperAr890Alarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsSendPaperAr890AlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-SendPaperAr890-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-SendPaperAr890 is too high."
@@ -960,6 +1033,7 @@ Resources:
 
   WorkDaySLAViolationsSendPecAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsSendPecAlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-SendPec-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-SendPec is too high."
