@@ -26,6 +26,10 @@
     "SlaViolationCheckerLambdaKinesisMaxAgeInSeconds": "600",
     "SLAViolationCheckerSQSBatchSize": "5",
     "SLAViolationCheckerSQSMaxConcurrency": "10",
-    "WorkDaySLAViolationsAlarmsEnabled": "false"
+    "WorkDaySLAViolationsValidationAlarmEnabled": "true",
+    "WorkDaySLAViolationsRefinementAlarmEnabled": "false",
+    "WorkDaySLAViolationsSendAmrAlarmEnabled": "false",
+    "WorkDaySLAViolationsSendPaperAr890AlarmEnabled": "false",
+    "WorkDaySLAViolationsSendPecAlarmEnabled": "false"
   }
 }
