@@ -54,9 +54,21 @@ Parameters:
     Type: String
     Description: Name of dynamodb table containing timelines invoicing metadata
 
+  ReworkedTimelinesForInvoicingDynamoTableArn:
+    Type: String
+    Description: ARN of dynamodb table containing timelines invoicing metadata
+
+  ReworkedTimelinesForInvoicingDynamoTableName:
+    Type: String
+    Description: Name of dynamodb table containing timelines invoicing metadata
+
   CdcKinesisSourceStreamArn:
     Type: String
     Description: "Where to send CDC"
+
+  CdcKinesisSourceStreamName:
+    Type: String
+    Description: "Kinesis stream name to send CDC logs to"
 
   CdcKinesisSourceStreamKeyArn:
     Description: "Kinesis source CDC stream crypto key ARN"
@@ -164,6 +176,11 @@ Parameters:
     Description: "TTL expiration for row in pn-TimelinesForInvoicing (in days)"
     Type: Number
 
+  ReworkedInvoicingTtlDays:
+    Default: 365
+    Description: "TTL expiration for row in pn-ReworkedTimelinesForInvoicing (in days)"
+    Type: Number
+
   MaxIDXsInSENDAMRSearch:
     Default: 50
     Description: "Max number of IDXs to search in SEND_AMR activity"
@@ -200,24 +217,8 @@ Parameters:
   ActivityStepManagerLambdaName:
     Type: String
 
-  ActivityStepManagerDLQARN:
-    Type: String
-    Description: 'DLQ ARN for ActivityStepManagerLambda'
-
-  ActivityStepManagerDLQAlarmARN:
-    Type: String
-    Description: 'DLQ Alarm ARN for ActivityStepManagerLambda'
-
   SLAViolationCheckerLambdaName:
     Type: String
-
-  SLAViolationCheckerDLQARN:
-    Type: String
-    Description: 'DLQ ARN for SLAViolationCheckerLambda'
-
-  SLAViolationCheckerDLQAlarmARN:
-    Type: String
-    Description: 'DLQ Alarm ARN for SLAViolationCheckerLambda'
 
   SLAViolationCheckerLambdaSQSName:
     Type: String
@@ -233,6 +234,83 @@ Parameters:
     Type: Number
     Default: 129600000 # 36 hours
     Description: 'MaxAgeInMilliseconds for Kinesis Cdc GetRecords'
+
+  ActivityStepManagerLambdaKinesisMaxAgeInSeconds:
+    Type: Number
+    Default: 604800 # 7 days
+    Description: 'MaxRecordAgeInSeconds for ActivityStepManagerLambda Kinesis Event Source Mapping'
+
+  SlaViolationCheckerLambdaKinesisMaxAgeInSeconds:
+    Type: Number
+    Default: 604800 # 7 days
+    Description: 'MaxRecordAgeInSeconds for SLAViolationCheckerLambda Kinesis Event Source Mapping'
+
+  SLAViolationCheckerSQSBatchSize:
+    Type: Number
+    Default: 5
+    Description: 'BatchSize for SLAViolationCheckerLambdaSQS SQS Event Source Mapping'
+
+  SLAViolationCheckerSQSMaxConcurrency:
+    Type: Number
+    Default: 10
+    Description: 'MaximumConcurrency for SLAViolationCheckerLambdaSQS SQS Event Source Mapping'
+
+  WorkDaySLAViolationsValidationAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations Validation alarm'
+
+  WorkDaySLAViolationsRefinementAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations Refinement alarm'
+
+  WorkDaySLAViolationsSendAmrAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations SendAmr alarm'
+
+  WorkDaySLAViolationsSendPaperAr890AlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations SendPaperAr890 alarm'
+
+  WorkDaySLAViolationsSendPecAlarmEnabled:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Description: 'Enable or disable WorkDay SLA Violations SendPec alarm'
+
+Conditions:
+  IsWorkDaySLAViolationsValidationAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsValidationAlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsRefinementAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsRefinementAlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsSendAmrAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsSendAmrAlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsSendPaperAr890AlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsSendPaperAr890AlarmEnabled
+    - 'true'
+  IsWorkDaySLAViolationsSendPecAlarmEnabled: !Equals
+    - !Ref WorkDaySLAViolationsSendPecAlarmEnabled
+    - 'true'
 
 Resources:
   #########################################################
@@ -324,6 +402,7 @@ Resources:
           REGION: !Sub ${AWS::Region}
           DYNAMODB_TABLE: !Ref ProgressionSensorDataDynamoTableName
           INVOICING_DYNAMODB_TABLE: !Ref TimelinesForInvoicingDynamoTableName
+          REWORKED_INVOICING_DYNAMODB_TABLE: !Ref ReworkedTimelinesForInvoicingDynamoTableName
           ALARM_TTL_VALIDATION: !Ref AlarmTtlValidation
           ALARM_TTL_REFINEMENT: !Ref AlarmTtlRefinement
           ALARM_TTL_SEND_PEC: !Ref AlarmTtlSendPec
@@ -335,6 +414,7 @@ Resources:
           SLA_EXPIRATION_SEND_PAPER_AR_890: !Ref SlaExpirationSendPaperAr890
           SLA_EXPIRATION_SEND_AMR: !Ref SlaExpirationSendAmr
           INVOICING_TTL_DAYS: !Ref InvoicingTtlDays
+          REWORKED_INVOICING_TTL_DAYS: !Ref ReworkedInvoicingTtlDays
           MAX_IDXS_IN_SEND_AMR_SEARCH: !Ref MaxIDXsInSENDAMRSearch
       TracingConfig:
         Mode: Active
@@ -379,6 +459,8 @@ Resources:
               - !Sub "${ProgressionSensorDataDynamoTableArn}/*"
               - !Ref TimelinesForInvoicingDynamoTableArn
               - !Sub "${TimelinesForInvoicingDynamoTableArn}/*"
+              - !Ref ReworkedTimelinesForInvoicingDynamoTableArn
+              - !Sub "${ReworkedTimelinesForInvoicingDynamoTableArn}/*"
           - Effect: Allow
             Action:
               - "dynamodb:GetItem"
@@ -388,6 +470,8 @@ Resources:
           - Effect: Allow
             Action:
               - "dynamodb:BatchGetItem"
+              - "dynamodb:Query"
+              - "dynamodb:GetItem"
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
@@ -397,6 +481,8 @@ Resources:
             Resource:
               - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing
               - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-TimelinesForInvoicing/*"
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-ReworkedTimelinesForInvoicing
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-ReworkedTimelinesForInvoicing/*"
           - Effect: Allow
             Action:
               - kinesis:DescribeStream
@@ -412,15 +498,19 @@ Resources:
             Resource: !Ref CdcKinesisSourceStreamKeyArn
           - Effect: Allow
             Action:
-              - sqs:ChangeMessageVisibility
-              - sqs:GetQueueAttributes
-              - sqs:GetQueueUrl
-              - sqs:SendMessage
-            Resource: !Ref ActivityStepManagerDLQARN
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}/*
 
   # CDC to Activity Step Manager
   ActivityStepManagerLambdaKinesisSource:
     Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - ActivityStepManagerLambdaPolicy
     Properties:
       BatchSize: 20
       BisectBatchOnFunctionError: true
@@ -429,10 +519,39 @@ Resources:
       FunctionResponseTypes:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
+      MaximumRecordAgeInSeconds: !Ref ActivityStepManagerLambdaKinesisMaxAgeInSeconds
       StartingPosition: TRIM_HORIZON
       DestinationConfig:
         OnFailure:
-          Destination: !Ref ActivityStepManagerDLQARN
+          Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
+      FilterCriteria:
+        Filters:
+          - Pattern: '{"data": {"eventName": ["INSERT"], "tableName": ["pn-Notifications"], "dynamodb": { "NewImage": {"communicationType": {"S": [{ "exists": false }]}} }}}'
+          - Pattern: '{"data": {"eventName": ["INSERT"], "tableName": ["pn-Timelines"], "dynamodb": { "NewImage": {"communicationType": {"S": [{ "exists": false }]}} }}}'
+
+  ActivityStepManagerKinesisFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-ActivityStepManager-ESM-Alarm"
+      AlarmDescription: "CloudWatch alarm for when ActivityStepManagerLambda has Kinesis stream read failures, which can indicate problems with the function processing or with the stream itself."
+      TreatMissingData: notBreaching        
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: !Ref ActivityStepManagerLambda
+          Name: FunctionName
+        - Value: !Ref CdcKinesisSourceStreamName
+          Name: StreamName
+      DatapointsToAlarm: 1           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Period: 600
+      Namespace: ESM/Kinesis   
+      MetricName: ProcessingFailures
+      Statistic: Maximum
+      Threshold: 1
 
   ActivityStepManagerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -552,21 +671,33 @@ Resources:
               - sqs:SendMessage
             Resource:
               - !Ref ProgressionSensorQueueARN
-              - !Ref SLAViolationCheckerDLQARN
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}/*
 
   SLAViolationCheckerEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
-      BatchSize: 10
+      BatchSize: !Ref SLAViolationCheckerSQSBatchSize
       Enabled: true
       FunctionResponseTypes:
         - ReportBatchItemFailures
       EventSourceArn: !Ref ProgressionSensorQueueARN
       FunctionName: !GetAtt SLAViolationCheckerLambdaSQS.Arn
+      ScalingConfig:
+        MaximumConcurrency: !Ref SLAViolationCheckerSQSMaxConcurrency
 
   # CDC to SLA Violation Checker
   SLAViolationCheckerLambdaKinesisSource:
     Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - SLAViolationCheckerLambdaPolicy
     Properties:
       BatchSize: 20
       BisectBatchOnFunctionError: true
@@ -575,10 +706,35 @@ Resources:
       FunctionResponseTypes:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 1 minute
+      MaximumRecordAgeInSeconds: !Ref SlaViolationCheckerLambdaKinesisMaxAgeInSeconds
       StartingPosition: TRIM_HORIZON
       DestinationConfig:
         OnFailure:
-          Destination: !Ref SLAViolationCheckerDLQARN
+          Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
+
+  SLAViolationCheckerKinesisFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-SLAViolationChecker-ESM-Alarm"
+      AlarmDescription: "CloudWatch alarm for when SLAViolationCheckerLambda has Kinesis stream read failures, which can indicate problems with the function processing or with the stream itself."
+      TreatMissingData: notBreaching        
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: !Ref SLAViolationCheckerLambda
+          Name: FunctionName
+        - Value: !Ref CdcProgressionSensorKinesisStreamName
+          Name: StreamName
+      DatapointsToAlarm: 1           
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Period: 600
+      Namespace: ESM/Kinesis   
+      MetricName: ProcessingFailures
+      Statistic: Maximum      
+      Threshold: 1
 
   SLAViolationCheckerLambdaAlarms:
     Type: AWS::CloudFormation::Stack
@@ -742,8 +898,6 @@ Resources:
             - !GetAtt CdcKinesisGetRecordsIteratorAgeAlarm.Arn
             - !Ref ProgressionSensorQueueAgeAlarmARN
             - !Ref ProgressionSensorQueueAlarmARN
-            - !Ref ActivityStepManagerDLQAlarmARN
-            - !Ref SLAViolationCheckerDLQAlarmARN
         LogGroupsNames: !Join
           - ","
           - - !Sub /aws/lambda/${SearchSLAViolationsLambdaName}
@@ -754,6 +908,7 @@ Resources:
 
   WorkDaySLAViolationsValidationAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsValidationAlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-Validation-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-Validation is too high."
@@ -784,6 +939,7 @@ Resources:
 
   WorkDaySLAViolationsRefinementAlarm:
       Type: AWS::CloudWatch::Alarm
+      Condition: IsWorkDaySLAViolationsRefinementAlarmEnabled
       Properties:
         AlarmName: "workday-SLAViolations-Refinement-Alarm"
         AlarmDescription: "CloudWatch alarm for SLAViolations-Refinement is too high."
@@ -815,6 +971,7 @@ Resources:
 
   WorkDaySLAViolationsSendAmrAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsSendAmrAlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-SendAmr-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-SendAmr is too high."
@@ -845,6 +1002,7 @@ Resources:
 
   WorkDaySLAViolationsSendPaperAr890Alarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsSendPaperAr890AlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-SendPaperAr890-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-SendPaperAr890 is too high."
@@ -875,6 +1033,7 @@ Resources:
 
   WorkDaySLAViolationsSendPecAlarm:
     Type: AWS::CloudWatch::Alarm
+    Condition: IsWorkDaySLAViolationsSendPecAlarmEnabled
     Properties:
       AlarmName: "workday-SLAViolations-SendPec-Alarm"
       AlarmDescription: "CloudWatch alarm for SLAViolations-SendPec is too high."

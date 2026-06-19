@@ -4,6 +4,7 @@ const {
   getNotification,
   TABLES,
   getTimelineElements,
+  getLatestReworkedTimelineElement,
 } = require("./repository");
 const { parseKinesisObjToJsonObj, initTtlSlaTimes } = require("./utils");
 
@@ -21,6 +22,7 @@ const allowedTimelineCategories = [
   "SEND_SIMPLE_REGISTERED_LETTER",
   "SEND_SIMPLE_REGISTERED_LETTER_PROGRESS",
   "ANALOG_WORKFLOW_RECIPIENT_DECEASED",
+  "NOTIFICATION_TIMELINE_REWORKED",
 ];
 
 const ttlSlaTimes = initTtlSlaTimes();
@@ -38,9 +40,18 @@ function calculateNextDate(startTS, days) {
 }
 
 function extractRecIdsFromTimelineId(timelineElementId) {
-  return timelineElementId.split("RECINDEX_")[1];
-  // used for REFINEMENT (refinement.IUN_123456789.RECINDEX_1)
-  // or for NOTIFICATION_VIEWED (notification.viewed-IUN_123456789.RECINDEX_1)
+  const match = timelineElementId.match(/RECINDEX_(\d+)(?:\.|$)/);
+  return match ? match[1] : null;
+  // Handles both RECINDEX_0 and RECINDEX_0.REWORK
+}
+
+function extractLastReworkSuffix(timelineElementId) {
+  const match = timelineElementId?.match(/(\.REWORK_\d+)$/);
+  return match ? match[1] : "";
+}
+
+function matchesTimelineElementPattern(timelineElementId, pattern) {
+  return timelineElementId === pattern || timelineElementId.startsWith(`${pattern}.`);
 }
 
 function makeDeleteOp(id, type, event) {
@@ -94,7 +105,7 @@ function makeInsertOp(
   return op;
 }
 
-function makeBulkInsertOp(event, payload) {
+function makeBulkInsertOp(event, payload, opType = "BULK_INSERT_INVOICES") {
   if (!payload || payload.length === 0) {
     console.log("Missing payload", {
       event: JSON.stringify(event),
@@ -103,7 +114,7 @@ function makeBulkInsertOp(event, payload) {
   }
   const op = {
     payload,
-    opType: "BULK_INSERT_INVOICES",
+    opType,
   };
   return op;
 }
@@ -131,7 +142,7 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
     paId,
     invoicingDay,
     invoincingTimestamp, // typo, but left
-    ...timelineObj,
+    ...timelineObj
   };
 }
 
@@ -155,29 +166,147 @@ async function processInvoice(event, recIdxs) {
       // NOTIFICATION_CANCELLED has an array with recIdxs
       if (recIdxs !== null) {
         for (let recIdx of recIdxs) {
-          // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
           const iun = timelineObj.iun;
-          const timelineElements = await getTimelineElements(iun, [
+          const reworkedTimelineElement = await getLatestReworkedTimelineElement(event.dynamodb.NewImage.iun.S, "NOTIFICATION_TIMELINE_REWORKED.IUN_" + event.dynamodb.NewImage.iun.S + ".RECINDEX_" + recIdx);
+          const timelineTs = new Date(timelineObj.timestamp).getTime();
+          if (reworkedTimelineElement && timelineTs > new Date(reworkedTimelineElement.timestamp).getTime()) {
+            console.log("Found reworked timeline element for iun " + iun + " and recIdx " + recIdx);
+            await evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicedElement.invoincingTimestamp);
+          }else{
+            // get SEND_ANALOG_DOMICILE and SEND_SIMPLE_REGISTERED_LETTER for the same iun and recipientIndex
+            const timelineElements = await getTimelineElements(iun, [
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
             `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
             `SEND_SIMPLE_REGISTERED_LETTER.IUN_${iun}.RECINDEX_${recIdx}`,
-          ]);
-          if (timelineElements && timelineElements.length > 0) {
-            for (const timelineElem of timelineElements) {
-              invoicedElements.push(
-                processInvoicedElement(
-                  timelineElem,
-                  // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
-                  invoicedElement.invoincingTimestamp // typo, but left
-                )
-              );
+            ]);
+            if (timelineElements && timelineElements.length > 0) {
+              for (const timelineElem of timelineElements) {
+                invoicedElements.push(
+                  processInvoicedElement(
+                    timelineElem,
+                    // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
+                    invoicedElement.invoincingTimestamp // typo, but left
+                  )
+                );
+              }
             }
           }
-        } // for
-      } // if recIdx
+        }
+      }
     } // if invoicedElement
-  }
   return invoicedElements;
+}
+}
+
+async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoicedElements, reworkedTimelineElement, invoicingTimestamp) {
+    const reworkElementDetails = reworkedTimelineElement.details;
+    const attempt0Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`;
+    const attempt1Pattern = `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`;
+    const invalidatedSendAnalogDomicileElements = getInvalidatedSendAnalogDomicileIds(
+      reworkElementDetails.invalidatedTimelineAndStatusHistory
+    ).filter(
+      (id) =>
+        matchesTimelineElementPattern(id, attempt0Pattern) ||
+        matchesTimelineElementPattern(id, attempt1Pattern)
+    );
+    const attempt0Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
+      matchesTimelineElementPattern(id, attempt0Pattern)
+    );
+    const attempt1Invalidated = invalidatedSendAnalogDomicileElements.some((id) =>
+      matchesTimelineElementPattern(id, attempt1Pattern)
+    );
+    const lastReworkSuffix = extractLastReworkSuffix(
+      reworkedTimelineElement.timelineElementId
+    );
+
+    let timelineElementIdsToFetch = [];
+    if (attempt0Invalidated && attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0${lastReworkSuffix}`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1${lastReworkSuffix}`,
+      ];
+    } else if (attempt0Invalidated && !attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0${lastReworkSuffix}`,
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+      ];
+    } else if (!attempt0Invalidated && attempt1Invalidated) {
+      timelineElementIdsToFetch = [
+        `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1${lastReworkSuffix}`,
+      ];
+    }
+
+    let timelineElements = [];
+    if(reworkElementDetails.sentAttemptMade == 0 && invalidatedSendAnalogDomicileElements.length === 0) {
+        timelineElements.push(...await getTimelineElements(iun, [
+            `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+        ]));
+    }
+    else if(timelineElementIdsToFetch.length > 0){
+      timelineElements.push(...await getTimelineElements(iun, timelineElementIdsToFetch));
+    }
+
+    if (timelineElements && timelineElements.length > 0) {
+        const newElements = timelineElements.map(elem => ({
+                  ...processInvoicedElement(elem, invoicingTimestamp),
+                  invoicingType: 'NEW'
+                }));
+        invoicedElements.push(...newElements);
+    }
+     const length = invoicedElements.length;
+     const elementsToAdd = [];
+     for (let i = 0; i < length; i++) {
+            const element = invoicedElements[i];
+            const sk = element.invoincingTimestamp_timelineElementId;
+            if (sk.includes('REFINEMENT') || sk.includes('ANALOG_WORKFLOW_RECIPIENT_DECEASED') || sk.includes('NOTIFICATION_VIEWED')) {
+              element.invoicingType = 'NEW';
+            } else if (sk.includes('NOTIFICATION_CANCELLED')) {
+              const duplicatedElement = { ...element, invoicingType: 'NEW' };
+              elementsToAdd.push(duplicatedElement);
+            }
+        }
+     invoicedElements.push(...elementsToAdd);
+    return invoicedElements;
+}
+
+function getInvalidatedSendAnalogDomicileIds(invalidatedTimelineAndStatusHistory){
+    let relatedTimelineElementIds = [];
+    if (invalidatedTimelineAndStatusHistory && invalidatedTimelineAndStatusHistory.length > 0) {
+        for (const invalidatedElement of invalidatedTimelineAndStatusHistory) {
+            relatedTimelineElementIds.push(...invalidatedElement.relatedTimelineElements);
+        }
+    }
+    return relatedTimelineElementIds.filter(id => id.startsWith("SEND_ANALOG_DOMICILE"));
+}
+
+async function processInvalidatedInvoice(iun, timelineElementIds, reworkedTimestamp) {
+  console.log("Processing data for invalidated invoice...");
+
+  // Recupera tutti gli elementi timeline
+  const timelineElements = await getTimelineElements(iun, timelineElementIds);
+  if (!timelineElements?.length) {
+    return [];
+  }
+
+  // Processa gli elementi filtrando per categoria
+  return timelineElements
+    .filter(elem => shouldProcessElement(elem))
+    .map(elem => ({
+          ...processInvoicedElement(elem, reworkedTimestamp),
+          invoicingType: 'INVALIDATED'
+        }));
+}
+
+function shouldProcessElement(timelineElem) {
+  const { category, details } = timelineElem;
+
+  // Categorie speciali richiedono notificationCost definito
+  const requiresCost = category === "REFINEMENT" ||   category === "ANALOG_WORKFLOW_RECIPIENT_DECEASED";
+
+  if (requiresCost) {
+    return details?.notificationCost != null;
+  }
+  return true;
 }
 
 async function mapPayload(event) {
@@ -259,9 +388,17 @@ async function mapPayload(event) {
 
         // PN-4564 - process invoice data
         const invoicedElements = await processInvoice(event, [recIdx]);
-        const bulkOp = makeBulkInsertOp(event, invoicedElements);
-        if (bulkOp) {
-          dynamoDbOps.push(bulkOp);
+        if(invoicedElements && invoicedElements.length > 0){
+          const newInvoices = invoicedElements.filter(elem => elem.invoicingType && elem.invoicingType === 'NEW');
+          const standardInvoices = invoicedElements.filter(elem => !elem.invoicingType || elem.invoicingType !== 'NEW');
+          if (standardInvoices.length > 0) {
+            const bulkOp = makeBulkInsertOp(event, standardInvoices);
+            dynamoDbOps.push(bulkOp);
+          }
+          if(newInvoices.length > 0){
+            const bulkReworkedOp = makeBulkInsertOp(event,newInvoices,"BULK_INSERT_REWORKED_INVOICES");
+            dynamoDbOps.push(bulkReworkedOp);
+          }
         }
 
         // PN-8703 - close all possible SEND_PEC steps for the specific recipient
@@ -328,12 +465,17 @@ async function mapPayload(event) {
           event,
           cleanRecIdxs
         );
-        const bulkOpCancelled = makeBulkInsertOp(
-          event,
-          invoicedElementsCancelled
-        );
-        if (bulkOpCancelled) {
-          dynamoDbOps.push(bulkOpCancelled);
+        if(invoicedElementsCancelled && invoicedElementsCancelled.length > 0){
+          const newInvoices = invoicedElementsCancelled.filter(elem => elem.invoicingType && elem.invoicingType === 'NEW');
+          const standardInvoices = invoicedElementsCancelled.filter(elem => !elem.invoicingType || elem.invoicingType !== 'NEW');
+          const bulkOpCancelled = makeBulkInsertOp(event, standardInvoices);
+          const bulkReworkedOp = makeBulkInsertOp(event,newInvoices,"BULK_INSERT_REWORKED_INVOICES");
+          if (bulkOpCancelled) {
+            dynamoDbOps.push(bulkOpCancelled);
+          }
+          if(bulkReworkedOp){
+            dynamoDbOps.push(bulkReworkedOp);
+          }
         }
         break;
       }
@@ -349,8 +491,9 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         break;
       case "SEND_DIGITAL_FEEDBACK":
+        const sendDigitalDomicileTimelineElementId = event.dynamodb.NewImage.timelineElementId.S.replace("SEND_DIGITAL_FEEDBACK", "SEND_DIGITAL_DOMICILE");
         op = makeDeleteOp(
-          "02_PEC__##" + event.dynamodb.NewImage.timelineElementId.S,
+          "02_PEC__##" + sendDigitalDomicileTimelineElementId,
           "SEND_PEC",
           event
         );
@@ -368,8 +511,9 @@ async function mapPayload(event) {
         dynamoDbOps.push(op);
         break;
       case "SEND_ANALOG_FEEDBACK":
+        const sendAnalogDomicileTimelineElementId = event.dynamodb.NewImage.timelineElementId.S.replace("SEND_ANALOG_FEEDBACK", "SEND_ANALOG_DOMICILE");
         op = makeDeleteOp(
-          "03_PAPER##" + event.dynamodb.NewImage.timelineElementId.S,
+          "03_PAPER##" + sendAnalogDomicileTimelineElementId,
           "SEND_PAPER_AR_890",
           event
         );
@@ -405,6 +549,29 @@ async function mapPayload(event) {
           dynamoDbOps.push(op);
         }
         break;
+      case "NOTIFICATION_TIMELINE_REWORKED":
+        const { iun, timelineElementId, timestamp: reworkedTimestamp, details } = extractDynamoDBFields(event.dynamodb.NewImage);
+        recIdx = extractRecIdsFromTimelineId(timelineElementId);
+        const op1 = makeInsertOp(
+          "01_REFIN##" + event.dynamodb.NewImage.iun.S + "##" + recIdx,
+          "REFINEMENT",
+          event,
+          "timestamp",
+          ttlSlaTimes.ALARM_TTL_REFINEMENT, // default 110
+          ttlSlaTimes.SLA_EXPIRATION_REFINEMENT // default 120
+        );
+        dynamoDbOps.push(op1);
+        // Estrai e filtra i timeline IDs invalidati
+        const invalidatedTimelineIds = getInvalidatedInvoicingTimelineIds(details.invalidatedTimelineAndStatusHistory,iun,recIdx);
+        if (invalidatedTimelineIds.length === 0) {
+          break;
+        }
+        const invalidatedInvoicedElements = await processInvalidatedInvoice(iun,invalidatedTimelineIds,reworkedTimestamp);
+        const bulkReworkedOp = makeBulkInsertOp(event,invalidatedInvoicedElements,"BULK_INSERT_REWORKED_INVOICES");
+        if (bulkReworkedOp) {
+          dynamoDbOps.push(bulkReworkedOp);
+        }
+        break;
       default:
     }
   }
@@ -412,12 +579,40 @@ async function mapPayload(event) {
   return dynamoDbOps;
 }
 
+function extractDynamoDBFields(newImage) {
+  return {
+    iun: newImage.iun.S,
+    timelineElementId: newImage.timelineElementId.S,
+    timestamp: newImage.timestamp.S,
+    details: newImage.details.M
+  };
+}
+
+function getInvalidatedInvoicingTimelineIds(invalidatedElements, iun, recIdx) {
+  const invoicingPatterns = [
+    `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0`,
+    `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`,
+    `REFINEMENT.IUN_${iun}.RECINDEX_${recIdx}`,
+    `ANALOG_WORKFLOW_RECIPIENT_DECEASED.IUN_${iun}.RECINDEX_${recIdx}`,
+  ];
+
+    return invalidatedElements.L
+      .flatMap(elem => {
+        const relatedElements = elem.M?.relatedTimelineElements?.L || [];
+        return relatedElements.map(item => item.S);
+      })
+      .filter(id =>
+        invoicingPatterns.some(pattern => matchesTimelineElementPattern(id, pattern))
+      );
+ }
+
 exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
-      (e.tableName == TABLES.NOTIFICATIONS ||
+      (e.tableName == TABLES.NOTIFICATIONS && !e.dynamodb.NewImage.communicationType ||
         (e.tableName == TABLES.TIMELINES &&
+          !e.dynamodb.NewImage.communicationType &&
           e.dynamodb.NewImage.category &&
           allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S) >=
             0))
@@ -425,7 +620,7 @@ exports.mapEvents = async (events) => {
   });
 
   let ops = [];
-  for (let i = 0; i < filteredEvents.length; i++) {
+      for (let i = 0; i < filteredEvents.length; i++) {
     const dynamoDbOps = await mapPayload(filteredEvents[i]);
     ops = ops.concat(dynamoDbOps);
   }
