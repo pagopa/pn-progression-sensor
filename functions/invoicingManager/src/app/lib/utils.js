@@ -38,7 +38,7 @@ exports.parseKinesisObjToJsonObj = (elToParse) => {
   return elToParse;
 };
 
-exports.initTtlSlaTimes = () => {
+exports.initTtlTimes = () => {
   const ttlSlaTimes = {
     // The default values are stored in the microservice.yml Parameters section.
     // The values here are only for the initialization of the object and will be overwritten.

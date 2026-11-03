@@ -4,7 +4,7 @@ const {
   TABLES,
   getTimelineElements,
 } = require("./repository");
-const { parseKinesisObjToJsonObj, initTtlSlaTimes } = require("./utils");
+const { parseKinesisObjToJsonObj, initTtlTimes } = require("./utils");
 
 const allowedTimelineCategories = [
   // Informal categories
@@ -16,7 +16,7 @@ const allowedTimelineCategories = [
   "WORKFLOW_ENDED_REACHED"
 ];
 
-const ttlSlaTimes = initTtlSlaTimes();
+const ttlTimes = initTtlTimes();
 
 function extractRecIdsFromTimelineId(timelineElementId) {
   const match = timelineElementId.match(/RECINDEX_(\d+)(?:\.|$)/);
@@ -50,7 +50,7 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
     .format("YYYY-MM-DD");
   const paId = timelineObj.paId;
   // ttl = invoicingTimestamp + 1 year default (in seconds)
-  const days = ttlSlaTimes.INVOICING_TTL_DAYS; // default 365
+  const days = ttlTimes.INVOICING_TTL_DAYS; // default 365
   const ttl = Math.floor(
     moment(invoincingTimestamp).add(days, "days").valueOf() / 1000
   );
@@ -150,11 +150,10 @@ exports.mapEvents = async (events) => {
   const filteredEvents = events.filter((e) => {
     return (
       e.eventName == "INSERT" &&
-      (e.tableName == TABLES.NOTIFICATIONS ||
-        (e.tableName == TABLES.TIMELINES &&
+      (e.tableName == TABLES.TIMELINES &&
           e.dynamodb.NewImage.category &&
           allowedTimelineCategories.indexOf(e.dynamodb.NewImage.category.S) >=
-            0))
+            0)
     );
   });
 

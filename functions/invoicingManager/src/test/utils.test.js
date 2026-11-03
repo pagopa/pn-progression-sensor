@@ -53,9 +53,9 @@ describe("test utils functions", () => {
   });
 
   it("should test initTtlSlaTimes with default values", () => {
-    const { initTtlSlaTimes } = require("../app/lib/utils");
+    const { initTtlTimes } = require("../app/lib/utils");
 
-    const ttlSlaTimes = initTtlSlaTimes();
+    const ttlSlaTimes = initTtlTimes();
     expect(ttlSlaTimes.INVOICING_TTL_DAYS).to.eq(365);
   });
 
@@ -63,9 +63,9 @@ describe("test utils functions", () => {
     // set the environment variables
     process.env.INVOICING_TTL_DAYS = 0;
 
-    const { initTtlSlaTimes } = require("../app/lib/utils");
+    const { initTtlTimes } = require("../app/lib/utils");
 
-    const ttlSlaTimes = initTtlSlaTimes();
+    const ttlSlaTimes = initTtlTimes();
 
     expect(ttlSlaTimes.INVOICING_TTL_DAYS).to.eq(0);
 
@@ -77,9 +77,9 @@ describe("test utils functions", () => {
     // set the environment variables
     process.env.INVOICING_TTL_DAYS = "k";
 
-    const { initTtlSlaTimes } = require("../app/lib/utils");
+    const { initTtlTimes } = require("../app/lib/utils");
 
-    const ttlSlaTimes = initTtlSlaTimes();
+    const ttlSlaTimes = initTtlTimes();
 
     expect(ttlSlaTimes.INVOICING_TTL_DAYS).to.be.NaN;
 
