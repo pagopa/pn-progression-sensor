@@ -295,6 +295,27 @@ Parameters:
       - 'false'
     Description: 'Enable or disable WorkDay SLA Violations SendPec alarm'
 
+  InformalTimelinesForInvoicingDataTableName:
+    Type: String
+    Description: Name of dynamodb table containing informal timelines invoicing metadata
+
+  InformalTimelinesForInvoicingDataTableArn:
+    Type: String
+    Description: Arn of dynamodb table containing informal timelines invoicing metadata
+
+  InvoicingManagerLambdaName:
+    Type: String
+    Description: Name of the invoicing manager lambda
+
+  InvoicingManagerLambdaKinesisMaxAgeInSeconds:
+    Type: Number
+    Default: 604800 # 7 days
+    Description: 'MaxRecordAgeInSeconds for InvoicingManagerLambda Kinesis Event Source Mapping'
+
+  InvoiceableTimelineElementCategories:
+    Type: CommaDelimitedList
+    Description: "Comma separated list of timeline element categories that are considered invoiceable"
+
 Conditions:
   IsWorkDaySLAViolationsValidationAlarmEnabled: !Equals
     - !Ref WorkDaySLAViolationsValidationAlarmEnabled
@@ -559,6 +580,162 @@ Resources:
       TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
       Parameters:
         FunctionName: !Ref ActivityStepManagerLambda
+        AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+
+  #########################################################
+  ###                 InvoicingManagerLambda            ###
+  #########################################################
+
+  # Lambda function
+  InvoicingManagerLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref InvoicingManagerLambdaName
+      Runtime: nodejs22.x
+      Handler: "index.handler"
+      Code:
+        S3Bucket: !Ref LambdasBucketName
+        S3Key: !Sub "${BucketBasePath}/invoicingManager.zip"
+      Role: !GetAtt InvoicingManagerLambdaRole.Arn
+      Environment:
+        Variables:
+          REGION: !Sub ${AWS::Region}
+          INFORMAL_INVOICING_DYNAMODB_TABLE: !Ref InformalTimelinesForInvoicingDataTableName
+          INVOICING_TTL_DAYS: !Ref InvoicingTtlDays
+      TracingConfig:
+        Mode: Active
+      Layers:
+        - !Sub "arn:aws:lambda:${AWS::Region}:339249233099:layer:LambdaInsightsExtension:13"
+      Timeout: 10
+
+  # Lambda function role
+  InvoicingManagerLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-invoicingManagerLambdaRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        # - arn:aws:iam::aws:policy/CloudWatchLambdaInsightsExecutionRolePolicy
+        # - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+
+  # Lambda function IAM policy
+  InvoicingManagerLambdaPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub ${ProjectName}-InvoicingManagerLambdaPolicy
+      Roles:
+        - !Ref InvoicingManagerLambdaRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - "dynamodb:*"
+            Resource:
+              - !Ref InformalTimelinesForInvoicingDataTableArn
+              - !Sub "${InformalTimelinesForInvoicingDataTableArn}/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:BatchGetItem"
+              - "dynamodb:Query"
+              - "dynamodb:GetItem"
+            Resource:
+              - !Sub arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines
+              - !Sub "arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/pn-Timelines/*"
+          - Effect: Allow
+            Action:
+              - "dynamodb:BatchWriteItem"
+            Resource:
+              - !Ref InformalTimelinesForInvoicingDataTableArn
+              - !Sub "${InformalTimelinesForInvoicingDataTableArn}/*"
+          - Effect: Allow
+            Action:
+              - kinesis:DescribeStream
+              - kinesis:DescribeStreamSummary
+              - kinesis:GetShardIterator
+              - kinesis:GetRecords
+              - kinesis:ListShards
+              - kinesis:ListStreams
+              - kinesis:SubscribeToShard
+            Resource: !Ref CdcKinesisSourceStreamArn
+          - Action: kms:Decrypt
+            Effect: Allow
+            Resource: !Ref CdcKinesisSourceStreamKeyArn
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetBucketLocation
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+            Resource: !Sub arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}/*
+
+  # CDC to Activity Step Manager
+  InvoicingManagerLambdaKinesisSource:
+    Type: AWS::Lambda::EventSourceMapping
+    DependsOn:
+      - InvoicingManagerLambdaPolicy
+    Properties:
+      BatchSize: 20
+      BisectBatchOnFunctionError: true
+      EventSourceArn: !Ref CdcKinesisSourceStreamArn
+      FunctionName: !Ref InvoicingManagerLambda
+      FunctionResponseTypes:
+        - ReportBatchItemFailures
+      MaximumBatchingWindowInSeconds: 300 # 5 minutes
+      MaximumRecordAgeInSeconds: !Ref InvoicingManagerLambdaKinesisMaxAgeInSeconds
+      StartingPosition: TRIM_HORIZON
+      DestinationConfig:
+        OnFailure:
+          Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
+      FilterCriteria:
+        Filters:
+          - Pattern: !Join
+              - ''
+              - - '{ "data": { "tableName": ["pn-Timelines"], "eventName": ["INSERT"], "dynamodb": { "NewImage": { "category": { "S": ["'
+                - !Join [ '","', !Ref InvoiceableTimelineElementCategories ]
+                - '"] }, "communicationType": {"S": ["INFORMAL"]} } } } }'
+
+  InvoicingManagerKinesisFailuresAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub "${ProjectName}-InvoicingManager-ESM-Alarm"
+      AlarmDescription: "CloudWatch alarm for when InvoicingManagerLambda has Kinesis stream read failures, which can indicate problems with the function processing or with the stream itself."
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref AlarmSNSTopicArn
+      OKActions:
+        - !Ref AlarmSNSTopicArn
+      Dimensions:
+        - Value: !Ref InvoicingManagerLambda
+          Name: FunctionName
+        - Value: !Ref CdcKinesisSourceStreamName
+          Name: StreamName
+      DatapointsToAlarm: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      EvaluationPeriods: 6
+      Period: 600
+      Namespace: ESM/Kinesis
+      MetricName: ProcessingFailures
+      Statistic: Maximum
+      Threshold: 1
+
+  InvoicingManagerLambdaAlarms:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "${TemplateBucketBaseUrl}/fragments/lambda-alarms.yaml"
+      Parameters:
+        FunctionName: !Ref InvoicingManagerLambda
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
 
   #########################################################
@@ -884,6 +1061,7 @@ Resources:
           - ","
           - - !GetAtt SearchSLAViolationsLambda.Arn
             - !GetAtt ActivityStepManagerLambda.Arn
+            - !GetAtt InvoicingManagerLambda.Arn
             - !GetAtt SLAViolationCheckerLambda.Arn
             - !GetAtt SLAViolationCloseSchedulingLambda.Arn
         QueueArns: !Join
@@ -893,6 +1071,7 @@ Resources:
           - ","
           - - !GetAtt SearchSLAViolationsLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt ActivityStepManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
+            - !GetAtt InvoicingManagerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCheckerLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt SLAViolationCloseSchedulingLambdaAlarms.Outputs.LambdaInvocationErrorLogsMetricAlarm
             - !GetAtt CdcKinesisGetRecordsIteratorAgeAlarm.Arn
@@ -902,6 +1081,7 @@ Resources:
           - ","
           - - !Sub /aws/lambda/${SearchSLAViolationsLambdaName}
             - !Sub /aws/lambda/${ActivityStepManagerLambdaName}
+            - !Sub /aws/lambda/${InvoicingManagerLambdaName}
             - !Sub /aws/lambda/${SLAViolationCheckerLambdaName}
             - !Sub /aws/lambda/${SLAViolationCheckerLambdaSQSName}
             - !Sub /aws/lambda/${SLAViolationCloseSchedulingLambdaName}
