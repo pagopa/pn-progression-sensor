@@ -30,6 +30,7 @@
     "WorkDaySLAViolationsRefinementAlarmEnabled": "false",
     "WorkDaySLAViolationsSendAmrAlarmEnabled": "false",
     "WorkDaySLAViolationsSendPaperAr890AlarmEnabled": "false",
-    "WorkDaySLAViolationsSendPecAlarmEnabled": "false"
+    "WorkDaySLAViolationsSendPecAlarmEnabled": "false",
+    "InvoiceableTimelineElementCategories": "REQUEST_REFUSED,WORKFLOW_DONE_UNREACHED,WORKFLOW_DONE_REACHED,WORKFLOW_ENDED_UNDELIVERABLE,WORKFLOW_ENDED_UNREACHED,WORKFLOW_ENDED_REACHED"
   }
 }
