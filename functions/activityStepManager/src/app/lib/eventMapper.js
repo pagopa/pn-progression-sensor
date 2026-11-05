@@ -246,6 +246,14 @@ async function evaluateNotificationReworkAndAdjustInvoicing(iun, recIdx, invoice
       timelineElements.push(...await getTimelineElements(iun, timelineElementIdsToFetch));
     }
 
+    const reworkTs = new Date(reworkedTimelineElement.timestamp).getTime();
+    timelineElements = timelineElements.filter(elem => {
+        if (elem.timelineElementId === `SEND_ANALOG_DOMICILE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_1`) {
+            return new Date(elem.timestamp).getTime() > reworkTs;
+        }
+        return true;
+    });
+
     if (timelineElements && timelineElements.length > 0) {
         const newElements = timelineElements.map(elem => ({
                   ...processInvoicedElement(elem, invoicingTimestamp),
