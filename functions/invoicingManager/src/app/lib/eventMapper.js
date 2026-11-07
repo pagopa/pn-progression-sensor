@@ -84,21 +84,21 @@ async function processInvoice(event, recIdxs) {
       // WORKFLOW_DONE_REACHED, WORKFLOW_DONE_UNREACHED, WORKFLOW_ENDED_UNREACHED, WORKFLOW_ENDED_REACHED, WORKFLOW_ENDED_UNDELIVERABLE have an array with one recIdxs
       if (recIdxs !== null) {
         for (let recIdx of recIdxs) {
-          const iun = timelineObj.iun;{
-            // get SEND_ANALOG_MESSAGE for the same iun and recipientIndex
-            const timelineElements = await getTimelineElements(iun, [
-            `SEND_ANALOG_MESSAGE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0.DELIVERYTYPE_RS`,
-            ]);
-            if (timelineElements && timelineElements.length > 0) {
-              for (const timelineElem of timelineElements) {
-                invoicedElements.push(
-                  processInvoicedElement(
-                    timelineElem,
-                    // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
-                    invoicedElement.invoincingTimestamp // typo, but left
-                  )
-                );
-              }
+          const iun = timelineObj.iun;
+          // get SEND_ANALOG_MESSAGE for the same iun and recipientIndex
+          const analogMessagesTimelineId = [
+            `SEND_ANALOG_MESSAGE.IUN_${iun}.RECINDEX_${recIdx}.ATTEMPT_0.DELIVERYTYPE_RS`
+          ]
+          const timelineElements = await getTimelineElements(iun, analogMessagesTimelineId);
+          if (timelineElements && timelineElements.length > 0) {
+            for (const timelineElem of timelineElements) {
+              invoicedElements.push(
+                processInvoicedElement(
+                  timelineElem,
+                  // we don't want the timestamp of the timelineElem, but the one of the timelineObj (the one the perfectionated the notification and started the invoice process)
+                  invoicedElement.invoincingTimestamp // typo, but left
+                )
+              );
             }
           }
         }

@@ -22,10 +22,7 @@ function makeBulkInsertInvoicesCommandFromEvent(event) {
 
 exports.persistEvents = async (events) => {
   const summary = {
-    deletions: 0,
     insertions: 0,
-    skippedDeletions: 0,
-    skippedInsertions: 0,
     errors: [],
   };
 
@@ -35,8 +32,12 @@ exports.persistEvents = async (events) => {
       console.log("Save elements to invoicing table");
       const params = makeBulkInsertInvoicesCommandFromEvent(evt);
       try {
-        await ddbDocClient.send(new BatchWriteCommand(params));
-        summary.insertions++;
+        const response = await ddbDocClient.send(new BatchWriteCommand(params));
+        if (response.UnprocessedItems && Object.keys(response.UnprocessedItems).length > 0) {
+          throw new Error(`DynamoDB did not process all invoice writes: ${JSON.stringify(response.UnprocessedItems)}`);
+        } else {
+          summary.insertions++;
+        }
       } catch (e) {
         console.error("Error on batch insert", evt);
         console.error("Error details", e);
@@ -64,14 +65,18 @@ exports.getTimelineElements = async function (iun, timelineElementIds) {
     };
     console.log(JSON.stringify(params));
     const response = await ddbDocClient.send(new BatchGetCommand(params));
+    if(response.UnprocessedKeys && Object.keys(response.UnprocessedKeys).length > 0) {
+      throw new Error("DynamoDB did not process all timeline element keys");
+    }
+
     if (response.Responses) {
       return response.Responses[TABLES.TIMELINES];
     }
     return null;
   } catch (e) {
     console.log("Get Timeline elements error " + iun, e);
+    throw e;
   }
-  return null;
 };
 
 const TABLES = {

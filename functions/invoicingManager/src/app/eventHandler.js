@@ -27,7 +27,6 @@ exports.handleEvent = async (event) => {
   let batchItemFailures = [];
   console.log("Persist summary", persistSummary);
   console.log(`Inserted ${persistSummary.insertions} records`);
-  console.log(`Deleted ${persistSummary.deletions} records`);
 
   if (persistSummary.errors.length > 0) {
     console.error(

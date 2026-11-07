@@ -124,6 +124,7 @@ describe("event mapper tests", function () {
       ddbMock.on(QueryCommand).resolves({
         Items: [],
       });
+      ddbMock.on(BatchGetCommand).resolves({});
 
       const events = [event];
 
