@@ -651,12 +651,6 @@ Resources:
         Statement:
           - Effect: Allow
             Action:
-              - "dynamodb:*"
-            Resource:
-              - !Ref InformalTimelinesForInvoicingDataTableArn
-              - !Sub "${InformalTimelinesForInvoicingDataTableArn}/*"
-          - Effect: Allow
-            Action:
               - "dynamodb:BatchGetItem"
               - "dynamodb:Query"
               - "dynamodb:GetItem"
