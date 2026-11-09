@@ -322,6 +322,12 @@ Parameters:
     Default: 'false'
     AllowedValues: [ 'true', 'false' ]
 
+  InvoicingManagerLambdaStartingPosition:
+    Type: String
+    Description: 'Starting position for the Kinesis event source mapping of InvoicingManagerLambda'
+    Default: 'LATEST'
+    AllowedValues: [ 'TRIM_HORIZON', 'LATEST' ]
+
 Conditions:
   IsWorkDaySLAViolationsValidationAlarmEnabled: !Equals
     - !Ref WorkDaySLAViolationsValidationAlarmEnabled
@@ -701,7 +707,7 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 5 minutes
       MaximumRecordAgeInSeconds: !Ref InvoicingManagerLambdaKinesisMaxAgeInSeconds
-      StartingPosition: LATEST
+      StartingPosition: !Ref InvoicingManagerLambdaStartingPosition
       DestinationConfig:
         OnFailure:
           Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"
