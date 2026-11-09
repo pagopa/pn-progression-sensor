@@ -316,6 +316,12 @@ Parameters:
     Type: CommaDelimitedList
     Description: "Comma separated list of timeline element categories that are considered invoiceable"
 
+  InvoicingManagerEventSourceMappingEnabled:
+    Type: String
+    Description: 'Enable or disable the Kinesis event source mapping of InvoicingManagerLambda'
+    Default: 'false'
+    AllowedValues: [ 'true', 'false' ]
+
 Conditions:
   IsWorkDaySLAViolationsValidationAlarmEnabled: !Equals
     - !Ref WorkDaySLAViolationsValidationAlarmEnabled
@@ -686,6 +692,7 @@ Resources:
     DependsOn:
       - InvoicingManagerLambdaPolicy
     Properties:
+      Enabled: !Ref InvoicingManagerEventSourceMappingEnabled
       BatchSize: 20
       BisectBatchOnFunctionError: true
       EventSourceArn: !Ref CdcKinesisSourceStreamArn
@@ -694,7 +701,7 @@ Resources:
         - ReportBatchItemFailures
       MaximumBatchingWindowInSeconds: 300 # 5 minutes
       MaximumRecordAgeInSeconds: !Ref InvoicingManagerLambdaKinesisMaxAgeInSeconds
-      StartingPosition: TRIM_HORIZON
+      StartingPosition: LATEST
       DestinationConfig:
         OnFailure:
           Destination: !Sub "arn:${AWS::Partition}:s3:::pn-esm-kinesis-failure-notifications-${AWS::Region}-${AWS::AccountId}"

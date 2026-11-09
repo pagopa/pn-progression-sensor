@@ -153,7 +153,7 @@ describe("event mapper tests", function () {
       const eventJSON = fs.readFileSync("./src/test/events/eventMapper.informal.timeline.closure.workflow.json");
       let event = JSON.parse(eventJSON);
       event = setCategory(event, category);
-      event.dynamodb.NewImage.details = null;
+      event.dynamodb.NewImage.details = { M: {} };
 
       const events = [event];
       const res = await mapEvents(events);

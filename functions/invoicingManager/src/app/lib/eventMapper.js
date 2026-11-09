@@ -4,7 +4,8 @@ const {
   TABLES,
   getTimelineElements,
 } = require("./repository");
-const { parseKinesisObjToJsonObj, initTtlTimes } = require("./utils");
+const { initTtlTimes } = require("./utils");
+const { unmarshall } = require("@aws-sdk/util-dynamodb");
 
 const allowedTimelineCategories = [
   // Informal categories
@@ -69,7 +70,7 @@ function processInvoicedElement(timelineObj, passedInvoicingTimestamp) {
 async function processInvoice(event, recIdxs) {
   console.log("Processing data for invoice...");
   const invoicedElements = [];
-  const timelineObj = parseKinesisObjToJsonObj(event.dynamodb.NewImage);
+  const timelineObj = unmarshall(event.dynamodb.NewImage);
   // get notificationCost from event
   // if notificationCost is defined go to the next step
   const notificationCost = timelineObj.details
