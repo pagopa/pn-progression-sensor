@@ -749,9 +749,9 @@ Resources:
       Parameters:
         FunctionName: !Ref InvoicingManagerLambda
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
-        FilterPattern: "FATAL"
+        FilterPattern: "ERROR"
         IteratorAgeEvaluationPeriods: 30 # 30 minutes
-        IteratorAgeThreshold: InvoicingManagerLambdaIteratorAgeAlarmThreshold # Default 1 hour
+        IteratorAgeThreshold: !Ref InvoicingManagerLambdaIteratorAgeAlarmThreshold # Default 1 hour
 
   #########################################################
   ###              SLAViolationCheckerLambda            ###
