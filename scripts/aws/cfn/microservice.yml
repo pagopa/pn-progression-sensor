@@ -328,6 +328,11 @@ Parameters:
     Default: 'LATEST'
     AllowedValues: [ 'TRIM_HORIZON', 'LATEST' ]
 
+  InvoicingManagerLambdaIteratorAgeAlarmThreshold:
+    Type: Number
+    Description: 'Iterator age alarm threshold for the Kinesis event source mapping of InvoicingManagerLambda'
+    Default: 3600000 # 1 hour
+
 Conditions:
   IsWorkDaySLAViolationsValidationAlarmEnabled: !Equals
     - !Ref WorkDaySLAViolationsValidationAlarmEnabled
@@ -744,6 +749,9 @@ Resources:
       Parameters:
         FunctionName: !Ref InvoicingManagerLambda
         AlarmSNSTopicArn: !Ref AlarmSNSTopicArn
+        FilterPattern: "FATAL"
+        IteratorAgeEvaluationPeriods: 30 # 30 minutes
+        IteratorAgeThreshold: InvoicingManagerLambdaIteratorAgeAlarmThreshold # Default 1 hour
 
   #########################################################
   ###              SLAViolationCheckerLambda            ###
