@@ -411,6 +411,82 @@ describe("event mapper tests", function () {
       ddbMock.reset();
     });
 
+    it("test REFINEMENT rework - only ATTEMPT_0 invalidated repeated rework (ATTEMPT_1 older than rework)", async () => {
+      ddbMock.on(BatchGetCommand).resolves({
+        Responses: {
+          "pn-Timelines": [
+            {
+              iun: "abcd",
+              timelineElementId: "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_1",
+              timestamp: "2023-02-16T09:12:05.283425635Z",
+              category: "SEND_ANALOG_DOMICILE",
+              details: { recIndex: 0 },
+              paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
+            },
+            {
+              iun: "abcd",
+              timelineElementId: "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1",
+              timestamp: "2022-01-10T09:11:38.619808042Z",
+              category: "SEND_ANALOG_DOMICILE",
+              details: { recIndex: 0 },
+              paId: "026e8c72-7944-4dcd-8668-f596447fec6d",
+            },
+          ],
+        },
+      });
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          {
+            iun: "abcd",
+            timelineElementId:
+              "NOTIFICATION_TIMELINE_REWORKED.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_1",
+            timestamp: "2022-05-02T00:00:00Z",
+            details: {
+              recIndex: 0,
+              sentAttemptMade: 0,
+              invalidatedTimelineAndStatusHistory: [
+                {
+                  relatedTimelineElements: [
+                    "SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_0",
+                    "REFINEMENT.IUN_abcd.RECINDEX_0.REWORK_0",
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const eventJSON = fs.readFileSync(
+        "./src/test/eventMapper.timeline.json",
+        "utf8"
+      );
+      let event = JSON.parse(eventJSON);
+      event = setCategory(event, "REFINEMENT");
+      setTimelineElementId(event, "REFINEMENT");
+
+      const res = await mapEvents([event]);
+
+      expect(res.length).equal(2);
+      expect(res[1].opType).equal("BULK_INSERT_REWORKED_INVOICES");
+      expect(res[1].payload.length).equal(2);
+
+      const ids = res[1].payload.map((p) => p.invoincingTimestamp_timelineElementId);
+      expect(
+        ids.some((id) =>
+          id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_0.REWORK_1")
+        )
+      ).to.be.true;
+      expect(
+        ids.some((id) =>
+          id.includes("SEND_ANALOG_DOMICILE.IUN_abcd.RECINDEX_0.ATTEMPT_1")
+        )
+      ).to.be.false;
+
+      res[1].payload.forEach((p) => expect(p.invoicingType).equal("NEW"));
+      ddbMock.reset();
+    });
+
     it("test REFINEMENT rework - only ATTEMPT_1 invalidated", async () => {
       ddbMock.on(BatchGetCommand).resolves({
         Responses: {
