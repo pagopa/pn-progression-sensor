@@ -1,0 +1,26 @@
+{
+    "Responses": {
+        "pn-Timelines": [
+            {
+                "iun": "XLDW-MQYJ-WUKA-202602-A-A",
+                "timelineElementId": "SEND_ANALOG_MESSAGE.IUN_XLDW-MQYJ-WUKA-202602-A-A.RECINDEX_0.ATTEMPT_0.DELIVERYTYPE_RS",
+                "legalFactId": [],
+                "timestamp": "2026-02-16T09:12:05.283425635Z",
+                "category": "SEND_ANALOG_MESSAGE",
+                "communicationType": "INFORMAL",
+                "statusInfo": {
+                    "statusChangeTimestamp": "2026-02-16T09:11:10.452932995Z",
+                    "actual": "PROCESSING",
+                    "statusChanged": true
+                },
+                "notificationSentAt": "2026-02-16T09:10:02.487762146Z",
+                "details": {
+                    "numberOfPages": 1,
+                    "recIndex": 1,
+                    "generatedAarUrl": "safestorage://PN_AAR-0002-V5LA-H07D-Q4H7-BJBX"
+                },
+                "paId": "026e8c72-7944-4dcd-8668-f596447fec6d"
+            }
+        ]
+    }
+}
