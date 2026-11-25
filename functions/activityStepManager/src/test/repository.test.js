@@ -1,5 +1,6 @@
 process.env.DYNAMODB_TABLE = "pn-test";
 process.env.INVOICING_DYNAMODB_TABLE = "pn-invoices-test";
+process.env.REWORKED_INVOICING_DYNAMODB_TABLE = "pn-reworked-invoices-test";
 process.env.REGION = "eu-central-1";
 
 const { mockClient } = require("aws-sdk-client-mock");
@@ -47,6 +48,10 @@ describe("repository tests", function () {
 
   before(() => {
     ddbMock = mockClient(ddbDocClient);
+  });
+
+  beforeEach(() => {
+    ddbMock.reset();
   });
 
   after(() => {
@@ -201,7 +206,7 @@ describe("repository tests", function () {
   });
 
   it("test BULK_INSERT_INVOICES", async () => {
-    ddbMock.on(BatchWriteCommand).resolves();
+    ddbMock.on(BatchWriteCommand).resolves({});
     const res = await persistEvents([
       {
         opType: "BULK_INSERT_INVOICES",
@@ -232,7 +237,7 @@ describe("repository tests", function () {
   });
 
   it("test BULK_INSERT_REWORKED_INVOICES", async () => {
-    ddbMock.on(BatchWriteCommand).resolves();
+    ddbMock.on(BatchWriteCommand).resolves({ UnprocessedItems: {} });
     const res = await persistEvents([
       {
         opType: "BULK_INSERT_REWORKED_INVOICES",
@@ -267,4 +272,35 @@ describe("repository tests", function () {
     expect(res.insertions).equal(0);
     expect(res.errors.length).equal(1);
   });
+
+  for (const [opType, tableName] of [
+    ["BULK_INSERT_INVOICES", process.env.INVOICING_DYNAMODB_TABLE],
+    ["BULK_INSERT_REWORKED_INVOICES", process.env.REWORKED_INVOICING_DYNAMODB_TABLE],
+  ]) {
+    it(`test ${opType} UNPROCESSED ITEMS`, async () => {
+      const payload = [{ timelineElementId: "ELEM1" }];
+      const unprocessedItems = {
+        [tableName]: [{ PutRequest: { Item: payload[0] } }],
+      };
+      ddbMock.on(BatchWriteCommand).resolves({
+        UnprocessedItems: unprocessedItems,
+      });
+
+      let error;
+      try {
+        await persistEvents([{ opType, payload }]);
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error).to.be.instanceOf(Error);
+      expect(error.name).equal("UnprocessedInvoices");
+      expect(error.message).equal(
+        `DynamoDB did not process all invoice writes: ${JSON.stringify(unprocessedItems)}`
+      );
+      expect(ddbMock.commandCalls(BatchWriteCommand)[0].args[0].input).deep.equals({
+        RequestItems: unprocessedItems,
+      });
+    });
+  }
 });
